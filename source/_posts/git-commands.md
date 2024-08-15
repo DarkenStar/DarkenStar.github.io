@@ -1,5 +1,6 @@
 ---
 title: Git Commands
+date: 2024/8/13 12:45:25
 tags: common
 excerpt: Here's a breakdown of the Git development workflow, starting from initialization, along with the corresponding commands
 ---

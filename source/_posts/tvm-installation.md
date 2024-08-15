@@ -1,8 +1,9 @@
 ---
 title: TVM Building on Windows
+date: 2024/8/14 23:23:25
 categories: TVM
 tags: TVM learning
-excerpt: A Record of TVM Building on Windows 
+excerpt: A Record of TVM Building on Windows
 ---
 # Preparation
 
@@ -58,7 +59,7 @@ git submodule init
 git submodule update
 ```
 
-## Modify config.cmake file 
+## Modify config.cmake file
 
 Modify ` /cmake/config.cmake`
 
