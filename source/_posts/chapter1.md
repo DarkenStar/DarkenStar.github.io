@@ -3,7 +3,7 @@ title: TVM Learning (1)-Tensor Program Abstraction in Action
 date: 2024/8/15 15:07:12
 categories: TVM
 tags: TVM learning
-excerpt: A Record of TVM Building on Windows
+excerpt: Personal notebook 1.
 mathjax: true
 katex: true
 ---
