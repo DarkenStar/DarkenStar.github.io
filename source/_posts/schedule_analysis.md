@@ -90,7 +90,7 @@ class BlockRV(Object):
 
 # Schedule Primitive
 
-`Schedule`是一组改变了计算的顺序，但保留了计算的语义的变换。它的构造函数需要一个 `IRModule`实例作为参数。我们以下面的矩阵的 element-wise乘法为例来介绍以下可鞥的变换。
+`Schedule`是一组改变了计算的顺序，但保留了计算的语义的变换。它的构造函数需要一个 `IRModule`实例作为参数。我们以下面的矩阵的 element-wise乘法为例来介绍以下可能的变换。
 
 ```python
 import tvm
