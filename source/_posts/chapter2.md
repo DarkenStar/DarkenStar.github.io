@@ -1,6 +1,6 @@
 ---
 title: TVM Learning (2)-Tensor Program Abstraction Case Study-TensorIR
-date: 2024/8/15 123:07:12
+date: 2024/8/15 23:07:12
 categories: TVM
 tags: TVM learning
 excerpt: Personal notebook 2.
