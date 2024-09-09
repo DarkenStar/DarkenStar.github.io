@@ -39,16 +39,23 @@ katex: true
 
 ## 6.2 Hiding memory latency
 
-&emsp;&emsp;一个 cell 阵列一次可以提供一个比特，那么 8 个cell阵列就可以一次提供 8 个比特，他们共享一组行地址和列地址，被称作一个 *bank*. 处理器包含一个或多个通道 (*channel*). 每个通道都是一个带有总线的内存控制器，该总线将一组 DRAM 组连接到处理器。
-&emsp;&emsp;如下图所示当两个 bank 连接到通道总线时，当第一个 bank 为另一个访问提供服务时，可以在第二个 bank 发起访问。一般来说，如果 cell 阵列访问延迟与数据传输时间之比为 R，则充分利用信道总线的数据传输带宽至少需要 R+1 个 bank 。更多的 bank 减少了针对同一 bank 的多个同时访问的概率，这种现象称为 bank 冲突 (*bank conflict*)。由于每个 bank 一次只能提供一个访问，因此这些冲突访问的单元阵列访问延迟不能再重叠。拥有更多数量的 bank 会增加这些访问分散到多个 bank 的可能性。第二个原因是每个 cell 阵列的大小限制了每个 bank 可以提供的比特数。因此第四章所说的最大化占用率还有一个额外的好处，那就是确保发出足够的内存访问请求来隐藏 DRAM 访问延迟。
+&emsp;&emsp;一个 cell 阵列一次可以提供一个比特，那么 8 个 cell 阵列就可以一次提供 8 个比特，他们共享一组行地址和列地址，被称作一个 *bank*. 处理器包含一个或多个通道 (*channel*). 每个通道都是一个带有总线的内存控制器，该总线将一组 DRAM 组连接到处理器。
+&emsp;&emsp;如下图所示当两个 bank 连接到通道总线时，当第一个 bank 为另一个访问提供服务时，可以在第二个 bank 发起访问。一般来说，如果 cell 阵列访问延迟与数据传输时间之比为 R，则充分利用信道总线的数据传输带宽至少需要 R+1 个 bank 。更多的 bank 减少了针对同一 bank 的多个同时访问的概率，这种现象称为 bank 冲突 (*bank conflict*). 由于每个 bank 一次只能译码一行字线，因此这些冲突访问的单元阵列访问延迟不能再重叠。拥有更多数量的 bank 会增加这些访问分散到多个 bank 的可能性。第二个原因是每个 cell 阵列的大小限制了每个 bank 可以提供的比特数。因此第四章所说的最大化占用率还有一个额外的好处，那就是确保发出足够的内存访问请求来隐藏 DRAM 访问延迟。
 
-分布方案存储如下图所示，通常称为交错数据分布 (*interleaved data distribution*). 对于一个 4*4 的矩阵，每输出矩阵的每个元素计算将对通道 0 中的两个 bank 以及通道 2 中的两个 bank 进行合并访问。
+![Banking Improves the Utilization of Data Transfer Bandwidth of a Channel](https://note.youdao.com/yws/api/personal/file/WEB1ca208a23c106f7778f72d2d9a329c34?method=download&shareKey=705ee6d9699bf36549f5740c33688ce0 "Banking Improves the Utilization of Data Transfer Bandwidth of a Channel")
+
+&emsp;&emsp;分布方案存储如下图所示，通常称为交错数据分布 (*interleaved data distribution*). 对于一个 4*4 的矩阵，每输出矩阵的每个元素计算将对通道 0 中的两个 bank 以及通道 2 中的两个 bank 进行合并访问。
+
+![An Example of Interleaved Data Distribution](https://note.youdao.com/yws/api/personal/file/WEB0ff74f917a82000ff47b38ea6ca53b82?method=download&shareKey=def9f25f25bee24133ae10ac5eee4696 "An Example of Interleaved Data Distribution")
 
 ## 6.3 Thread Coarsening
 
-以最细粒度并行化工作的缺点在于，并行化工作需要付出代价，例如不同线程块对数据的重复加载、冗余工作、同步开销等。如果硬件最由于资源不足而顺序执行，那么这个代价是不必要的。部分序列化工作，减少为并行性付出的代价。因此可以通过为每个线程分配多个最细粒度的工作来解决，通常被称为线程粗化 (*thread coarsening*).
+&emsp;&emsp;以最细粒度并行化工作的缺点在于，并行化工作需要付出代价，例如不同线程块对数据的重复加载、冗余工作、同步开销等。如果硬件最由于资源不足而顺序执行，那么这个代价是不必要的。部分序列化工作，减少为并行性付出的代价。因此可以通过为每个线程分配多个最细粒度的工作来解决，通常被称为线程粗化 (*thread coarsening*).
 如下图所示，在之前的 tiled 矩阵乘法里，由于共享内存内容不能跨块共享，每个块必须加载矩阵 M 的 tile 副本。因此可以让块中的每个线程处理两个输出元素。这样，粗化的线程块将加载 M 的 tile 一次，并将它们用于计算为多个输出 tile.
-下面的代码展示了线程粗化的矩阵乘法内核函数，在 `width/TILE_WIDTH` 的每次迭代中，一个线程计算原来 `COARSE_FACTOR` 个线程对应位置的输出。
+
+![Thread Coarsening for Tiled Matrix Multiplication](https://note.youdao.com/yws/api/personal/file/WEBd0127fed6f7a89006a4338bcd85b6c84?method=download&shareKey=701002f69c07f74fa723fbe036467ff9 "Thread Coarsening for Tiled Matrix Multiplication")
+
+&emsp;&emsp;下面的代码展示了线程粗化的矩阵乘法内核函数，在 `width/TILE_WIDTH` 的每次迭代中，一个线程计算原来 `COARSE_FACTOR` 个线程对应位置的输出。
 
 {% note warning %}
 使用线程粗化时要注意：
@@ -58,7 +65,7 @@ katex: true
 {% endnote %}
 
 ```cpp
-__global__
+__global__ 
 void CoarsingMatrixMulKernel(float* M, float* N, float* P, int width)
 {
 	__shared__ float Mds[TILE_WIDTH][TILE_WIDTH];
