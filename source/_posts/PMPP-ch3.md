@@ -48,8 +48,8 @@ col coordinate = blockIdx.x * blockDim.x + threadIdx.x
  &emsp;&emsp;我们将按维度的降序 `(z, y, x)` 表示多维数据。这种顺序与 `gridDim` 和 ` blockDim` 维度中数据维度的顺序相反！！！
  {% endnote %}
 
-实际上，由于现代计算机中使用二维存储空间，C 语言中的所有多维数组都是线性化的。虽然可以使用如 `Pin_d[j][i]` 这样的多维数组语法访问多维数组的元素，但编译器将这些访问转换为指向数组开始元素的基指针，以及从这些多维索引计算出的一维偏移量。
-至少有两种方法可以对二维数组进行线性化。将同一行/列的所有元素放置到连续的位置。然后将行/列一个接一个地放入内存空间中。这种排列称为行/列主序布局 (*row/column-major layout*). **CUDA C 使用行主序布局。**
+&emsp;&emsp;实际上，由于现代计算机中使用二维存储空间，C 语言中的所有多维数组都是线性化的。虽然可以使用如 `Pin_d[j][i]` 这样的多维数组语法访问多维数组的元素，但编译器将这些访问转换为指向数组开始元素的基指针，以及从这些多维索引计算出的一维偏移量。
+&emsp;&emsp;至少有两种方法可以对二维数组进行线性化。将同一行/列的所有元素放置到连续的位置。然后将行/列一个接一个地放入内存空间中。这种排列称为行/列主序布局 (*row/column-major layout*). **CUDA C 使用行主序布局。**
 
 ![Row-major Layout for a 2D C Array](https://note.youdao.com/yws/api/personal/file/WEB7aab5f499364badca84a8cf76a1793fb?method=download&shareKey=7df12b5fb5eae00c962e1a3ff98dabec "Row-major Layout for a 2D C Array")
 
@@ -76,14 +76,13 @@ void colorToGreyscaleConversion(unsigned char * Pout,
         unsigned char r = Pin[rgbOffset + 0]; // red value for pixel
         unsigned char g = Pin[rgbOffset + 1]; // green value for pixel
         unsigned char b = Pin[rgbOffset + 2]; // blue value for pixel
-        
+      
         // perform the rescaling and store it
         // We multiply by floating point constants
         Pout[grayOffset] = 0.21f*r + 0.71f*g + 0.07f*b;
     }
 }
 ```
-
 
 ## 3.3 Image blur: a more complex kernel
 
@@ -96,7 +95,7 @@ void blurKernel(unsigned char *in, unsigned char *out, int width, int height)
     int Col = threadIdx.x + blockIdx.x * blockDim.x;
     int Row = threadIdx.y + blockIdx.y * blockDim.y;
     if (Col < width && Row < height) {
-        
+      
         int pixVal = 0;
         int pixels = 0;
 
@@ -105,7 +104,7 @@ void blurKernel(unsigned char *in, unsigned char *out, int width, int height)
             for (int blurCol = -BLUR_SIZE; blurCol < BLUR_SIZE + 1; blurCol++) {
                 int curRow = Row + blurRow;
                 int curCol = Col + blurCol;
-                
+              
                 // If the pixel is within the image, add its value to the sum
                 if(curRow > -1 && curRow < height && curCol > -1 && curCol < width) {
                     pixVal += in[curRow*width + curCol];

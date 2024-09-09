@@ -15,9 +15,15 @@ katex: true
 
 &emsp;&emsp;用计算机数值计算和求解函数、模型、变量和方程的第一步是将它们转换成离散的表示形式。表示的保真度或这些近似插值技术的函数值的准确性取一方面决于网格点之间的间距:间距越小，近似越准确。离散表示的保真度还取决于所使用数字的精度。本章中将重点关注计算模式，其中模板应用于所有相关的输入网格点以生成所有网格点的输出值，这将被称为模板扫描 (*stencil sweep*).
 
+![One-dimensional Stencil Example](https://note.youdao.com/yws/api/personal/file/WEB148a72c6a7b7556806a321b46ad917b7?method=download&shareKey=72f1615fc5c62f3e23a68a3a7738feac "One-dimensional Stencil Example")
+
+![Two-dimensional & Three-dimensional Stencil Example](https://note.youdao.com/yws/api/personal/file/WEB71159c58a69685bed08948350c22dfcf?method=download&shareKey=20517947036fd220df2744f0d4fbad08 "Two-dimensional & Three-dimensional Stencil Example")
+
 ## 8.2 Parallel stencil: A Basic Algorithm
 
 &emsp;&emsp;2D 情况下输出网格的 tiling 如下图所示，其中每个线程块负责一个 `4*4` 大小的输出 tile. 一个基本的 3D stencil 内核函数如下，其中每个线程块负责计算一个输出 tile 的值，每个线程用于计算一个元素。每个线程执行13次浮点操作 (7 次乘法和 6 次加法)，并加载 7 个输入元素 (每个 4 字节)。因此，这个内核的浮点对计算访存比是 13 / (7*4) = 0.46 OP/B.
+
+![2D 5-point Stencil Tiling for Output Grid](https://note.youdao.com/yws/api/personal/file/WEBb784ac30b171fdcf2a3ec27e6b4351dd?method=download&shareKey=518a1c8267ed726cce9d05ebbe087bce "2D 5-point Stencil Tiling for Output Grid")
 
 ```cpp
 __global__ 
@@ -38,6 +44,8 @@ void stencil_kernel(float* in, float* out, unsigned int N) {
 ## 8.3 Shared Memory Tiling for Stencil Sweep
 
 &emsp;&emsp;下图展示了二维五点模板的输入和输出 tile，可以发现五点模板的输入 tile 不包括四个角落的元素。因为每个输出网格点值只使用输入 tile 的 5 个元素，而 `3*3` 卷积使用 9 个元素。而 3D 情况下七点模板相对于 `3*3*3` 卷积从将输入网格点加载到共享内存中能获得的收益更低。由于为卷积加载输入 tile 的所有策略都直接应用于模板扫描，下面给出了一个加载到共享内存版本的内核函数，线程块的大小与输入 tile 相同，在计算输出 tile 点值时没有使用部分线程。每个表达式中减去的值1是因为内核假设一个3D七点模板，每边有一个网格点
+
+![Input and Output Tiles for a 2D 5-point Stencil](https://note.youdao.com/yws/api/personal/file/WEB248ae00a16c8ed3da3dc8832ced6ebc0?method=download&shareKey=40a18c41ed91dacafbde0c5beac0aaf6 "Input and Output Tiles for a 2D 5-point Stencil")
 
 ```cpp
 #define IN_TILE_DIM 16
@@ -67,12 +75,14 @@ void stencil_shared_mem_tiling_kernel(float* in, float* out, unsigned int N) {
 }
 ```
 
-&emsp;&emsp;硬件限制每个块最大为 1024 ，使得 tile 通常比较小。一般 tile 的边长为8，因此每个块的大小为 512 个线程。相反，卷积通常用于处理二维图像，可以使用更大的 tile 尺寸 (32x32).
-第一个缺点是由于 halo cell 的开销，重用率随着 tile 大小的降低而降低。第二个缺点是它对内存合并有不利影响。对于一个 8x8x8 tile，每 warp 的线程将访问全局内存中至少四行 (8*8*8*4 bytes, 32 threads, 64 bits/bank = 4)
+&emsp;&emsp;硬件限制每个块最大为 1024 ，因此 tile 通常比较小。一般 tile 的边长为8，每个块的大小为 512 个线程。相反，卷积通常用于处理二维图像，可以使用更大的 tile 尺寸 (32x32).
+第一个缺点是由于 halo cell 的开销，重用率随着 tile 大小的降低而降低。第二个缺点是它对内存合并有不利影响。对于一个 8x8x8 tile，每 warp 的线程将访问全局内存中至少四行 (8*8*8*4 bytes, 32 threads, 64 bits/DRAM = 4)
 
 ## 8.4 Thread Coarsening
 
 &emsp;&emsp;下图假设每个输入 tile 由 6x6x6 个网格点组成。为了使输入 tile的内部可见，块的前、左和上面没有画出。假设每个输出 tile 由 4x4x4个网格点组成。分配给处理该 tile 的线程块由与输入 tile 的一个x-y平面 (即 6x6) 相同数量的线程组成。程序一开始，每个块需要将包含计算输出块平面值所需的所有点的三个输入块平面加载到共享内存中。在每次迭代期间，块中的所有线程将处理输出 tile 与迭代值相同的 z 索引对应的 x-y 平面。
+
+![Mapping of Shared Memory Array after First Iteration](https://note.youdao.com/yws/api/personal/file/WEBec24cfc7edeb84a1a010b315f5ac49e0?method=download&shareKey=edc686e7586e2c3b7f55e32af7bbd83d "Mapping of Shared Memory Array after First Iteration")
 
 ```cpp
 #define OUT_TILE_DIM IN_TILE_DIM - 2
