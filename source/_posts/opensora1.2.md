@@ -7,12 +7,95 @@ excerpt: Open-Sora 1.2 STDIT3 Analysis
 mathjax: true
 katex: true
 ---
-# Overview
+# Configuration
 
 [Open-Sora 推理网址](https://github.com/DeepLink-org/AIChipBenchmark/tree/main/llm/Open-sora)
 
+&emsp;&emsp;配置文件位于 /configs/opensora-v1-2/inference/sample.py, 可以配置的参数如下
+
+```python
+resolution = "240p"
+aspect_ratio = "9:16"
+num_frames = 51
+fps = 24
+frame_interval = 1
+save_fps = 24
+
+save_dir = "./samples/samples/"
+seed = 42
+batch_size = 1
+multi_resolution = "STDiT2"
+dtype = "bf16"
+condition_frame_length = 5
+align = 5
+
+model = dict(
+    type="STDiT3-XL/2",
+    from_pretrained="hpcai-tech/OpenSora-STDiT-v3",
+    qk_norm=True,
+    enable_flash_attn=True,
+    enable_layernorm_kernel=True,
+)
+vae = dict(
+    type="OpenSoraVAE_V1_2",
+    from_pretrained="hpcai-tech/OpenSora-VAE-v1.2",
+    micro_frame_size=17,
+    micro_batch_size=4,
+)
+text_encoder = dict(
+    type="t5",
+    from_pretrained="DeepFloyd/t5-v1_1-xxl",
+    model_max_length=300,
+)
+scheduler = dict(
+    type="rflow",
+    use_timestep_transform=True,
+    num_sampling_steps=30,
+    cfg_scale=7.0,
+)
+
+aes = 6.5
+flow = None
+```
+
+&emsp;&emsp;要生成的图像大小 `image_size` 由 `resolution` 和 `aspect_ratio` 计算。若 `aspect_ratio` 存在于 /dataset/aspect.py 预定义好的 `ASPECT_RATIO_{aspect_ratio}` 字典中，则直接取出对应的 `image_size`，计算公式如下
+
+```python
+num_pixels = int(resolution**2)
+image_size[0] = int(num_pixels/(1+aspect_ratio)*aspect_ratio)
+image_size[1] = int(num_pixels/(1+aspect_ratio))
+```
+
+&emsp;&emsp;要生成的帧数 `num_frames` 可以直接指定数字或者指定 /dataset/aspect.py 中预定义字典 `NUM_FRAMES_MAP` 里的倍数或者秒数 (fps=25.5).
+
+```python
+NUM_FRAMES_MAP = {
+    "1x": 51,
+    "2x": 102,
+    "4x": 204,
+    "8x": 408,
+    "16x": 816,
+    "2s": 51,
+    "4s": 102,
+    "8s": 204,
+    "16s": 408,
+    "32s": 816,
+}
+```
+
+&emsp;&emsp;命令行推理 (禁用 apex 和 flash-attn 需要加上 `--layernorm-kernel False --flash-attn False \`)
+
+```python
+python scripts/inference.py configs/opensora-v1-2/inference/sample.py \
+  --num-frames 4s --resolution 720p --aspect-ratio 9:16 \
+  --num-sampling-steps 30 --flow 5 --aes 6.5 \
+  --prompt "a beautiful waterfall"
+```
+
+# Overview
+
 ![Embedding](https://note.youdao.com/yws/api/personal/file/WEB3f5e72ab5eab88d7299cb9f0deba6088?method=download&shareKey=f936795c6da0572463855691cc04d85a "Embedding")
-![STDiT3Block](https://note.youdao.com/yws/api/personal/file/WEBc7afbea575846f1adeb3156544fd33c8?method=download&shareKey=56ceb35d92faee737498a9b8772bc3e0 "STDiT3Block")
+![STDiT3Block](https://note.youdao.com/yws/api/personal/file/WEBc7afbea575846f1adeb3156544fd33c8?method=download&shareKey=56ceb35d92faee737498a9b8772bc3e0 "STDiT3Block*56")
 ![Final Layer](https://note.youdao.com/yws/api/personal/file/WEBc2e69a1a684ef0c4cac56bc5d8ebccef?method=download&shareKey=30c76b9abc7d94610122c808c66d62c1 "Final Layer")
 
 # Embedder Layer
