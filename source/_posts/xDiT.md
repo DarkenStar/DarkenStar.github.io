@@ -161,9 +161,9 @@ return ranks
 
 例如在 `tp=1, sp=2, pp=4, cfg=1, dp=1` 的情况下，生成的并行组如下图所示。
 
-## 混合并行设计
+## Hybrid Parallelsim Design
 
-xDiT支持四种并行方式：PipeFusion、Sequence、Data 和 CFG Parallel。其中，Data 和 CFG Parallel在图像间并行相对简单，而 PipeFusion和 Sequence在图像内部的不同 Patch 间并行则较为复杂。能
+xDiT支持四种并行方式：PipeFusion、Sequence、Data 和 CFG Parallel。其中，Data 和 CFG Parallel在图像间并行相对简单，而 PipeFusion和 Sequence 在图像内部的不同 Patch 间并行则较为复杂。能
 
 PipeFusion 利用 Input Tempor Redundancy特点，使用过时的 KV（Stale KV）进行 Attention 计算，这使得 PipeFusion 无法像大型语言模型那样轻松地实现并行策略的混合。使用标准的序列并行接口，如RingAttention、Ulysses或 USP，无法满足 SP 与PipeFusion混合并行的需求。
 
@@ -173,7 +173,7 @@ PipeFusion 利用 Input Tempor Redundancy特点，使用过时的 KV（Stale KV�
     <img src="https://raw.githubusercontent.com/xdit-project/xdit_assets/main/methods/hybrid_pp_scheme.png" alt="hybrid process group config"  width="60%">
 </div>
 
-Standard SP Attention实现，输入Q，K，V 和输出 O 都是沿着序列维度切分，且切分方式一致。如果不同 rank 的输入 patch 没有重叠，每个 micro step 计算出 fresh KV 更新的位置在不同 rank 间也没有重叠。如下图所示，standard SP 的 KV Buffer 中黄色部分是 SP0 rank=0 拥有的 fresh KV，绿色部分是 SP1 rank=1 拥有的fresh KV，二者并不相同。在这个 diffusion step 内，device=0 无法拿到 P1,3,5,7 的 fresh KV 进行计算，但是 PipeFusion 则需要在下一个 diffusion step 中，拥有上一个diffusion step 全部的KV. standard SP 只拥有 1/sp_degree 的 fresh kv buffer，因此无法获得混合并行推理正确的结果。
+Standard SP Attention 的输入Q，K，V 和输出 O 都是沿着序列维度切分，且切分方式一致。如果不同 rank 的输入 patch 没有重叠，每个 micro step 计算出 fresh KV 更新的位置在不同 rank 间也没有重叠。如下图所示，standard SP 的 KV Buffer 中黄色部分是 SP0 rank=0 拥有的 fresh KV，绿色部分是 SP1 rank=1 拥有的fresh KV，二者并不相同。在这个 diffusion step 内，device=0 无法拿到 P1,3,5,7 的 fresh KV 进行计算，但是 PipeFusion 则需要在下一个 diffusion step 中，拥有上一个diffusion step 全部的 KV. standard SP 只拥有 1/sp_degree 的 fresh kv buffer，因此无法获得混合并行推理正确的结果。
 
 <div align="center">
     <img src="https://raw.githubusercontent.com/xdit-project/xdit_assets/main/methods/hybrid_workflow.png" alt="hybrid parallel workflow">
