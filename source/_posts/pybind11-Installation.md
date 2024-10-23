@@ -1,5 +1,6 @@
 ---
 title: pybind11-Installation
+date: 2024/10/15 10:00:12
 categories: Python-C++ Binding
 tags: pybind
 excerpt: pybind11 installation record
