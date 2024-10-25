@@ -328,6 +328,58 @@ def _split_transformer_blocks(self, transformer: nn.Module,):
     return transformer
 ```
 
+同时也会 convert 原先的 transformer backbone 为 [xFuserPixArtTransformer2DWrapper](https://github.com/xdit-project/xDiT/blob/main/xfuser/model_executor/models/transformers/pixart_transformer_2d.py#L21)，具体表现为只有 pipeline 的第一阶段进行 position embedding，最后一阶段进行 unpatchify 变为原来的图像形状。
+
+```python
+
+@xFuserTransformerWrappersRegister.register(PixArtTransformer2DModel)
+class xFuserPixArtTransformer2DWrapper(xFuserTransformerBaseWrapper):
+    def __init__(
+        self,
+        transformer: PixArtTransformer2DModel,
+    ):
+        super().__init__(
+            transformer=transformer,
+            submodule_classes_to_wrap=[nn.Conv2d, PatchEmbed],
+            submodule_name_to_wrap=["attn1"],
+        )
+
+    @xFuserBaseWrapper.forward_check_condition
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        encoder_hidden_states: Optional[torch.Tensor] = None,
+        timestep: Optional[torch.LongTensor] = None,
+        added_cond_kwargs: Dict[str, torch.Tensor] = None,
+        cross_attention_kwargs: Dict[str, Any] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        encoder_attention_mask: Optional[torch.Tensor] = None,
+        return_dict: bool = True,
+    ):  
+	'''
+	......
+	'''
+	height, width = self._get_patch_height_width()
+        # * only pp rank 0 needs pos_embed (patchify)
+        if is_pipeline_first_stage():
+            hidden_states = self.pos_embed(hidden_states)
+	'''
+	......
+	'''
+	if is_pipeline_last_stage():
+	'''
+	......
+	'''
+	else:
+	    output = hidden_states
+
+        if not return_dict:
+            return (output,)
+
+        return Transformer2DModelOutput(sample=output)
+
+```
+
 # Pipeline Execution
 
 在进行 warm up 后便会进行模型推理和采样器的去噪过程。模型推理通过调用 pipeline 的 `__call__` 方法实现。在原先 diffusers 包中的 [PixaeArtAlphaPipeline](https://github.com/huggingface/diffusers/blob/main/src/diffusers/pipelines/pixart_alpha/pipeline_pixart_alpha.py) 基础上做了一些修改。我们直接看修改的部分。
@@ -759,7 +811,7 @@ else:
     num_chunks_in_w = (w + self.block_size - 1) // self.block_size  # w ...
     unit_chunk_size_h = h // num_chunks_in_h
     unit_chunk_size_w = w // num_chunks_in_w
-    
+  
 outputs = []
 for idx_h in range(num_chunks_in_h):
     inner_output = []
@@ -787,3 +839,4 @@ for idx_h in range(num_chunks_in_h):
     outputs.append(torch.cat(inner_output, dim=-1))
 return torch.cat(outputs, dim=-2)
 
+```

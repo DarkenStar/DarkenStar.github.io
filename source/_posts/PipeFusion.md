@@ -53,9 +53,9 @@ PipeFusion 是一种利用多 GPU 并行来进行 DiT 模型推理的方法。
 ## Sequence Parallelism & Tensor Parallelism
 
 &emsp;&emsp;针对 LLM 提出的张量并行 (tensor parallelism, TP) 和序列并行 (sequence parallelism, SP) 可以应用于 DiT 推理。因为他们的主干都是 Transformer.
-在 TP 中，权重矩阵按列被切分为 *N* 份，这样矩阵乘法后激活值也被切分成 *N* 份，使得每个设备的参数量和激活量均为原来的 1/N. 在 attention 计算和 FFN 层之后都需要进行两次同步 all-reduce 操作，因此每一层通信量为 4O(p × hs).
+在 TP[^1] 中，权重矩阵按列被切分为 *N* 份，这样矩阵乘法后激活值也被切分成 *N* 份，使得每个设备的参数量和激活量均为原来的 1/N. 在 attention 计算和 FFN 层之后都需要进行两次同步 all-reduce 操作，因此每一层通信量为 4O(p × hs).
 
-&emsp;&emsp;在 SP 中，可以将输入图像分割成 patch，DiT 中的多头注意模块可以采用 Ring-Attention，DeepSpeed-Ulysses，或者两者的组合。Ulysses SP 并行需要 4 次 all-to-all 操作，因此每一层通信量为 4O(p × hs), 和 TP 相同。
+&emsp;&emsp;在 SP 中，可以将输入图像分割成 patch，DiT 中的多头注意模块可以采用 Ring-Attention[^2]，DeepSpeed-Ulysses[^3]，或者两者的组合。Ulysses SP 并行需要 4 次 all-to-all 操作，因此每一层通信量为 4O(p × hs), 和 TP 相同。
 
 > TP 和 SP 可以在 DiT 推理中一起使用。
 
@@ -63,7 +63,7 @@ PipeFusion 是一种利用多 GPU 并行来进行 DiT 模型推理的方法。
 
 &emsp;&emsp;输入时间冗余意味着给定层中激活 patch 的计算并不完全取决于其他 patch 的最新激活。在前一个扩散步骤中加入稍微过时的激活是可行的。该方法将输入图像划分为 N 个patch，每个设备计算其各自 patch 的输出结果。 如下图所示 attention 模块需要具有完整形状的 KV 激活。它采用异步 all-gather 收集上一步扩散步骤的 KV 激活，并用其进行当前步的 attention 计算。
 
-&emsp;&emsp;DistriFusion 可以看作是异步 SQ 的一种形式。它通过正向计算扩散步骤来隐藏 KV 通信，但代价是消耗更多内存。DistriFusion 利用 N-1/N 的 T+1 步的 KV 激活和 T 步的 1/N 的局部 KV 激活相结合。与 Ring-Attention 相比，DistriFusion 可以更有效地隐藏通信开销，因为它允许 KV 通信与扩散步骤的整个前向计算重叠，而 Ring-Attention 只允许通信在注意模块内部重叠。
+&emsp;&emsp;DistriFusion[^4] 可以看作是异步 SQ 的一种形式。它通过正向计算扩散步骤来隐藏 KV 通信，但代价是消耗更多内存。DistriFusion 利用 N-1/N 的 T+1 步的 KV 激活和 T 步的 1/N 的局部 KV 激活相结合。与 Ring-Attention 相比，DistriFusion 可以更有效地隐藏通信开销，因为它允许 KV 通信与扩散步骤的整个前向计算重叠，而 Ring-Attention 只允许通信在注意模块内部重叠。
 
 ![DistriFusion vs. Ring-Attention SQ for an Attention Module](https://note.youdao.com/yws/api/personal/file/WEB9a64239185e8b3604db9a46098203d05?method=download&shareKey=eab8f5ec3cff754ab7711e87333e8797 "DistriFusion vs. Ring-Attention SQ for an Attention Module")
 
@@ -182,3 +182,11 @@ PipeFusion 是一种利用多 GPU 并行来进行 DiT 模型推理的方法。
 PipeFusion 行为更像单纯的 Pipeline Parallel，利用上一步的 KV 完成当前步的计算，P2P 通信的是自己所处 stage 的激活 (与切分的 patch 数成反比)，与 transformer block 的层数无关。
 
 [xDiT的分析中](https://darkenstar.github.io/2024/09/27/xDiT/#Construct-Parallel-Groups)提到过将并行维度从小到大可以分为 TP-SP-PP-CFG-DP，其中 CFG 和 DP 实际上是对 数据的 batchsize 维度进行切分，PP 的大小取决于划分的 patch 数，每个 stage 的 transformer block 计算的时候可以进一步再进行 SP 和 TP.
+
+
+# References
+
+[^1]: https://darkenstar.github.io/2024/10/02/MegatronLM/
+[^2]: https://darkenstar.github.io/2024/09/26/Ring_Attention/
+[^3]: https://darkenstar.github.io/2024/10/21/Deepseed%20Ulysses/
+[^4]: https://darkenstar.github.io/2024/10/23/DistriFusion/

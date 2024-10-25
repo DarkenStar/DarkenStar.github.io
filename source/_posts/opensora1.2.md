@@ -430,6 +430,8 @@ class Attention(nn.Module):
 
 &emsp;&emsp;这里选择把 B 和 N 维度合并看作一个序列的长度，把计算交叉注意力转换成计算自注意力的过程([xformers.ops.memory_efficient_attention](https://facebookresearch.github.io/xformers/_modules/xformers/ops/fmha.html#memory_efficient_attention))。因此计算噪声和 prompt 的交叉注意力之前加入分块对角掩码 ([BlockDiagonalMask](https://facebookresearch.github.io/xformers/_modules/xformers/ops/fmha/attn_bias.html#BlockDiagonalMask))，标出 batch 中每个 q 和 kv 分别的 sequence 长度。
 
+![Block Diagonal Mask](https://note.youdao.com/yws/api/personal/file/WEB50d575a78f8831989f0962ec53ea02ba?method=download&shareKey=570c5b3c1769bbbbef7bac31ec2331dc "Block Diagonal Mask")
+
 ```python
 class MultiHeadCrossAttention(nn.Module):
     def __init__(self, d_model, num_heads, attn_drop=0.0, proj_drop=0.0):
