@@ -1,6 +1,6 @@
 ---
 title: pybind11-Installation
-date: 2024/10/15 10:00:12
+date: 2024/12/02 15:20:12
 categories: Python-C++ Binding
 tags: pybind
 excerpt: pybind11 installation record
@@ -13,118 +13,63 @@ pybind11 是一个轻量级的纯头文件库，可以在 Python 中公开 C++ �
 
 > pybind11 is a lightweight header-only library that exposes C++ types in Python and vice versa, mainly to create Python bindings of existing C++ code. Its goals and syntax are similar to the excellent Boost.Python library by David Abrahams: to minimize boilerplate code in traditional extension modules by inferring type information using compile-time introspection.
 
-# Installation
+# Git Clone Source Code
 
-1. 选择要安装的 conda 环境并执行
+首先在你想下载的文件夹下(我的是 `D:\`) git clone pybind11 的源码后进行构建，并运行测试用例
 
 ```bash
-pip install pybind11
+git clone https://github.com/pybind/pybind11.git
+cd pybind11
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release --target check
 ```
 
-通过 PyPI 来下载 Pybind11 的 Python 包，里面包含了源码已经CMake文件。
+如果没有报错则安装成功
 
-2. 创建一个 C++ 文件 example.cpp 用于测试
+# Visual Studio Project Properties Configuration
 
-```C++
-#include <pybind11/pybind11.h>
-namespace py = pybind11
+创建一个 Visual Studio 的一个空项目，并新建一个 .cpp 文件，以一个简单的加法程序作为测试
 
+```cpp
+#include"pybind11/pybind11.h"
 
 int add(int i, int j) {
     return i + j;
 }
 
 PYBIND11_MODULE(example, m) {
-    m.doc() = "pybind11 example plugin";  // 可选的模块文档字符串
-    m.def("add", &add, "A function which adds two numbers");
+    m.doc() = "TestPybind plugin";
+    m.def("add", &add, "A function that adds two integers");
 }
 ```
 
-3. 创建 CMakeLists.txt 用于编译
+接着我们打开项目的 Property Pages (属性页)，修改 Configuration Type 为 Dynamic Library(.dll)
 
-```cmake
-cmake_minimum_required(VERSION 3.4)
-project(example)
+![Configuration Type](https://note.youdao.com/yws/api/personal/file/WEBc899c7ae6555c5350aa0552639832df1?method=download&shareKey=32e95705185dd0d926c832a9d7894285 "Configuration Type")
 
-set(CMAKE_CXX_STANDARD 11)
+{% note info %}
+这里需要注意我们要使上一行 Target Name (默认和 ProjectName 相等) 和 `PYBIND11_MODULE` 的模块名一致，否则后面从 python import 时候会报错。
+{% endnote %}
 
-# 设置 Python 路径
-set(Python_EXECUTABLE "D:/Work/Anaconda/envs/pytorch/python.exe")
-set(Python_INCLUDE_DIRS "D:/Work/Anaconda/envs/pytorch/include")
-set(Python_LIBRARIES "D:/Work/Anaconda/envs/pytorch/libs/python3.12.lib") # 替换为实际 python 版本
+然后在 Advanced 中修改后缀名称为 .pyd
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development)
+![Target File Extension](https://note.youdao.com/yws/api/personal/file/WEB3157936ceabae45bba0942113730f1d7?method=download&shareKey=359620a4deb60a22105eace5a412f310 "Target File Extension")
 
-set(pybind11_DIR "D:/Work/Anaconda/envs/pytorch/Lib/site-packages/pybind11/share/cmake/pybind11")
-find_package(pybind11 REQUIRED)
+接着我们需要在 C/C++ 的 General 选项卡中添加 python 和 pybind11 的包含目录，我是通过 miniconda 安装的 python，因此 python.h 所在的包含目录位置为 `C:\Users\$(UserName)\miniconda3\include`. pybind11 的包含目录在刚才 git clone 源码的文件夹下 `D:\pybind11\include`
 
-pybind11_add_module(example example.cpp)
-```
+![Additional Include Directories](https://note.youdao.com/yws/api/personal/file/WEBf8dbe9524a2884d432a37e74f42865eb?method=download&shareKey=99b52578a779fe100736f36709a0f225 "Additional Include Directories")
 
-- `Python_xxx` 路径，在 anaconda prompt 激活对应环境后执行 `echo %CONDA_PREFIX%` 会返回环境地址，之后再加上对应的 executable, include, libraries 路径
-- `pybind11_DIR` 可以使用 `python -m pybind11 --cmakedir` 获取 pybind11 的路径。
+![Add python & pybind11 include Directories](https://note.youdao.com/yws/api/personal/file/WEB812be16a1deefe9a72e87ee433d243b7?method=download&shareKey=bdd01c679498e701324c4e4a8cddca37 "Add python & pybind11 include Directories")
 
-3. 进行构建
+然后在 Linker 的 General 选项卡中添加 python 的库目录 (前文已经说过 pybind11 是一个 header—only 库) `C:\Users\$(UserName)\miniconda3\libs` 
 
-```bash
-mkdir build
-cd build
-cmake --build . --config Release
-```
+![Additional Library Directories](https://note.youdao.com/yws/api/personal/file/WEB59d1852e15cfb3c91f569b08213e22ac?method=download&shareKey=2413a1377116273ecf26de07d7dbca74 "Additional Library Directories")
 
-成功后会在 `build/Release` 下生成 .pyd 后缀的 python 扩展模块文件
+![Add python Library Directories](https://note.youdao.com/yws/api/personal/file/WEB6979ba5b4c026a5d7b4e749ea2492f02?method=download&shareKey=d114804fa69efd7c11f291ac0ddcaea1 "Add python Library Directories")
 
-4. 导入模块进行测试
 
-方法 1：将 `.pyd` 文件放入 Python 工作目录
+右键项目进行 build，成功后会在项目目录下的 `x64\Debug` 文件夹下 生成 .pyd 文件，可以在命令行中进行测试。
 
-1. **移动 `.pyd` 文件** ： 将 `example.cp312-win_amd64.pyd` 文件移动到你的 Python 项目目录或者 Python 的 `site-packages` 目录。在 `site-packages` 目录中，Python 会自动识别并加载这些模块。
-   找到你的 `site-packages` 目录路径，可以在 Python 中运行以下命令：
-
-```python
-   import site
-   print(site.getsitepackages())
-```
-
-   然后，将 `.pyd` 文件移动到输出路径中的其中一个目录。
-
-```bash
-   move E:\example\Project1\build\Release\example.cp312-win_amd64.pyd D:\Work\Anaconda\envs\pytorch\Lib\site-packages\
-```
-
-方法 2：在代码中动态添加路径
-
-如果不想移动文件，可以在代码中动态添加模块文件的路径。
-
-```python
-import sys
-import os
-
-# 将 .pyd 文件所在的目录添加到 sys.path
-sys.path.append(r"E:\example\Project1\build\Release")  # 替换为实际路径
-
-import example
-
-# 测试
-result = example.add(3, 5)
-print(result)  # 应输出 8
-```
-
-Docker 容器中的 SSL 证书验证失败
-
-```bash
-apt-get update --allow-releaseinfo-change
-apt-get install --reinstall ca-certificates
-update-ca-certificates
-```
-
-import jax 时候报错
-
-当前安装的 `jax` 版本是 `0.4.29`，而 `opt-einsum` 的版本是 `3.4.0`
-
-将 `opt-einsum` 降级到 `3.3.0`：
-
-```bash
-pip install opt-einsum==3.3.0
-
-```
+![Test Module](https://note.youdao.com/yws/api/personal/file/WEBb5c3df3e13e95ccc9250a15c90233b6c?method=download&shareKey=5fc5f0db83ca30c9d0e3d705de285f0c "Test Module")
