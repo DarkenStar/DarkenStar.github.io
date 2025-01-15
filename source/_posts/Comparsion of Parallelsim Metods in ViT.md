@@ -63,11 +63,17 @@ LayerNorm (共计 4bsh): 需要存储该层的输入，占用 2bsh bytes. 一共
 
 # Tensor Parallelsim
 
-[Megatron 张量并行](https://harkenstar.github.io/2024/10/02/MegatronLM/#Model-Parallel-Transformers) 的思想是将输入进行连续的两个矩阵乘法的第一个按列切分成 t 份，第二个按行切分成 t 份. 在 Transformer block 中体现为利用多头注意力本身的并行性将 Attention 计算中的 QKV 按列进行切分，O Linear 的权重按行进行切分；MLP 中第一个线性层的权重按列进行切分，第二个权重按行进行切分。
+[Megatron 张量并行](https://darkenstar.github.io/2024/10/02/MegatronLM/#Model-Parallel-Transformers) 的思想是将输入进行连续的两个矩阵乘法的第一个按列切分成 t 份，第二个按行切分成 t 份. 在 Transformer block 中体现为利用多头注意力本身的并行性将 Attention 计算中的 QKV 按列进行切分，O Linear 的权重按行进行切分；MLP 中第一个线性层的权重按列进行切分，第二个权重按行进行切分。
 
 在这种并行方式下，前向传播和反向传播均需要进行 2 次 All-Reduce 通信，由于每次 All-Reduce 通信可以看作 Reduce-Scatter + All-Gather, 因此每次每个设备的通信量为 8αbsh bytes，其中 α=(n-1)/n.
 
 对于激活，2*LayerNorm, QKV Linear 的输入, O dropout mask，MLP 第一层的输入和 MLP dropout 不会被切分，因此每个设备每个 block 要占用的激活为 bsh(10+24/n+5as/(hn))
+
+2D Tensor Parallelsim
+
+2D张量并行将激活第一个矩阵的列切分成 m*n 份，第二个权重 (权重形状为 he) 的行被切分成 m 份，列被切分成 n 份。以下图为例，Rank0-Rank2为通信组 x，Rank0-Rank1为 通信组 y. 第一个矩阵经过一次通信组 y 的 AllGather 后与本设备第二个矩阵进行矩阵乘积，得到的部分和经过一次通信组 x 间的ReduceScatter，计算出正确结果。第一次 AllGather 通信每个设备通信的大小为 bsh(n-1)/(mn). 第二次 ReduceScatter 通信每个设备通信的大小为 bse(m-1)/n.
+
+
 
 # Megatron Sequence Parallelsim
 
@@ -364,7 +370,7 @@ def trace_stage_mhlo_graph(self, check_res=False):
         #for i in range(30):
         start = sum(self.parent_pipeline.pipeline_patches_height_list[:self.stage_id - 1]) if self.stage_id != 0 else 0
         end = start + self.parent_pipeline.pipeline_patches_height_list[self.stage_id]
-      
+    
         if self.stage_id == 0:
             outputs = self._forward([self.trace_tensors[0][...,start:end,:]] + self.trace_tensors[1:], xla_mesh)  # outputs is a list
         else:
@@ -459,7 +465,7 @@ def visit_dot(self, node):
                     self.ffn_block_dots.append(node)
                     self.ffn_dot_cnt += 1
             else:
-                if self.ffn_dot_cnt < 2:                   
+                if self.ffn_dot_cnt < 2:                 
                     self.ffn_block_dots.append(node)
                     self.ffn_dot_cnt += 1
         # Traversal of one block
@@ -473,7 +479,7 @@ def visit_dot(self, node):
             self.spt_att_dot_cnt = 0
             self.spt_dot_cnt = 0
             self.ffn_dot_cnt = 0
-          
+        
             self.att_block_dots = []
             self.ffn_block_dots = []
 
@@ -564,7 +570,7 @@ class Gate_ResAdd():
       # {name:{type:"", size:"", ishape:[], wshape:[]/None, oshape:[]}}
       self.ops = {}
       self.construct_model()
-    
+  
   def construct_model(self):
       GB = 2**30
       ResAdd_input_shape = [self.config['B'], self.config['S_Q'], self.config['D_O']]
