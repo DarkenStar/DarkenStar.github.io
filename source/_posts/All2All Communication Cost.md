@@ -19,6 +19,24 @@ katex: true
 \begin{aligned}T_{ring}&=\quad\sum_{i=1}^{p-1}(t_{s}+t_{w}m(p-i))\\&=\quad t_{s}(p-1)+\sum_{i=1}^{p-1}it_{w}m\\&=\quad(t_{s}+t_{w}mp/2)(p-1).\end{aligned}
 {% endmathjax %}
 
+环状网络中每份消息的平均传输跳数是 {% mathjax %} \frac{\sum_{d=1}^{p-1}i}{p-1} = p/2 {% endmathjax %}，因此 p 个节点总共的通信量之和为 {% mathjax %} p\times m(p-1)\times\frac p2 {% endmathjax %} 环状网络中总的链路数目为 p. 因此负载平均的情况下，最少需要的时间为 {% mathjax %} \frac{m(p-1)\times\frac p2\times p}p = m(p-1)\frac p2 {% mathjax %}，因此算法时间为最优的。
+
+跳数为 d 的消息数量对应于相距 d 的节点对 (i, j)，其中 |i-j|=d 
+- (0, d),(1, d+1), \ldots,(p-1-d, p-1)，即 i 从 0 到 p-1-d, j=i+d ，共有 p-d 对。
+- (d, 0),(d+1,1), \ldots,(p-1, p-1-d)，即  i  从  d  到  p-1, ~ j=i-d  ，也有 p-d 对。
+总共有 2(p-d) 条消息的跳数为 d
+
+总跳数
+{% mathjax %}
+\begin{aligned}
+\text { 总跳数 } & =\sum_{d=1}^{p-1} d \times 2(p-d) \\
+& =2 \sum_{d=1}^{p-1} d(p-d)=2\left(p \sum_{d=1}^{p-1} d-\sum_{d=1}^{p-1} d^{2}\right) \\
+& = p \cdot \frac{(p-1) p}{2}-\frac{(p-1) p(2 p-1)}{6} \\
+& = =\frac{(p-1) p(p+1)}{6}
+\end{aligned}
+{% endmathjax %}
+因此平均跳数 {% mathjax %}=\frac{\text { 总跳数 }}{\text { 总消息数 }}=\frac{\frac{(p-1) p(p+1)}{3}}{p(p-1)}=\frac{p+1}{3}{% endmathjax %}
+
 ## Mesh
 
 若 p 个设备组成大小为 {% mathjax %}\sqrt{p} \times \sqrt{p}{% endmathjax %}  的 mesh 进行 All2All 通信，每个设备首先将其 p 个数据按照目的设备的列进行分组，即分成  {% mathjax %}\sqrt{p} {% endmathjax %} 组，每组包含大小为 {% mathjax %}m\sqrt{p} {% endmathjax %} 的消息。假设 3x3 的 mesh，则第一组消息的目的节点为 {0,3,6}，第二组消息的目的节点为 {1,4,7}，第三组消息的目的节点为 {2,5,8}
@@ -62,3 +80,56 @@ T_{hcube}=(t_{s}+t_{w}mp/2)\log p.
 {% mathjax %}
 T_{xor}=(t_{s}+t_{w}m)(p-1).
 {% endmathjax %}
+
+# Bruck Algorithm in Full-connected Network
+
+Bruck是一种存储-转发 (store-and-forward) 算法，需要 log(P) 次通信步骤。这意味着发送缓冲区 S 和接收缓冲区 R 都用于在中间通信轮次中发送、接收和存储数据。因为某些接收到的数据块必须在后续通信步骤中使用。这种存储-转发的特性对通信轮次的顺序提出了约束。与线性步骤实现不同，Bruck 必须保持明确的通信顺序，其中第 i+1 次迭代必须在第 i 次迭代之后物理时间上发生。
+![Bruck](https://note.youdao.com/yws/api/personal/file/WEB1b5aaffb71ec91ead2f725d9249728f1?method=download&shareKey=e4eea75f3b72f77982d47b17590c24b3 "Bruck")
+
+```plaintext
+Algorithm 2 NCCL Bruck algorithm
+P ← total number of processes.
+for i ∈ [0, P] do
+   R[i] = S[(p+i) % P] // S and R are send and receive buffers, and p is rank id of each process;
+end for
+allocate temporary buffer T with SC × (P+1) / 2 elements; // SC is number of elements per data-block.
+for k = 1; k < P; k <<= 1 do
+   allocate send indexes array SB with (P+1) / 2 integers;
+   number of send data-blocks NB ← 0;
+   for i ∈ [k, P] do
+      if i & k then
+            SB[NB] ← i;
+            copy R[i] into T[NB];
+            NB ← NB + 1;
+      end if
+      sendproc ← (p + k) % P;
+      recvproc ← (p - k + P) % P;
+      ncclGroupStart()
+      send data in T to sendproc;
+      receive data from recvproc into S;
+      ncclGroupEnd()
+      for i ∈ [0, SB] do
+            copy T[i] into R[SB[i]];
+      end for
+   end for
+   for i ∈ [0, P] do
+      R[i] = R[(p - i + P) % P] // final rotation;
+   end for
+end for
+```
+- line(2-4): 将每个设备发送缓冲区 S 中的数据按照 rank 偏移重新排列拷贝到接收缓冲区 R 中。
+- line(5): 为通信阶段准备一个临时缓冲区 T
+- line(6): 通信步开始 k 以指数方式增长 (1, 2, 4, ...)，总共执行 logP 次迭代
+  - line(7-14): 用索引数组 SB，记录需要发送的数据块位置。遍历 k~P-1 同通过对 i&k 判断哪些数据块需要在此轮发送. (若 P 是 2 的指数幂，因为 k 是 2 的指数幂，因此只有一位为 1，那么就是每轮发送 p/2 个数据块) 将接收缓冲区 R 中满足条件的数据拷贝到临时缓冲区 T，并记录索引。
+  - line(15-16): 确定要接收和发送的目标。
+  - line(17-20): 进行通信操作，将数据发送到目标的发送缓冲区。
+  - line(21-23): 更新接收缓冲区。
+  - line(25-27): 反向调整接收缓冲区数据的位置。
+
+总共 log(p) 步骤每步发送 m 消息。
+
+# Tree-based 
+
+![Tree](https://note.youdao.com/yws/api/personal/file/WEB6ed5f5f2681e4f2c3a57bfb7b901515a?method=download&shareKey=7aafd92596dbc981100138525e0f6d09 "Tree")
+
+采用先在行上进行 All-gather, 再在列上进行 Scatter. 也需要 log(p) 步，其中 gather 阶段第一步通信量为 m(p-1)，一共进行 0.5log(p) 步每一步通信量翻倍，scatter阶段则是相反，因此两步的通信量相同，总计 2m(p-1)(sqrt(p)-1).
