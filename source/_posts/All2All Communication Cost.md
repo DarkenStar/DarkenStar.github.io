@@ -132,4 +132,4 @@ end for
 
 ![Tree](https://note.youdao.com/yws/api/personal/file/WEB6ed5f5f2681e4f2c3a57bfb7b901515a?method=download&shareKey=7aafd92596dbc981100138525e0f6d09 "Tree")
 
-采用先在行上进行 All-gather, 再在列上进行 Scatter. 也需要 log(p) 步，其中 gather 阶段第一步通信量为 m(p-1)，一共进行 0.5log(p) 步每一步通信量翻倍，scatter阶段则是相反，因此两步的通信量相同，总计 2m(p-1)(sqrt(p)-1).
+采用先在行上进行 All-gather, 再在列上进行 Scatter. 也需要 log(p) 步，其中 gather 阶段第一步通信量为 m(p-1)，一共进行 0.5log(p) 步每一步通信量翻倍，跳数也翻倍；scatter阶段则是相反，因此两步的通信时间相同总共 t_s*log(p) + *m(p-1)^2/3
