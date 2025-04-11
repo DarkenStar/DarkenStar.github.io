@@ -19,7 +19,7 @@ katex: true
 \begin{aligned}T_{ring}&=\quad\sum_{i=1}^{p-1}(t_{s}+t_{w}m(p-i))\\&=\quad t_{s}(p-1)+\sum_{i=1}^{p-1}it_{w}m\\&=\quad(t_{s}+t_{w}mp/2)(p-1).\end{aligned}
 {% endmathjax %}
 
-环状网络中每份消息的平均传输跳数是 {% mathjax %} \frac{\sum_{d=1}^{p-1}i}{p-1} = p/2 {% endmathjax %}，因此 p 个节点总共的通信量之和为 {% mathjax %} p\times m(p-1)\times\frac p2 {% endmathjax %} 环状网络中总的链路数目为 p. 因此负载平均的情况下，最少需要的时间为 {% mathjax %} \frac{m(p-1)\times\frac p2\times p}p = m(p-1)\frac p2 {% mathjax %}，因此算法时间为最优的。
+环状网络中每份消息的平均传输跳数是 {% mathjax %} \frac{\sum_{d=1}^{p-1}i}{p-1} = p/2 {% endmathjax %}，因此 p 个节点总共的通信量之和为 {% mathjax %} p\times m(p-1)\times\frac p2 {% endmathjax %} 环状网络中总的链路数目为 p. 因此负载平均的情况下，最少需要的时间为 {% mathjax %} \frac{m(p-1)\times\frac p2\times p}p = m(p-1)\frac p2 {% endmathjax %}，因此算法时间为最优的。
 
 跳数为 d 的消息数量对应于相距 d 的节点对 (i, j)，其中 |i-j|=d 
 - (0, d),(1, d+1), \ldots,(p-1-d, p-1)，即 i 从 0 到 p-1-d, j=i+d ，共有 p-d 对。
@@ -132,4 +132,4 @@ end for
 
 ![Tree](https://note.youdao.com/yws/api/personal/file/WEB6ed5f5f2681e4f2c3a57bfb7b901515a?method=download&shareKey=7aafd92596dbc981100138525e0f6d09 "Tree")
 
-采用先在行上进行 All-gather, 再在列上进行 Scatter. 也需要 log(p) 步，其中 gather 阶段第一步通信量为 m(p-1)，一共进行 0.5log(p) 步每一步通信量翻倍，跳数也翻倍；scatter阶段则是相反，因此两步的通信时间相同总共 t_s*log(p) + *m(p-1)^2/3
+采用先在行上进行 All-gather, 再在列上进行 Scatter. 也需要 log(p) 步，其中 gather 阶段第一步通信量为 m(p-1)，一共进行 0.5log(p) 步每一步通信量翻倍，跳数也翻倍；scatter阶段则是相反，因此两步的通信时间相同总共 t_s*log(p) + m(p-1)^2/3
