@@ -1,1 +1,1 @@
-my hugo blog
+# Personal hugo blog
