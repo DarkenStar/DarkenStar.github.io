@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>PMPP Learning-Chapter 13 Sorting | WITHER</title>
+<meta name="keywords" content="CUDA">
+<meta name="description" content="Personal notebook 13 of Programming Massively Parallel">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch13/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a3afc927e13c8d8d72138af4254aadf37b5653f96e325fea8d50c85abdca381a.css" integrity="sha256-o6/JJ&#43;E8jY1yE4r0JUqt83tWU/luMl/qjVDIWr3KOBo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch13/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch13/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="PMPP Learning-Chapter 13 Sorting">
+  <meta property="og:description" content="Personal notebook 13 of Programming Massively Parallel">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-09-14T13:36:12+08:00">
+    <meta property="article:modified_time" content="2024-09-14T13:36:12+08:00">
+    <meta property="article:tag" content="PMPP Learning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="PMPP Learning-Chapter 13 Sorting">
+<meta name="twitter:description" content="Personal notebook 13 of Programming Massively Parallel">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Course Learning",
+      "item": "http://localhost:1313/blogs/courselearning/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "Programming Massive Parallel",
+      "item": "http://localhost:1313/blogs/courselearning/pmpp/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  4 ,
+      "name": "PMPP Learning-Chapter 13 Sorting",
+      "item": "http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch13/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "PMPP Learning-Chapter 13 Sorting",
+  "name": "PMPP Learning-Chapter 13 Sorting",
+  "description": "Personal notebook 13 of Programming Massively Parallel",
+  "keywords": [
+    "CUDA"
+  ],
+  "articleBody": "13 Sorting 排序算法将列表中的数据元素按一定的顺序排列。\n13.1 Background 任何排序算法都必须满足以下两个条件:\n输出是非递减顺序或非递增顺序。 输出是输入的一种排列 (permutation). 排序算法可以分为稳定算法和不稳定算法。当两个元素具有相同的键值时，稳定的排序算法保留了原始的出现顺序。 排序算法也可以分为基于比较的算法和非基于比较的算法。基于比较的排序算法无法达到比 O(NlogN) 更好的复杂度，因为它们必须在元素之间执行最少次数的比较。\n13.2 Radix Sort 基数排序是一种基于非比较的排序算法，其工作原理是根据基数值将要排序的键分布到桶 (bucket) 中。如果键由多个数字组成，则重复对每个数字重复分配桶，直到覆盖所有数字。 下图展示了如何使用 1 位基数对 4 位整数列表进行基数排序。\nA Radix Sort Example\n13.3 Parallel Radix Sort 基数排序的每次迭代都依赖于前一次迭代的整个结果。因此，迭代是相对于彼此顺序执行的。我们将重点关注执行单个基数排序迭代的内核的实现，并假设主机代码每次迭代调用该内核一次。 在 GPU 上并行化基数排序迭代的一种直接方法是让每个线程负责输入列表中的一个键。线程必须确定键在输出列表中的位置，然后将键存储到该位置。 下图展示了这种并行化方法第一次迭代的执行情况。对于映射到 0 桶的键，目标索引可以通过如下公式计算： $$\r\\begin{align*} \\text{destination of a zero} \u0026= \\text{\\#zeros before} \\\\\r\u0026=\\text{\\#keys before} - \\text{\\#ones before} \\\\\r\u0026=\\text{key index}-\\text{\\#ones before}\r\\end{align*}\r$$对于映射到 1 桶的键，目标索引如下所示:\n$$\r\\begin{align*}\r\\text{destination of a one}\u0026=\\text{\\#zeros in total}+\\text{\\#ones before} \\\\\r\u0026=(\\text{\\#keys in total}-\\text{\\#ones in total})+\\text{\\#ones before} \\\\\r\u0026=\\text{input size}-\\text{\\#ones in total}+\\text{\\#ones before}\r\\end{align*}\r$$\rParallelizing a Radix Sort Iteration by Assigning One Input Key to Each Thread\n下图展示了每个线程查找其键的目标索引所执行的操作。\nFinding the Destination of Each Input Key\n对应的内核代码如下所示。在每个线程确定自己的索引并提取出对应的 bit 后，因为这些位不是 0 就是 1，所以排除扫描的结果就等于索引前面 1 的个数。\n__global__ void exclusiveScan(unsigned int* bits, int N) { extern __shared__ unsigned int temp[]; int thid = threadIdx.x; int offset = 1; // Load input into shared memory temp[2 * thid] = (2 * thid \u003c N) ? bits[2 * thid] : 0; temp[2 * thid + 1] = (2 * thid + 1 \u003c N) ? bits[2 * thid + 1] : 0; // Build sum in place up the tree for (int d = N \u003e\u003e 1; d \u003e 0; d \u003e\u003e= 1) { __syncthreads(); if (thid \u003c d) { int ai = offset * (2 * thid + 1) - 1; int bi = offset * (2 * thid + 2) - 1; temp[bi] += temp[ai]; } offset *= 2; } // Clear the last element if (thid == 0) { temp[N - 1] = 0; } // Traverse down the tree for (int d = 1; d \u003c N; d *= 2) { offset \u003e\u003e= 1; __syncthreads(); if (thid \u003c d) { int ai = offset * (2 * thid + 1) - 1; // left child index of the thread int bi = offset * (2 * thid + 2) - 1; // right unsigned int t = temp[ai]; temp[ai] = temp[bi]; temp[bi] += t; } } // Write results to output array __syncthreads(); if (2 * thid \u003c N) bits[2 * thid] = temp[2 * thid]; if (2 * thid + 1 \u003c N) bits[2 * thid + 1] = temp[2 * thid + 1]; } __global__ void radix_sort_iter(unsigned int* input, unsigned int* output, unsigned int* bits, int N, unsigned int iter) { unsigned int i = blockIdx.x * blockDim.x + threadIdx.x; unsigned int key, bit; if (i \u003c N) { key = input[i]; bit = (key \u003e\u003e iter) \u0026 1; bits[i] = bit; } exclusiveScan(bits, N); // # ones before if (i \u003c N) { unsigned int numberOnesBefore = bits[i]; unsigned int numberOnesTotal = bits[N]; unsigned int dst = (bit == 0) ? (i - numberOnesBefore) : (N - numberOnesTotal - numberOnesBefore); output[dst] = key; } } 13.4 Optimizing for Memory Coalescing 上面方法效率低下的一个主要原因是，对输出数组的写入显示出不能以内存合并的模式访问。改进后的算法如下图所示，每个块中的线程将首先执行块级别的局部排序，以分离共享内存中映射到 0 bucket 的键和映射到 1 bucket 的键。此优化中的主要挑战是每个线程块在全局 bucket 中确定其位置。线程块的 0 桶的位置在前面线程块的所有 0 桶之后。另一方面，线程块的 1 桶的位置在所有线程块的 0 桶和之前线程块的所有 1 桶之后。\nOptimizing for Memory Coalescing by Sorting Locally in Shared Memory\n下图展示了如何使用排除扫描来查找每个线程块的本地桶的位置的。在完成局部基数排序之后，每个线程块标识其每个自己桶中键的数量。然后每个块将结果记录在如图中所示的表中，该表按行主顺序存储，对线性化的表执行排除扫描，结果表示线程块的本地 bucket 的起始位置。\nFinding the Destination of Each Thread Block's Local Buckets\n#define SECTION_SIZE 32 __global__ void memory_coalescing_radix_sort(unsigned int* input, unsigned int* output, unsigned int* bits, unsigned int* table, int N, int iter) { __shared__ unsigned int input_s[SECTION_SIZE]; __shared__ unsigned int output_s[SECTION_SIZE]; // Load input into shared memory unsigned int globalIdx = blockIdx.x * blockDim.x + threadIdx.x; if (globalIdx \u003c N) { input_s[threadIdx.x] = input[globalIdx]; } __syncthreads(); // Sort each section radix_sort_iter(input_s, output_s, bits + blockIdx.x * SECTION_SIZE, SECTION_SIZE, iter); __syncthreads(); // Store local bucket num if (threadIdx.x == 0) { unsigned int numberOnesTotal = 0; unsigned int numberZerosTotal = 0; for (int i = 0; i \u003c SECTION_SIZE; ++i) { numberOnesTotal += bits[blockIdx.x * SECTION_SIZE + i]; } numberZerosTotal = SECTION_SIZE - numberOnesTotal; table[blockIdx.x] = numberZerosTotal; table[blockIdx.x + gridDim.x] = numberOnesTotal; } __syncthreads(); // Exclusive prefix sum to determine output index exclusiveScan(table, 2 * gridDim.x); // Write results to output array if (globalIdx \u003c N) { int zeroOffset = table[blockIdx.x]; int oneOffset = table[blockIdx.x + gridDim.x]; unsigned int bit = bits[blockIdx.x * SECTION_SIZE + threadIdx.x]; unsigned int dst = (bit == 0) ? (globalIdx - zeroOffset) : (N - oneOffset); output[dst] = input[globalIdx]; } } 13.5 Choice of Radix Value 使用 2 bit 的基数时，如下图所示，每次迭代使用两个比特将键分发到存储桶。因此，两次迭代就可以对 4 bit 键进行完全排序。\nRadix Sort Example with 2-bit Radix\n为了内存合并访问，如下图所示，每个线程块可以在共享内存中对其键进行本地排序，然后将每个本地桶中的键的数量写入表中。和 13.4 节一样，对于 r 位基数，对具有 2^r 行的表执行排除扫描操作。最后以合并的方式将本地 bucket 写入全局内存。\nOptimizing 2-bit Radix Sorting for Memory Coalescing Using the Shared Memory\n使用更大的基数也有缺点\n每个线程块有更多的本地桶，每个桶有更少的键。这样就会向多个全局内存块进行写入，但每一部分写入的数据变少，不利于内存合并。 进行排除扫描的表会随着基数的增大而变大，扫描的开销随着基数的增加而增加。 Finding the Destination of Each Block's Local Buckets for a 2-bit Radix\n13.6 Thread Coarsening to Improve Coalescing 跨多个线程块并行化基数排序的一个代价是对全局内存的写的访问合并很差。每个线程块都有自己的本地桶，并将其写入全局内存。拥有更多的线程块意味着每个线程块拥有更少的键，这意味着本地存储桶将更小，从而在将它们写入全局内存时合并机会更少。另一个代价是执行全局排除扫描以识别每个线程块的本地桶的存储位置的开销。通过应用线程粗化，可以减少块的数量，从而减少表的大小和排除扫描操作的开销。 下图展示了如何将线程粗化应用于 2 位基数排序。每个线程被分配给输入列表中的多个键。\nRadix Sort for a 2-bit Radix with Thread Coarsening\n13.7 Parallel Merge Sort ",
+  "wordCount" : "2080",
+  "inLanguage": "en",
+  "datePublished": "2024-09-14T13:36:12+08:00",
+  "dateModified": "2024-09-14T13:36:12+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch13/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/">Course Learning</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/pmpp/">Programming Massive Parallel</a></div>
+    <h1 class="post-title entry-hint-parent">
+      PMPP Learning-Chapter 13 Sorting
+    </h1>
+    <div class="post-description">
+      Personal notebook 13 of Programming Massively Parallel
+    </div>
+    <div class="post-meta"><span title='2024-09-14 13:36:12 +0800 CST'>Sep-14-2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;2080 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#13-sorting" aria-label="13 Sorting">13 Sorting</a><ul>
+                            
+                    <li>
+                        <a href="#131-background" aria-label="13.1 Background">13.1 Background</a></li>
+                    <li>
+                        <a href="#132-radix-sort" aria-label="13.2 Radix Sort">13.2 Radix Sort</a></li>
+                    <li>
+                        <a href="#133-parallel-radix-sort" aria-label="13.3 Parallel Radix Sort">13.3 Parallel Radix Sort</a></li>
+                    <li>
+                        <a href="#134-optimizing-for-memory-coalescing" aria-label="13.4 Optimizing for Memory Coalescing">13.4 Optimizing for Memory Coalescing</a></li>
+                    <li>
+                        <a href="#135-choice-of-radix-value" aria-label="13.5 Choice of Radix Value">13.5 Choice of Radix Value</a></li>
+                    <li>
+                        <a href="#136-thread-coarsening-to-improve-coalescing" aria-label="13.6 Thread Coarsening to Improve Coalescing">13.6 Thread Coarsening to Improve Coalescing</a></li>
+                    <li>
+                        <a href="#137-parallel-merge-sort" aria-label="13.7 Parallel Merge Sort">13.7 Parallel Merge Sort</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="13-sorting">13 Sorting<a hidden class="anchor" aria-hidden="true" href="#13-sorting">#</a></h1>
+<p>排序算法将列表中的数据元素按一定的顺序排列。</p>
+<h2 id="131-background">13.1 Background<a hidden class="anchor" aria-hidden="true" href="#131-background">#</a></h2>
+<p>任何排序算法都必须满足以下两个条件:</p>
+<ul>
+<li>输出是非递减顺序或非递增顺序。</li>
+<li>输出是输入的一种排列 (permutation).</li>
+</ul>
+<p>排序算法可以分为稳定算法和不稳定算法。当两个元素具有相同的键值时，稳定的排序算法保留了原始的出现顺序。
+排序算法也可以分为基于比较的算法和非基于比较的算法。基于比较的排序算法无法达到比 O(NlogN) 更好的复杂度，因为它们必须在元素之间执行最少次数的比较。</p>
+<h2 id="132-radix-sort">13.2 Radix Sort<a hidden class="anchor" aria-hidden="true" href="#132-radix-sort">#</a></h2>
+<p>基数排序是一种基于非比较的排序算法，其工作原理是根据基数值将要排序的键分布到桶 (bucket) 中。如果键由多个数字组成，则重复对每个数字重复分配桶，直到覆盖所有数字。
+下图展示了如何使用 1 位基数对 4 位整数列表进行基数排序。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB25b04d30be5a63b12bfdbb3093994f44?method=download&amp;shareKey=92a8bec7bdc022c628a42bd27a54086b" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB25b04d30be5a63b12bfdbb3093994f44?method=download&amp;shareKey=92a8bec7bdc022c628a42bd27a54086b" alt="A Radix Sort Example">
+    </a><figcaption>A Radix Sort Example</figcaption></figure></p>
+<h2 id="133-parallel-radix-sort">13.3 Parallel Radix Sort<a hidden class="anchor" aria-hidden="true" href="#133-parallel-radix-sort">#</a></h2>
+<p>基数排序的每次迭代都依赖于前一次迭代的整个结果。因此，迭代是相对于彼此顺序执行的。我们将重点关注执行单个基数排序迭代的内核的实现，并假设主机代码每次迭代调用该内核一次。
+在 GPU 上并行化基数排序迭代的一种直接方法是让每个线程负责输入列表中的一个键。线程必须确定键在输出列表中的位置，然后将键存储到该位置。
+下图展示了这种并行化方法第一次迭代的执行情况。对于映射到 0 桶的键，目标索引可以通过如下公式计算：
+</p>
+$$
+\begin{align*} 
+\text{destination of a zero} &=  \text{\#zeros before} \\
+&=\text{\#keys before} - \text{\#ones before} \\
+&=\text{key index}-\text{\#ones before}
+\end{align*}
+$$<p>对于映射到 1 桶的键，目标索引如下所示:</p>
+$$
+\begin{align*}
+\text{destination of a one}&=\text{\#zeros in total}+\text{\#ones before} \\
+&=(\text{\#keys in total}-\text{\#ones in total})+\text{\#ones before} \\
+&=\text{input size}-\text{\#ones in total}+\text{\#ones before}
+\end{align*}
+$$<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBa8ef27e147df1b0c4de80ee951d9f79d?method=download&amp;shareKey=c3797389c4f43d2d3ec67d06eef347f3" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBa8ef27e147df1b0c4de80ee951d9f79d?method=download&amp;shareKey=c3797389c4f43d2d3ec67d06eef347f3" alt="Parallelizing a Radix Sort Iteration by Assigning One Input Key to Each Thread">
+    </a><figcaption>Parallelizing a Radix Sort Iteration by Assigning One Input Key to Each Thread</figcaption></figure></p>
+<p>下图展示了每个线程查找其键的目标索引所执行的操作。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBb99f77f6611178972cecd41b56175600?method=download&amp;shareKey=3c54c366645f7a1dadda9f884843f70a" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBb99f77f6611178972cecd41b56175600?method=download&amp;shareKey=3c54c366645f7a1dadda9f884843f70a" alt="Finding the Destination of Each Input Key">
+    </a><figcaption>Finding the Destination of Each Input Key</figcaption></figure></p>
+<p>对应的内核代码如下所示。在每个线程确定自己的索引并提取出对应的 bit 后，因为这些位不是 0 就是 1，所以排除扫描的结果就等于索引前面 1 的个数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">__global__</span> 
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">exclusiveScan</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="o">*</span> <span class="n">bits</span><span class="p">,</span> <span class="kt">int</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">extern</span> <span class="n">__shared__</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">temp</span><span class="p">[];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">thid</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Load input into shared memory
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">temp</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="o">?</span> <span class="n">bits</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span><span class="p">]</span> <span class="o">:</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">temp</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="o">?</span> <span class="n">bits</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">:</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Build sum in place up the tree
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">d</span> <span class="o">=</span> <span class="n">N</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span><span class="p">;</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span> <span class="n">d</span> <span class="o">&gt;&gt;=</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">thid</span> <span class="o">&lt;</span> <span class="n">d</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="kt">int</span> <span class="n">ai</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="kt">int</span> <span class="n">bi</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="n">temp</span><span class="p">[</span><span class="n">bi</span><span class="p">]</span> <span class="o">+=</span> <span class="n">temp</span><span class="p">[</span><span class="n">ai</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">offset</span> <span class="o">*=</span> <span class="mi">2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Clear the last element
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">thid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">temp</span><span class="p">[</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Traverse down the tree
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">d</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">d</span> <span class="o">*=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">offset</span> <span class="o">&gt;&gt;=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">thid</span> <span class="o">&lt;</span> <span class="n">d</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="kt">int</span> <span class="n">ai</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// left child index of the thread
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="kt">int</span> <span class="n">bi</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// right
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">t</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="n">ai</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">            <span class="n">temp</span><span class="p">[</span><span class="n">ai</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="n">bi</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">            <span class="n">temp</span><span class="p">[</span><span class="n">bi</span><span class="p">]</span> <span class="o">+=</span> <span class="n">t</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Write results to output array
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="n">bits</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="n">bits</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">thid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">radix_sort_iter</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="o">*</span> <span class="n">input</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span><span class="o">*</span> <span class="n">output</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span><span class="o">*</span> <span class="n">bits</span><span class="p">,</span> <span class="kt">int</span> <span class="n">N</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">iter</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">key</span><span class="p">,</span> <span class="n">bit</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">key</span> <span class="o">=</span> <span class="n">input</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="n">bit</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span> <span class="o">&gt;&gt;</span> <span class="n">iter</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="n">bits</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">bit</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="n">exclusiveScan</span><span class="p">(</span><span class="n">bits</span><span class="p">,</span> <span class="n">N</span><span class="p">);</span>  <span class="c1">// # ones before
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">numberOnesBefore</span> <span class="o">=</span> <span class="n">bits</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">numberOnesTotal</span> <span class="o">=</span> <span class="n">bits</span><span class="p">[</span><span class="n">N</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">dst</span> <span class="o">=</span> <span class="p">(</span><span class="n">bit</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="n">numberOnesBefore</span><span class="p">)</span> <span class="o">:</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="n">numberOnesTotal</span> <span class="o">-</span> <span class="n">numberOnesBefore</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="n">output</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="134-optimizing-for-memory-coalescing">13.4 Optimizing for Memory Coalescing<a hidden class="anchor" aria-hidden="true" href="#134-optimizing-for-memory-coalescing">#</a></h2>
+<p>上面方法效率低下的一个主要原因是，对输出数组的写入显示出不能以内存合并的模式访问。改进后的算法如下图所示，每个块中的线程将首先执行块级别的局部排序，以分离共享内存中映射到 0 bucket 的键和映射到 1 bucket 的键。此优化中的主要挑战是每个线程块在全局 bucket 中确定其位置。线程块的 0 桶的位置在前面线程块的所有 0 桶之后。另一方面，线程块的 1 桶的位置在所有线程块的 0 桶和之前线程块的所有 1 桶之后。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBf574d6d0c92edf4dc69026e429cc9f87?method=download&amp;shareKey=37e73d2ec0d91af6e330c10db179d93a" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBf574d6d0c92edf4dc69026e429cc9f87?method=download&amp;shareKey=37e73d2ec0d91af6e330c10db179d93a" alt="Optimizing for Memory Coalescing by Sorting Locally in Shared Memory">
+    </a><figcaption>Optimizing for Memory Coalescing by Sorting Locally in Shared Memory</figcaption></figure></p>
+<p>下图展示了如何使用排除扫描来查找每个线程块的本地桶的位置的。在完成局部基数排序之后，每个线程块标识其每个自己桶中键的数量。然后每个块将结果记录在如图中所示的表中，该表按行主顺序存储，对线性化的表执行排除扫描，结果表示线程块的本地 bucket 的起始位置。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBea305ebe970559e5fae76374c79ee2f7?method=download&amp;shareKey=1a6535297a6a2fbccbeed23f7a25eeb6" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBea305ebe970559e5fae76374c79ee2f7?method=download&amp;shareKey=1a6535297a6a2fbccbeed23f7a25eeb6" alt="Finding the Destination of Each Thread Block&rsquo;s Local Buckets">
+    </a><figcaption>Finding the Destination of Each Thread Block&#39;s Local Buckets</figcaption></figure></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#define SECTION_SIZE 32
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">memory_coalescing_radix_sort</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="o">*</span> <span class="n">input</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span><span class="o">*</span> <span class="n">output</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span><span class="o">*</span> <span class="n">bits</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span><span class="o">*</span> <span class="n">table</span><span class="p">,</span> <span class="kt">int</span> <span class="n">N</span><span class="p">,</span> <span class="kt">int</span> <span class="n">iter</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">__shared__</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">input_s</span><span class="p">[</span><span class="n">SECTION_SIZE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="n">__shared__</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">output_s</span><span class="p">[</span><span class="n">SECTION_SIZE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Load input into shared memory
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">globalIdx</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">globalIdx</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">input_s</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">input</span><span class="p">[</span><span class="n">globalIdx</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Sort each section
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">radix_sort_iter</span><span class="p">(</span><span class="n">input_s</span><span class="p">,</span> <span class="n">output_s</span><span class="p">,</span> <span class="n">bits</span> <span class="o">+</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">SECTION_SIZE</span><span class="p">,</span> <span class="n">SECTION_SIZE</span><span class="p">,</span> <span class="n">iter</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Store local bucket num
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">numberOnesTotal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">numberZerosTotal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">SECTION_SIZE</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">numberOnesTotal</span> <span class="o">+=</span> <span class="n">bits</span><span class="p">[</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">SECTION_SIZE</span> <span class="o">+</span> <span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">numberZerosTotal</span> <span class="o">=</span> <span class="n">SECTION_SIZE</span> <span class="o">-</span> <span class="n">numberOnesTotal</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">table</span><span class="p">[</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">numberZerosTotal</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">table</span><span class="p">[</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">gridDim</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">numberOnesTotal</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Exclusive prefix sum to determine output index
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">exclusiveScan</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">gridDim</span><span class="p">.</span><span class="n">x</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Write results to output array
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">globalIdx</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">int</span> <span class="n">zeroOffset</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">int</span> <span class="n">oneOffset</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">gridDim</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">bit</span> <span class="o">=</span> <span class="n">bits</span><span class="p">[</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">SECTION_SIZE</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">dst</span> <span class="o">=</span> <span class="p">(</span><span class="n">bit</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="p">(</span><span class="n">globalIdx</span> <span class="o">-</span> <span class="n">zeroOffset</span><span class="p">)</span> <span class="o">:</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="n">oneOffset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">output</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="n">input</span><span class="p">[</span><span class="n">globalIdx</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="135-choice-of-radix-value">13.5 Choice of Radix Value<a hidden class="anchor" aria-hidden="true" href="#135-choice-of-radix-value">#</a></h2>
+<p>使用 2 bit 的基数时，如下图所示，每次迭代使用两个比特将键分发到存储桶。因此，两次迭代就可以对 4 bit 键进行完全排序。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBaa1313e289f139eb041b02b86260874b?method=download&amp;shareKey=6a9fbd43b0fe2c1926459a7a6ba87d92" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBaa1313e289f139eb041b02b86260874b?method=download&amp;shareKey=6a9fbd43b0fe2c1926459a7a6ba87d92" alt="Radix Sort Example with 2-bit Radix">
+    </a><figcaption>Radix Sort Example with 2-bit Radix</figcaption></figure></p>
+<p>为了内存合并访问，如下图所示，每个线程块可以在共享内存中对其键进行本地排序，然后将每个本地桶中的键的数量写入表中。和 13.4 节一样，对于 r 位基数，对具有 2^r 行的表执行排除扫描操作。最后以合并的方式将本地 bucket 写入全局内存。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB7943d691aa80d8cf1d4cc9d9055dad8c?method=download&amp;shareKey=b1c724f7996b46a5b15f81c91d6a88d3" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB7943d691aa80d8cf1d4cc9d9055dad8c?method=download&amp;shareKey=b1c724f7996b46a5b15f81c91d6a88d3" alt="Optimizing 2-bit Radix Sorting for Memory Coalescing Using the Shared Memory">
+    </a><figcaption>Optimizing 2-bit Radix Sorting for Memory Coalescing Using the Shared Memory</figcaption></figure></p>
+<p>使用更大的基数也有缺点</p>
+<ol>
+<li>每个线程块有更多的本地桶，每个桶有更少的键。这样就会向多个全局内存块进行写入，但每一部分写入的数据变少，不利于内存合并。</li>
+<li>进行排除扫描的表会随着基数的增大而变大，扫描的开销随着基数的增加而增加。</li>
+</ol>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB3df7c81b854884404a6b583c1fbb99fa?method=download&amp;shareKey=82b507cb68c828d45eb81bf4b8be6e5a" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB3df7c81b854884404a6b583c1fbb99fa?method=download&amp;shareKey=82b507cb68c828d45eb81bf4b8be6e5a" alt="Finding the Destination of Each Block&rsquo;s Local Buckets for a 2-bit Radix">
+    </a><figcaption>Finding the Destination of Each Block&#39;s Local Buckets for a 2-bit Radix</figcaption></figure></p>
+<h2 id="136-thread-coarsening-to-improve-coalescing">13.6 Thread Coarsening to Improve Coalescing<a hidden class="anchor" aria-hidden="true" href="#136-thread-coarsening-to-improve-coalescing">#</a></h2>
+<p>跨多个线程块并行化基数排序的一个代价是对全局内存的写的访问合并很差。每个线程块都有自己的本地桶，并将其写入全局内存。拥有更多的线程块意味着每个线程块拥有更少的键，这意味着本地存储桶将更小，从而在将它们写入全局内存时合并机会更少。另一个代价是执行全局排除扫描以识别每个线程块的本地桶的存储位置的开销。通过应用线程粗化，可以减少块的数量，从而减少表的大小和排除扫描操作的开销。
+下图展示了如何将线程粗化应用于 2 位基数排序。每个线程被分配给输入列表中的多个键。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBc83cef230dd49ea34fafa2da625e2181?method=download&amp;shareKey=551310570976f664cdbd714653b982b2" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBc83cef230dd49ea34fafa2da625e2181?method=download&amp;shareKey=551310570976f664cdbd714653b982b2" alt="Radix Sort for a 2-bit Radix with Thread Coarsening">
+    </a><figcaption>Radix Sort for a 2-bit Radix with Thread Coarsening</figcaption></figure></p>
+<h2 id="137-parallel-merge-sort">13.7 Parallel Merge Sort<a hidden class="anchor" aria-hidden="true" href="#137-parallel-merge-sort">#</a></h2>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/pmpp-learning/">PMPP Learning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch14/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>PMPP Learning-Chapter 14 Sparse Matrix Computation</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/">
+    <span class="title">Next »</span>
+    <br>
+    <span>PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 13 Sorting on x"
+            href="https://x.com/intent/tweet/?text=PMPP%20Learning-Chapter%2013%20Sorting&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch13%2f&amp;hashtags=PMPPlearning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 13 Sorting on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch13%2f&amp;title=PMPP%20Learning-Chapter%2013%20Sorting&amp;summary=PMPP%20Learning-Chapter%2013%20Sorting&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch13%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 13 Sorting on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch13%2f&title=PMPP%20Learning-Chapter%2013%20Sorting">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 13 Sorting on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch13%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 13 Sorting on telegram"
+            href="https://telegram.me/share/url?text=PMPP%20Learning-Chapter%2013%20Sorting&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch13%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

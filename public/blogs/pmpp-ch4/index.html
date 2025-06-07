@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>PMPP Learning-Chapter 4 Compute Architecture and Scheduling | WITHER</title>
+<meta name="keywords" content="CUDA">
+<meta name="description" content="Personal notebook 3 of Programming Massively Parallel">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/pmpp-ch4/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.57fd86fa03777cde771f7b2a41cf80559337875129cb3387f67260e81f43454c.css" integrity="sha256-V/2G&#43;gN3fN53H3sqQc&#43;AVZM3h1EpyzOH9nJg6B9DRUw=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/pmpp-ch4/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/pmpp-ch4/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="PMPP Learning-Chapter 4 Compute Architecture and Scheduling">
+  <meta property="og:description" content="Personal notebook 3 of Programming Massively Parallel">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-09-05T09:18:11+08:00">
+    <meta property="article:modified_time" content="2024-09-05T09:18:11+08:00">
+    <meta property="article:tag" content="PMPP Learning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="PMPP Learning-Chapter 4 Compute Architecture and Scheduling">
+<meta name="twitter:description" content="Personal notebook 3 of Programming Massively Parallel">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "PMPP Learning-Chapter 4 Compute Architecture and Scheduling",
+      "item": "http://localhost:1313/blogs/pmpp-ch4/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "PMPP Learning-Chapter 4 Compute Architecture and Scheduling",
+  "name": "PMPP Learning-Chapter 4 Compute Architecture and Scheduling",
+  "description": "Personal notebook 3 of Programming Massively Parallel",
+  "keywords": [
+    "CUDA"
+  ],
+  "articleBody": "Compute Architecture and Scheduling 本章介绍 GPU 计算架构，并说明灵活资源分配、块调度和占用的概念。然后将深入讨论线程调度、延迟容忍、控制发散和同步。\n4.1 Architecture of a modern GPU 下图展示了 CUDA GPU 架构，它被组织成一个流式多处理器 (Streaming Multiprocessors, SMs) 数组。每个 SM 都有几个处理单元，称为流处理器或 CUDA core (简称为 core)，如图中 SMs 内部的小块所示，它们共享控制逻辑和内存资源。\nSMs 还带有不同的片上存储结构，统称为内存。GPU 还带有千兆字节的片外设备内存，称为全局内存 (global memory).\n虽然旧的GPU使用 DDR DRAM，但从 NVIDIA 的 Pascal 架构开始 GPU 可能使用HBM (High-Bandwidth Memory) 或 HBM2，它们由 DRAM 模块组成，与GPU紧密集成在同一个封装中。\n4.2 Block Scheduling 当调用内核时，CUDA runtime 系统启动执行内核代码的线程网格，块中的所有线程同时分配给同一个的 SM. 下图中每个 SM 分配了三个块，但是块需要占用硬件资源来执行，因此同时只能将有限数量的块分配给给定的 SM. 为了确保网格中的所有块都得到执行，runtime 系统维护一个需要执行的块列表，并在先前分配的块完成执行后再将新块分配给 SMs. 以块为基本单元将线程分配给 SMs 保证了同一块中的线程在同一SM上同时被调度。\n4.3 Synchronization and Transparent Scalability CUDA 允许同一块中的线程使用 barrier 同步函数 __syncthreads() 来协调其行动。下图展示了屏障同步的执行情况，箭头表示线程各自执行运行的时间。弯曲线标记了每个线程开始执行 __syncthreads() 的时间。弯曲线右侧的空白区域表示每个线程等待所有线程完成所需的时间。竖线标志着最后一个线程执行 __syncthreads() 的时间，之后所有线程都被允许继续执行 __syncthreads() 之后的代码。\n不要在分支语句中使用 __syncthreads()\n放在 if 语句中时，块中的所有线程要么全执行包含 __syncthreads() 的路径，要么都不执行。 if-else 语句中的两个分支都存在，块中的所有线程要么全执行 if 情况下的 __syncthreads() 的路径，要么全执行 else 下的路径。 系统需要确保所有参与 barrier 同步的线程都能访问足够资源以到达 barrier. 否则，那些到达不了线程可能会导致死锁。因此只有当 runtime 系统确保了块中所有线程有完成执行所需的所有资源时，一个块才能开始执行。 通过禁止不同块中的线程一起执行 barrier 同步，CUDA runtime 系统可以以任何顺序执行块。如下图所示，在只有少量执行资源的系统中，一次执行两个块。反之，可以同时执行多个块。这种在不同硬件上使用不同数量的执行资源执行相同的代码的能力被称为透明可扩展性 (transparent scalability)\n4.4 Warps and SIMD Hardware 当一个块被分配给一个 SM 时，它会被进一步划分为 32 个线程为一组的单元，称为 warp. 在 SMs 中，warp 是线程调度的单位。下图展示了一个划分的例子。\n由多维度的线程组成的块，将被投影到线性化的行主布局中来划分。线性布局是以 (z, y, x) 坐标升序的方式排列。下图展示了一个大小为 4*4 块的线性化视图。前 4 个线程的 threadIdx.y 为 0，它们以 threadIdx.x 升序的方式排列。\nSM 是单指令多数据 (SIMD) 模型，按顺序执行所有线程，warp 中的所有线程同时执行一条指令。下图展示了 SM 中的内核如何被分组为处理块，其中每 8 个内核构成一个处理块 (processing block) 并共享一个指令获取/调度单元。同一 warp 中的线程被分配到相同的处理块，该处理块获取指令并让 warp 中的所有线程对各自负责数据的部分执行该指令。这种设计允许较小比例的硬件专注于控制，而较大比例的硬件专注于提高计算吞吐量。\n4.5 Control divergence 当同一 warp 中的线程执行不同的路径时，这些线程的行为被称作控制发散 (control divergence). 下图展示了一个 warp 在遇到分支语句时的执行方式，即通过两次 pass (执行代码的阶段) 来分别执行 then-path 和 else-path，最终实现所有线程的汇合。\nPascal 及之前架构中，warp 需要顺序执行两个 pass，一个 pass 执行完才能开始下一个 pass。 Pass 1： 线程 0-23 执行 then-path 的代码 A，线程 24-31 处于 inactive 状态。 Pass 2： 线程 24-31 执行 else-path 的代码 B，线程 0-23 处于 inactive 状态。 Pass 3： 所有线程汇合，执行后续代码 C。 Volta 及之后架构中，warp 可以同时执行两个 pass，不同的线程可以交错执行不同的代码路径。 Pass 1： 线程 0-23 开始执行 A 的第一个指令，线程 24-31 开始执行 B 的第一个指令。 Pass 2： 线程 0-23 执行 A 的第二个指令，线程 24-31 执行 B 的第二个指令。 … Pass N： 线程 0-23 执行完 A 的所有指令，线程 24-31 执行完 B 的所有指令。 Pass N+1： 所有线程汇合，执行后续代码 C。 发散也可能出现在其他控制流中。下图展示了 warp 如何执行发散 for 循环。通常来说如果判断条件基于 threadIdx 的值，那么控制语句可能会导致线程发散。由于线程总数需要是线程块大小的倍数，而数据大小可以是任意的，因此具有线程控制发散的控制流程很常见。由以上两个例子可以看出不能假设 warp 中的所有线程都具有相同的执行时间。如果 warp 中的所有线程都必须完成执行的一个阶段，然后才能继续前进，则必须使用 barrier 同步机制 (如 __syncwarp() )来确保正确性。\n控制发散对性能的影响随着被处理向量大小的增加而减小。例如对于长度为 100 的向量，4个 warp 中有 1 个将会控制发散 (25%)；对于大小为1000的矢量，32 个 warp 中只有 1 个将会控制发散 (3.125%).\n4.6 Warp scheduling and latency tolerance 当将线程分配给 SMs 时，分配给 SM 的线程通常比 SM 中 core 的个数还要多，导致每个 SM 只能同时执行分配给它的所有线程的一部分。当要由 warp 执行的指令需要等待先前启动的操作的结果时，不会选择该 warp 执行。而是选择执行另一个不用等待先前指令结果的 warp。这种用其他线程的工作填充某些线程操作延迟时间的机制通常称为延迟容忍 (latency tolerance) 或者延迟隐藏 (latency hiding). 而选择准备执行的 warp 不会在执行时间线中引入任何空闲或浪费的时间的策略被称为零开销线程调度 (zero-overhead thread scheduling). 这种容忍长操作延迟的能力是 GPU 不像 CPU 那样为缓存和分支预测机制分配那么多芯片面积的主要原因，因此可以更专注于浮点数计算和内存读取。\nThreads, Context-switching, and Zero-overhead Scheduling 之前介绍过线程由程序的代码、正在执行的代码中的指令、变量的值和数据结构组成。在基于冯·诺伊曼模型的计算机中，程序的代码存储在存储器中。PC (Program Counter) 跟踪正在执行的程序指令的地址。IR (Instruction Register) 保存正在执行的指令。寄存器和内存保存变量和数据结构的值。 现代处理器的设计允许上下文切换 (Context-switching)，多个线程可以通过轮流执行的方式分时复用一个处理器。通过保存和恢复 PC 值以及寄存器和内存的内容，可以暂停线程的执行，并在稍后正确恢复线程的执行。不过保存和恢复寄存器内容可能会增加大量执行时间。 传统的 CPU 从一个线程切换到另一个线程需要将执行状态 (例如被切换线程的寄存器内容) 保存到内存中，稍后再从内存中加载，这样会产生空闲周期。GPU SMs 通过在硬件寄存器中保存指定 warp 的所有执行状态来实现零开销调度，因此不需要保存和恢复状态。 4.7 Resource partitioning and occupancy 给 SM 分配其所支持的最大 warp 数并不总是可行。分配给 SM 的 warp 数量与其支持的 warp 数量之比称为占用率 (occupancy). 例如，Ampere A100 GPU 每个 SM 最多支持 32 个 block，每个 SM 最多支持 64 个 warp (2048 个线程)，每个 block 最多支持 1024 个线程。意味着块大小可以从 641024 不等，每个 SM 分别可以有 322 个块。在这些情况下，分配给SM的线程总数为2048，这使占用率最大化。 SM 中的执行资源包括寄存器、共享内存线程块槽 (每个 SM 最大能被分配的线程块数量) 和线程槽 (每个线程块最大能被分配的线程数量)，这些资源在线程之间动态分配。资源的动态分配可能导致他们之间相互制约，使得资源利用不足。\n硬件资源支持的影响。当每个块有32个线程时。Ampere A100 GPU 会将 2048 个线程槽分配给 64 个块。然而 Volta SM 只支持 32 个线程块槽，导致占用率只有 50%. 当每个块的最大线程数不能整除块大小时。当块大小为 768，SM 将只能容纳 2 个线程块 (1536个线程)，剩下512个线程槽未使用，占用率为 75%. 寄存器资源限制对占用率的影响。Ampere A100 GPU 允许每个 SM 最多占有 65,536个寄存器。为了达到满占用率每个线程不应该使用超过 32 个寄存器。 这种限制导致资源使用的轻微增加可能导致并行性和性能的显著降低，称为 performance cliff. ",
+  "wordCount" : "3028",
+  "inLanguage": "en",
+  "datePublished": "2024-09-05T09:18:11+08:00",
+  "dateModified": "2024-09-05T09:18:11+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/pmpp-ch4/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      PMPP Learning-Chapter 4 Compute Architecture and Scheduling
+    </h1>
+    <div class="post-description">
+      Personal notebook 3 of Programming Massively Parallel
+    </div>
+    <div class="post-meta"><span title='2024-09-05 09:18:11 +0800 CST'>Sep-05-2024</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;3028 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#compute-architecture-and-scheduling" aria-label="Compute Architecture and Scheduling">Compute Architecture and Scheduling</a><ul>
+                            
+                    <li>
+                        <a href="#41-architecture-of-a-modern-gpu" aria-label="4.1 Architecture of a modern GPU">4.1 Architecture of a modern GPU</a></li>
+                    <li>
+                        <a href="#42-block-scheduling" aria-label="4.2 Block Scheduling">4.2 Block Scheduling</a></li>
+                    <li>
+                        <a href="#43-synchronization-and-transparent-scalability" aria-label="4.3 Synchronization and Transparent Scalability">4.3 Synchronization and Transparent Scalability</a></li>
+                    <li>
+                        <a href="#44-warps-and-simd-hardware" aria-label="4.4 Warps and SIMD Hardware">4.4 Warps and SIMD Hardware</a></li>
+                    <li>
+                        <a href="#45-control-divergence" aria-label="4.5 Control divergence">4.5 Control divergence</a></li>
+                    <li>
+                        <a href="#46-warp-scheduling-and-latency-tolerance" aria-label="4.6 Warp scheduling and latency tolerance">4.6 Warp scheduling and latency tolerance</a></li>
+                    <li>
+                        <a href="#47-resource-partitioning-and-occupancy" aria-label="4.7 Resource partitioning and occupancy">4.7 Resource partitioning and occupancy</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="compute-architecture-and-scheduling">Compute Architecture and Scheduling<a hidden class="anchor" aria-hidden="true" href="#compute-architecture-and-scheduling">#</a></h1>
+<p>本章介绍 GPU 计算架构，并说明灵活资源分配、块调度和占用的概念。然后将深入讨论线程调度、延迟容忍、控制发散和同步。</p>
+<h2 id="41-architecture-of-a-modern-gpu">4.1 Architecture of a modern GPU<a hidden class="anchor" aria-hidden="true" href="#41-architecture-of-a-modern-gpu">#</a></h2>
+<p>下图展示了 CUDA GPU 架构，它被组织成一个流式多处理器 (<em>Streaming Multiprocessors, SMs</em>) 数组。每个 SM 都有几个处理单元，称为流处理器或 CUDA core (简称为 <em>core</em>)，如图中 SMs 内部的小块所示，它们共享控制逻辑和内存资源。</p>
+<p>SMs 还带有不同的片上存储结构，统称为内存。GPU 还带有千兆字节的片外设备内存，称为全局内存 (<em>global memory</em>).</p>
+<blockquote>
+<p>虽然旧的GPU使用 DDR DRAM，但从 NVIDIA 的 Pascal 架构开始 GPU 可能使用HBM (High-Bandwidth Memory) 或 HBM2，它们由 DRAM 模块组成，与GPU紧密集成在同一个封装中。</p></blockquote>
+<p><img alt="Architecture of a CUDA-capable GPU" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB4312b496c54bae36f2978ad5ef0fbe56?method=download&shareKey=6caf263b9392411f7d50e7f4d5bcaf80" title="Architecture of a CUDA-capable GPU"></p>
+<h2 id="42-block-scheduling">4.2 Block Scheduling<a hidden class="anchor" aria-hidden="true" href="#42-block-scheduling">#</a></h2>
+<p>当调用内核时，CUDA runtime 系统启动执行内核代码的线程网格，<strong>块中的所有线程同时分配给同一个的 SM</strong>. 下图中每个 SM 分配了三个块，但是块需要占用硬件资源来执行，因此同时只能将有限数量的块分配给给定的 SM. 为了确保网格中的所有块都得到执行，runtime 系统维护一个需要执行的块列表，并在先前分配的块完成执行后再将新块分配给 SMs. 以块为基本单元将线程分配给 SMs 保证了<strong>同一块中的线程在同一SM上同时被调度</strong>。</p>
+<p><img alt="Thread Block Assignment to SMs" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBba45a5209304777991608711b3734d55?method=download&shareKey=59a8744be11db1fad3afad00c6b06363" title="Thread Block Assignment to SMs"></p>
+<h2 id="43-synchronization-and-transparent-scalability">4.3 Synchronization and Transparent Scalability<a hidden class="anchor" aria-hidden="true" href="#43-synchronization-and-transparent-scalability">#</a></h2>
+<p>CUDA 允许同一块中的线程使用 barrier 同步函数 <code>__syncthreads()</code> 来协调其行动。下图展示了屏障同步的执行情况，箭头表示线程各自执行运行的时间。弯曲线标记了每个线程开始执行 <code> __syncthreads()</code> 的时间。弯曲线右侧的空白区域表示每个线程等待所有线程完成所需的时间。竖线标志着最后一个线程执行 <code> __syncthreads()</code> 的时间，之后所有线程都被允许继续执行 <code> __syncthreads()</code> 之后的代码。</p>
+<p>不要在分支语句中使用 <code>__syncthreads()</code></p>
+<ul>
+<li>放在 if 语句中时，块中的所有线程要么全执行包含 <code>__syncthreads()</code> 的路径，要么都不执行。</li>
+<li>if-else 语句中的两个分支都存在，块中的所有线程要么全执行 if 情况下的 <code>__syncthreads()</code> 的路径，要么全执行 else 下的路径。</li>
+</ul>
+<p><img alt="A Example Execution of Barrier Synchronization" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB973934d16ec550ef1e8998134754ea69?method=download&shareKey=eb626fd61b25664d6884d1c701e58756" title="A Example Execution of Barrier Synchronization"></p>
+<p>系统需要确保所有参与 barrier 同步的线程都能访问足够资源以到达 barrier. 否则，那些到达不了线程可能会导致死锁。因此只有当 runtime 系统确保了块中所有线程有完成执行所需的所有资源时，一个块才能开始执行。
+通过禁止不同块中的线程一起执行 barrier 同步，CUDA runtime 系统可以以任何顺序执行块。如下图所示，在只有少量执行资源的系统中，一次执行两个块。反之，可以同时执行多个块。这种在不同硬件上使用不同数量的执行资源执行相同的代码的能力被称为透明可扩展性 (<em>transparent scalability</em>)</p>
+<p><img alt="Transparent Scalability of CUDA Programs" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB415e750cfd1c8bd730783cf2aadeafa0?method=download&shareKey=1a0f812fee9a129ac6972abb6a59a12d" title="Transparent Scalability of CUDA Programs"></p>
+<h2 id="44-warps-and-simd-hardware">4.4 Warps and SIMD Hardware<a hidden class="anchor" aria-hidden="true" href="#44-warps-and-simd-hardware">#</a></h2>
+<p>当一个块被分配给一个 SM 时，它会被进一步划分为 32 个线程为一组的单元，称为 <em>warp</em>. 在 SMs 中，warp 是线程调度的单位。下图展示了一个划分的例子。</p>
+<p><img alt="Blocks are Partitioned into Warps for Thread Scheduling" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBbc426e6de3199b6cd4706becd8760ec5?method=download&shareKey=1c78a595dc3474b5fe3314455b89f2cc" title="Blocks are Partitioned into Warps for Thread Scheduling"></p>
+<p>由多维度的线程组成的块，将被投影到线性化的行主布局中来划分。线性布局是以 (z, y, x) 坐标升序的方式排列。下图展示了一个大小为 4*4 块的线性化视图。前 4 个线程的 <code>threadIdx.y</code> 为 0，它们以 <code>threadIdx.x</code> 升序的方式排列。</p>
+<p><img alt="Linear Layout of 2D Threads" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBd0a03a116716e7f5420af4be591a86ad?method=download&shareKey=1d455651d0780cc68f3bfa1138a4b705" title="Linear Layout of 2D Threads"></p>
+<p>SM 是单指令多数据 (SIMD) 模型，按顺序执行所有线程，<strong>warp 中的所有线程同时执行一条指令</strong>。下图展示了 SM 中的内核如何被分组为处理块，其中每 8 个内核构成一个处理块 (<em>processing block</em>) 并共享一个指令获取/调度单元。同一 warp 中的线程被分配到相同的处理块，该处理块获取指令并让 warp 中的所有线程对各自负责数据的部分执行该指令。这种设计允许较小比例的硬件专注于控制，而较大比例的硬件专注于提高计算吞吐量。</p>
+<p><img alt="Processing Blocks Organization" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB9402f58e22b5fbc96784b8fddd078fa6?method=download&shareKey=cad59438c3ce64bf22e7f18cd0d9591c" title="Processing Blocks Organization"></p>
+<h2 id="45-control-divergence">4.5 Control divergence<a hidden class="anchor" aria-hidden="true" href="#45-control-divergence">#</a></h2>
+<p>当同一 warp 中的线程执行不同的路径时，这些线程的行为被称作控制发散 (<em>control divergence</em>). 下图展示了一个 warp 在遇到分支语句时的执行方式，即通过两次 pass (执行代码的阶段) 来分别执行 then-path 和 else-path，最终实现所有线程的汇合。</p>
+<ul>
+<li>Pascal 及之前架构中，warp 需要顺序执行两个 pass，一个 pass 执行完才能开始下一个 pass。
+<ul>
+<li>Pass 1： 线程 0-23 执行 then-path 的代码 A，线程 24-31 处于 inactive 状态。</li>
+<li>Pass 2： 线程 24-31 执行 else-path 的代码 B，线程 0-23 处于 inactive 状态。</li>
+<li>Pass 3： 所有线程汇合，执行后续代码 C。</li>
+</ul>
+</li>
+<li>Volta 及之后架构中，warp 可以同时执行两个 pass，不同的线程可以交错执行不同的代码路径。
+<ul>
+<li>Pass 1： 线程 0-23 开始执行 A 的第一个指令，线程 24-31 开始执行 B 的第一个指令。</li>
+<li>Pass 2： 线程 0-23 执行 A 的第二个指令，线程 24-31 执行 B 的第二个指令。</li>
+<li>&hellip;</li>
+<li>Pass N： 线程 0-23 执行完 A 的所有指令，线程 24-31 执行完 B 的所有指令。</li>
+<li>Pass N+1： 所有线程汇合，执行后续代码 C。</li>
+</ul>
+</li>
+</ul>
+<p><img alt="Example of a Warp Diverging at an if-else Statement" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB2991b223f66252dc4c44389e5eb3fa54?method=download&shareKey=cb1261dd30f5d7573db9be0049648223" title="Example of a Warp Diverging at an if-else Statement"></p>
+<p>发散也可能出现在其他控制流中。下图展示了 warp 如何执行发散 for 循环。通常来说如果判断条件基于 <code>threadIdx</code> 的值，那么控制语句可能会导致线程发散。由于线程总数需要是线程块大小的倍数，而数据大小可以是任意的，因此具有线程控制发散的控制流程很常见。由以上两个例子可以看出不能假设 warp 中的所有线程都具有相同的执行时间。如果 warp 中的所有线程都必须完成执行的一个阶段，然后才能继续前进，则必须使用 barrier 同步机制 (如 <code>__syncwarp()</code> )来确保正确性。</p>
+<p>控制发散对性能的影响随着被处理向量大小的增加而减小。例如对于长度为 100 的向量，4个 warp 中有 1 个将会控制发散 (25%)；对于大小为1000的矢量，32 个 warp 中只有 1 个将会控制发散 (3.125%).</p>
+<p><img alt="Example of a Warp Diverging at a for-loop" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB46f65b52c565fcb503d299083c33932e?method=download&shareKey=56a12c21eb2f91c9ac6b3e6cefc6a6df" title="Example of a Warp Diverging at a for-loop"></p>
+<h2 id="46-warp-scheduling-and-latency-tolerance">4.6 Warp scheduling and latency tolerance<a hidden class="anchor" aria-hidden="true" href="#46-warp-scheduling-and-latency-tolerance">#</a></h2>
+<p>当将线程分配给 SMs 时，分配给 SM 的线程通常比 SM 中 core 的个数还要多，导致每个 SM 只能同时执行分配给它的所有线程的一部分。当要由 warp 执行的指令需要等待先前启动的操作的结果时，不会选择该 warp 执行。而是选择执行另一个不用等待先前指令结果的 warp。这种用其他线程的工作填充某些线程操作延迟时间的机制通常称为延迟容忍 (<em>latency tolerance</em>) 或者延迟隐藏 (<em>latency hiding</em>). 而选择准备执行的 warp 不会在执行时间线中引入任何空闲或浪费的时间的策略被称为零开销线程调度 (<em>zero-overhead thread scheduling</em>). 这种容忍长操作延迟的能力是 GPU 不像 CPU 那样为缓存和分支预测机制分配那么多芯片面积的主要原因，因此可以更专注于浮点数计算和内存读取。</p>
+<details class="custom-details">
+    <summary class="custom-summary">Threads, Context-switching, and Zero-overhead Scheduling</summary>
+    <div>之前介绍过线程由程序的代码、正在执行的代码中的指令、变量的值和数据结构组成。在基于冯·诺伊曼模型的计算机中，程序的代码存储在存储器中。PC (Program Counter) 跟踪正在执行的程序指令的地址。IR (Instruction Register) 保存正在执行的指令。寄存器和内存保存变量和数据结构的值。
+现代处理器的设计允许上下文切换 (<em>Context-switching</em>)，多个线程可以通过轮流执行的方式分时复用一个处理器。通过保存和恢复 PC 值以及寄存器和内存的内容，可以暂停线程的执行，并在稍后正确恢复线程的执行。不过保存和恢复寄存器内容可能会增加大量执行时间。
+传统的 CPU 从一个线程切换到另一个线程需要将执行状态 (例如被切换线程的寄存器内容) 保存到<font color="red;"><strong>内存</strong></font>中，稍后再从内存中加载，这样会产生空闲周期。GPU SMs 通过在硬件<font color="red;"><strong>寄存器</strong></font>中保存指定 warp 的所有执行状态来实现零开销调度，因此不需要保存和恢复状态。</div>
+</details><br>
+<h2 id="47-resource-partitioning-and-occupancy">4.7 Resource partitioning and occupancy<a hidden class="anchor" aria-hidden="true" href="#47-resource-partitioning-and-occupancy">#</a></h2>
+<p>给 SM 分配其所支持的最大 warp 数并不总是可行。分配给 SM 的 warp 数量与其支持的 warp 数量之比称为占用率 (<em>occupancy</em>). 例如，Ampere A100 GPU 每个 SM 最多支持 32 个 block，每个 SM 最多支持 64 个 warp (2048 个线程)，每个 block 最多支持 1024 个线程。意味着块大小可以从 64<del>1024 不等，每个 SM 分别可以有 32</del>2 个块。在这些情况下，分配给SM的线程总数为2048，这使占用率最大化。
+SM 中的执行资源包括寄存器、共享内存线程块槽 (每个 SM 最大能被分配的线程块数量) 和线程槽 (每个线程块最大能被分配的线程数量)，这些资源在线程之间动态分配。资源的动态分配可能导致他们之间相互制约，使得资源利用不足。</p>
+<ul>
+<li>硬件资源支持的影响。当每个块有32个线程时。Ampere A100 GPU 会将 2048 个线程槽分配给 64 个块。然而 Volta SM 只支持 32 个线程块槽，导致占用率只有 50%.</li>
+<li>当每个块的最大线程数不能整除块大小时。当块大小为 768，SM 将只能容纳 2 个线程块 (1536个线程)，剩下512个线程槽未使用，占用率为 75%.</li>
+<li>寄存器资源限制对占用率的影响。Ampere A100 GPU 允许每个 SM 最多占有 65,536个寄存器。为了达到满占用率每个线程不应该使用超过 32 个寄存器。
+这种限制导致资源使用的轻微增加可能导致并行性和性能的显著降低，称为 performance cliff.</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/pmpp-learning/">PMPP Learning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/pmpp-ch6/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>PMPP Learning-Chapter 6 Performance Considerations</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/pmpp-ch5/">
+    <span class="title">Next »</span>
+    <br>
+    <span>PMPP Learning-Chapter 5 Memory Architecture and Data Locality</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 4 Compute Architecture and Scheduling on x"
+            href="https://x.com/intent/tweet/?text=PMPP%20Learning-Chapter%204%20Compute%20Architecture%20and%20Scheduling&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch4%2f&amp;hashtags=PMPPlearning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 4 Compute Architecture and Scheduling on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch4%2f&amp;title=PMPP%20Learning-Chapter%204%20Compute%20Architecture%20and%20Scheduling&amp;summary=PMPP%20Learning-Chapter%204%20Compute%20Architecture%20and%20Scheduling&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch4%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 4 Compute Architecture and Scheduling on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch4%2f&title=PMPP%20Learning-Chapter%204%20Compute%20Architecture%20and%20Scheduling">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 4 Compute Architecture and Scheduling on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch4%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 4 Compute Architecture and Scheduling on telegram"
+            href="https://telegram.me/share/url?text=PMPP%20Learning-Chapter%204%20Compute%20Architecture%20and%20Scheduling&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch4%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

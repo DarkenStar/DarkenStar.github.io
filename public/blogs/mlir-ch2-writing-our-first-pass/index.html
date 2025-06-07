@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>MLIR-Ch2 Writing Our First Pass | WITHER</title>
+<meta name="keywords" content="MLIR">
+<meta name="description" content="Personal MLIR learning notes 2.">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/mlir-ch2-writing-our-first-pass/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5174c40fbd8eeebc9f52d19235d6eed299a4cb89e5ea01fd9fe54457c7e12a3a.css" integrity="sha256-UXTED72O7ryfUtGSNdbu0pmky4nl6gH9n&#43;VEV8fhKjo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/mlir-ch2-writing-our-first-pass/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/mlir-ch2-writing-our-first-pass/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="MLIR-Ch2 Writing Our First Pass">
+  <meta property="og:description" content="Personal MLIR learning notes 2.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-10-30T11:42:34+08:00">
+    <meta property="article:modified_time" content="2024-10-30T11:42:34+08:00">
+    <meta property="article:tag" content="Jeremykun MLIR Learning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MLIR-Ch2 Writing Our First Pass">
+<meta name="twitter:description" content="Personal MLIR learning notes 2.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "MLIR-Ch2 Writing Our First Pass",
+      "item": "http://localhost:1313/blogs/mlir-ch2-writing-our-first-pass/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "MLIR-Ch2 Writing Our First Pass",
+  "name": "MLIR-Ch2 Writing Our First Pass",
+  "description": "Personal MLIR learning notes 2.",
+  "keywords": [
+    "MLIR"
+  ],
+  "articleBody": "Tutorial-opt and Project Organization 编译器可能将 mlir-opt 作为子例程在前端 (c++ -\u003e 某些MLIR方言) 和后端 (MLIR 的 LLVM 方言 -\u003e LLVM -\u003e 机器码) 之间运行。 (我将它命名为 tutorial-opt).\n典型的 MLIR 代码库将代码分成具有大致相同层次结构的目录：\ninclude/ 目录用于存放头文件和tablegen 文件， lib/ 目录用于存放实现代码。可能会有 Transform/ 子目录用于存储在方言中转换代码的 pass，Conversion/ 子目录用于在方言之间转换的 pass ，Analysis/ 子目录用于分析 pass，等等。这些目录中的每一个都可能有它们所操作的特定方言的子目录。 test/ 用于存放需要测试的 mlir 文件。 tools/ 存放用于注册 pass 的主文件 ./Ch1-WritingOurFirstPass/ ├── CMakeLists.txt ├── include │ └── mlir-tutorial ├── lib │ ├── CMakeLists.txt │ └── Transform ├── tests │ ├── Output │ ├── affine_loop_unroll.mlir │ ├── lit.cfg.py │ └── mul_to_add.mlir └── tools ├── CMakeLists.txt └── tutorial-opt.cpp 尽管 MLIR 提供了许多定义循环和控制流的机制，最高级的是 affine dialect. 它被设计用来进行多面体循环分析 (polyhedral loop analysis).\nPolyhedral Loop Analysis 多面体循环分析的核心思想是将程序中的循环和数组访问抽象为数学形式，使得可以应用几何变换来优化代码。这种数学形式通常表示为 整数线性不等式的集合 ，这些不等式定义了循环迭代空间和数组访问的范围。\n迭代空间（Iteration Space） ：程序中的循环嵌套可以被表示为一个多维的迭代空间。例如，对于一个双层嵌套循环： for (i = 0; i \u003c N; i++) { for (j = 0; j \u003c M; j++) { A[i][j] = A[i][j] + 1; } } 这里的迭代空间是二维的，由 (i, j) 构成。\n访问关系（Access Relations） ：每个数组的访问模式（例如 A[i][j]）也可以被表示为几何关系。这种关系定义了哪些迭代变量访问哪些数组元素。 多面体表示（Polyhedral Representation） ：在多面体循环分析中，循环的迭代空间和数组访问模式可以用整数线性不等式来表示，从而形成一个多面体。例如，0\u003c=i",
+  "wordCount" : "4935",
+  "inLanguage": "en",
+  "datePublished": "2024-10-30T11:42:34+08:00",
+  "dateModified": "2024-10-30T11:42:34+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/mlir-ch2-writing-our-first-pass/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      MLIR-Ch2 Writing Our First Pass
+    </h1>
+    <div class="post-description">
+      Personal MLIR learning notes 2.
+    </div>
+    <div class="post-meta"><span title='2024-10-30 11:42:34 +0800 CST'>Oct-30-2024</span>&nbsp;·&nbsp;10 min&nbsp;·&nbsp;4935 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#tutorial-opt-and-project-organization" aria-label="Tutorial-opt and Project Organization">Tutorial-opt and Project Organization</a></li>
+                    <li>
+                        <a href="#affine-full-unroll-pass" aria-label="Affine Full Unroll Pass">Affine Full Unroll Pass</a></li>
+                    <li>
+                        <a href="#registering-the-pass" aria-label="Registering the Pass">Registering the Pass</a></li>
+                    <li>
+                        <a href="#test-the-pass" aria-label="Test the Pass">Test the Pass</a></li>
+                    <li>
+                        <a href="#a-rewrite-pattern-version" aria-label="A Rewrite Pattern Version">A Rewrite Pattern Version</a></li>
+                    <li>
+                        <a href="#a-proper-greedy-rewritepattern" aria-label="A proper greedy RewritePattern">A proper greedy RewritePattern</a><ul>
+                            
+                    <li>
+                        <a href="#poweroftwoexpand" aria-label="PowerOfTwoExpand">PowerOfTwoExpand</a></li>
+                    <li>
+                        <a href="#peelfrommul" aria-label="PeelFromMul"><strong>PeelFromMul</strong></a></li>
+                    <li>
+                        <a href="#add-the-pass" aria-label="Add the Pass">Add the Pass</a></li></ul>
+                    </li>
+                    <li>
+                        <a href="#lit-filecheck" aria-label="Lit, FileCheck">Lit, FileCheck</a><ul>
+                            
+                    <li>
+                        <a href="#test-the-pass-1" aria-label="Test the Pass">Test the Pass</a></li></ul>
+                    </li>
+                    <li>
+                        <a href="#summary" aria-label="Summary">Summary</a>
+                    </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="tutorial-opt-and-project-organization">Tutorial-opt and Project Organization<a hidden class="anchor" aria-hidden="true" href="#tutorial-opt-and-project-organization">#</a></h1>
+<p>编译器可能将 mlir-opt 作为子例程在前端 (c++ -&gt; 某些MLIR方言) 和后端 (MLIR 的 LLVM 方言 -&gt; LLVM -&gt; 机器码) 之间运行。
+(我将它命名为 tutorial-opt).</p>
+<p>典型的 MLIR 代码库将代码分成具有大致相同层次结构的目录：</p>
+<ul>
+<li><code>include/</code> 目录用于存放头文件和tablegen 文件，</li>
+<li><code>lib/</code> 目录用于存放实现代码。可能会有 <code>Transform/</code> 子目录用于存储在方言中转换代码的 pass，<code>Conversion/</code> 子目录用于在方言之间转换的 pass ，<code>Analysis/</code> 子目录用于分析 pass，等等。这些目录中的每一个都可能有它们所操作的特定方言的子目录。</li>
+<li><code>test/</code> 用于存放需要测试的 mlir 文件。</li>
+<li><code>tools/</code> 存放用于注册 pass 的主文件</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl"> ./Ch1-WritingOurFirstPass/
+</span></span><span class="line"><span class="cl">├── CMakeLists.txt
+</span></span><span class="line"><span class="cl">├── include
+</span></span><span class="line"><span class="cl">│   └── mlir-tutorial
+</span></span><span class="line"><span class="cl">├── lib
+</span></span><span class="line"><span class="cl">│   ├── CMakeLists.txt
+</span></span><span class="line"><span class="cl">│   └── Transform
+</span></span><span class="line"><span class="cl">├── tests
+</span></span><span class="line"><span class="cl">│   ├── Output
+</span></span><span class="line"><span class="cl">│   ├── affine_loop_unroll.mlir
+</span></span><span class="line"><span class="cl">│   ├── lit.cfg.py
+</span></span><span class="line"><span class="cl">│   └── mul_to_add.mlir
+</span></span><span class="line"><span class="cl">└── tools
+</span></span><span class="line"><span class="cl">    ├── CMakeLists.txt
+</span></span><span class="line"><span class="cl">    └── tutorial-opt.cpp
+</span></span></code></pre></div><p>尽管 MLIR 提供了许多定义循环和控制流的机制，最高级的是 affine dialect. 它被设计用来进行多面体循环分析 (polyhedral loop analysis).</p>
+<details class="custom-details">
+    <summary class="custom-summary">Polyhedral Loop Analysis</summary>
+    <div><p>多面体循环分析的核心思想是将程序中的循环和数组访问抽象为数学形式，使得可以应用几何变换来优化代码。这种数学形式通常表示为 <strong>整数线性不等式的集合</strong> ，这些不等式定义了循环迭代空间和数组访问的范围。</p>
+<ol>
+<li><strong>迭代空间（Iteration Space）</strong> ：程序中的循环嵌套可以被表示为一个多维的迭代空间。例如，对于一个双层嵌套循环：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">M</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>这里的迭代空间是二维的，由 <code>(i, j)</code> 构成。</p>
+<ol start="2">
+<li><strong>访问关系（Access Relations）</strong> ：每个数组的访问模式（例如 <code>A[i][j]</code>）也可以被表示为几何关系。这种关系定义了哪些迭代变量访问哪些数组元素。</li>
+<li><strong>多面体表示（Polyhedral Representation）</strong> ：在多面体循环分析中，循环的迭代空间和数组访问模式可以用整数线性不等式来表示，从而形成一个多面体。例如，<code>0&lt;=i&lt;N</code> 和 <code>0&lt;=j&lt;M</code> 是两个简单的线性不等式，它们表示循环的边界。</li>
+</ol>
+</div>
+</details><br>
+<p>一个简单的对数组求和的函数如下: <code>affine.for</code> 定义一个循环，迭代变量为 <code>%i</code>，范围 <code>[0,4)</code>，即循环 4 次。
+<code>iter_args(%sum_iter = %sum_0)</code> 表示循环维护一个迭代变量 <code>%sum_iter</code>，初始值为 <code>%sum_0</code>.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@sum_buffer</span><span class="p">(</span><span class="nv">%buffer</span><span class="p">:</span> <span class="kt">memref</span><span class="p">&lt;</span><span class="m">4x</span><span class="k">i32</span><span class="p">&gt;)</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%sum_0</span> <span class="p">=</span> arigh<span class="p">.</span><span class="kt">constant</span> <span class="m">0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%sum</span> <span class="p">=</span> affine<span class="p">.</span>for <span class="nv">%i</span> <span class="p">=</span> <span class="m">0</span> to <span class="m">4</span> iter_args<span class="p">(</span><span class="nv">%sum_iter</span> <span class="p">=</span> <span class="nv">%sum_0</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="p">(</span><span class="k">i32</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">%t</span> <span class="p">=</span> affine<span class="p">.</span>load <span class="nv">%buffer</span><span class="p">[</span><span class="nv">%i</span><span class="p">]</span> <span class="p">:</span> <span class="kt">memref</span><span class="p">&lt;</span><span class="m">4x</span><span class="k">i32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">%sum_next</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%sum_iter</span><span class="p">,</span> <span class="nv">%t</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">        affine<span class="p">.</span>yield <span class="nv">%sum_next</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">return</span> <span class="nv">%sum</span><span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p><a href="https://mlir.llvm.org/docs/LangRef/#high-level-structure">MLIR 高级结构</a> 基于图数据结构，其节点称为 Operations，边称为 Values。每个 Value 都是一个 Operation 或 Block Argument 的结果，并具有由类型系统定义的 Value Type。Operations 包含在 Blocks 中，Blocks 包含在 Regions 中。Operations 在其所在的 Block 中是有序的，Blocks 在其所在的 Region 中也是有序的，尽管这种顺序在特定类型的 Region 中可能具有或不具有语义意义。Operations 还可以包含 Regions，从而能够表示层次化的结构。</p>
+<p>Operations 可以表示多种不同的概念，从高级概念如函数定义、函数调用、缓冲区分配、缓冲区的视图或切片、进程创建，到低级概念如目标无关的算术运算、目标特定的指令、配置寄存器和逻辑门。这些不同的概念在 MLIR 中由不同的 Operations 表示，并且 MLIR 中可用的 Operations 集可以任意扩展。</p>
+<p>MLIR 还提供了一个可扩展的框架，用于对 Operations 进行转换，使用熟悉的编译器 Passes 概念。在任意 Operations 集上启用任意 Passes 集会带来显著的扩展性挑战，因为每个转换可能需要考虑任何 Operation 的语义。MLIR 通过允许使用 Traits 和 Interfaces 抽象地描述 Operation 的语义来解决这种复杂性，从而使转换能够更通用地操作 Operations。Traits 通常描述对有效 IR 的验证约束，能够捕获和检查复杂的不变性。（参见 Op vs Operation）</p>
+<p>MLIR 的表示基于 SSA 的 IR，例如 LLVM core IR，通过适当选择 Operation 类型来定义 Modules、Functions、Branches、Memory Allocation，以及验证约束以确保 SSA Dominance 属性。MLIR 包含一组 Dialects，定义了此类结构。</p>
+<h1 id="affine-full-unroll-pass">Affine Full Unroll Pass<a hidden class="anchor" aria-hidden="true" href="#affine-full-unroll-pass">#</a></h1>
+<p>MLIR 提供了一个方法 <a href="https://github.com/llvm/llvm-project/blob/dea01f5e00e45dec4319475a001024c6ee882283/mlir/include/mlir/Dialect/Affine/LoopUtils.h#L46">loopUnrollFull</a> 来进行循环展开，因此我们的 pass 将是对这个函数调用的一个包装，直接调用 C++ API 实现。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C++" data-lang="C++"><span class="line"><span class="cl"><span class="c1">// include/mlir-learning/Transform/Affine/AffineFullUnroll.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">class</span>  <span class="nc">AffineFullUnrollPass</span> 
+</span></span><span class="line"><span class="cl">    <span class="o">:</span> <span class="k">public</span> <span class="n">PassWrapper</span><span class="o">&lt;</span><span class="n">AffineFullUnrollPass</span><span class="p">,</span> <span class="n">OperationPass</span><span class="o">&lt;</span><span class="n">mlir</span><span class="o">::</span><span class="n">FuncOp</span><span class="o">&gt;&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="n">runOnOperation</span><span class="p">()</span> <span class="k">override</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">StringRef</span> <span class="nf">getArgument</span><span class="p">()</span> <span class="k">const</span> <span class="k">final</span> <span class="p">{</span><span class="k">return</span> <span class="s">&#34;affine-full-unroll&#34;</span><span class="p">;}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">StringRef</span> <span class="nf">getDescription</span><span class="p">()</span> <span class="k">const</span> <span class="k">final</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="s">&#34;Perform full unrolling of all affine.for loops&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// lib/Transform/Affine/AffineFullUnroll.cpp
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">using</span> <span class="n">mlir</span><span class="o">::</span><span class="n">affine</span><span class="o">::</span><span class="n">AffineForOp</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="n">mlir</span><span class="o">::</span><span class="n">affine</span><span class="o">::</span><span class="n">loopUnrollFull</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">AffineFullUnrollPass</span><span class="o">::</span><span class="n">runOnOperation</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">getOperation</span><span class="p">().</span><span class="n">walk</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">AffineForOp</span> <span class="n">op</span><span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">failed</span><span class="p">(</span><span class="n">loopUnrollFull</span><span class="p">(</span><span class="n">op</span><span class="p">)))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">op</span><span class="p">.</span><span class="n">emitError</span><span class="p">(</span><span class="s">&#34;unrolling failed&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="n">signalPassFailure</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>该类的定义使用了奇异递归模板模式 (Curiously Recurring Template Pattern, CRTP). <a href="https://github.com/llvm/llvm-project/blob/9ab34689b08ee66f0868d38456fccc8b80d1b656/mlir/include/mlir/Pass/Pass.h#L441">PassWrapper</a> 是 MLIR 框架中的一个模板类，为定义的 Pass 提供通用功能 (如类型检查、名称获取、克隆)。开发者只需专注于 Pass 的核心逻辑（如 runOnOperation），而无需手动实现类型标识、克隆等辅助功能。</p>
+<ul>
+<li><code>runOnOperation</code> 中调用了 <code>getOperation</code> 方法，它是 MLIR 中 <code>Pass</code> 类提供的一个方法，返回当前操 <code>Operation</code>.  <code>walk</code> 方法是 MLIR 提供的一个遍历方法，用来遍历操作树中的每个节点。它会递归地遍历操作树中的所有子操作，并对每个操作应用传入的回调函数 (lambda func). 当运行这个 Pass 时，它会在每一个 <code>AffineForOp</code> 类型的操作上执行 <code>runOnOperation</code> 函数。</li>
+<li><code>getArgument</code> 方法返回 Pass 的命令行参数。这个返回值 <code>affine-full-unroll</code> 表示这个 Pass 的名称，可以在运行时通过命令行参数指定是否启用该 Pass.</li>
+<li><code>getDescription</code> 方法会在调用像 <code>mlir-opt</code> 这样的工具时若有 <code>--help</code> 参数则返回 Pass 的描述信息。</li>
+</ul>
+<details class="custom-details">
+    <summary class="custom-summary">Callback Function</summary>
+    <div><p>回调函数 (Callback Function) 是一种通过将函数作为参数传递给另一个函数，来实现某些特定操作的机制。回调函数通常在某个事件发生或某个特定条件满足时被调用。简而言之，回调函数就是<strong>被调用的函数</strong>，它会在特定的时机被执行。</p>
+<p>在这个例子中，<code>invokeCallback</code> 函数接收到 <code>printMessage</code> 函数的地址，并在 <code>main</code> 函数中调用它。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 回调函数的定义
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="nf">printMessage</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;Hello, World!&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 接受回调函数作为参数的函数
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="nf">invokeCallback</span><span class="p">(</span><span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">callback</span><span class="p">)())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 调用回调函数
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">callback</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 将回调函数传递给另一个函数
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">invokeCallback</span><span class="p">(</span><span class="n">printMessage</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>在现代 C++ 中，回调函数通常通过 lambda 表达式传递。下面的例子中 <code>invokeCallback</code> 函数接受一个 <code>std::function&lt;void()&gt;</code> 类型的回调函数参数。在 <code>main</code> 函数中，传入了一个 Lambda 表达式作为回调函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">invokeCallback</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span> <span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">callback</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 使用 Lambda 表达式作为回调函数
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">invokeCallback</span><span class="p">([](){</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;Hello from Lambda!&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">});</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div></div>
+</details><br>
+<h1 id="registering-the-pass">Registering the Pass<a hidden class="anchor" aria-hidden="true" href="#registering-the-pass">#</a></h1>
+<p>接下来我们需要在 tutorial.cpp 中注册这个 Pass。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;mlir-learning/Transform/Affine/AffineFullUnroll.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;mlir/InitAllDialects.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;mlir/Pass/PassManager.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;mlir/Pass/PassRegistry.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;mlir/Tools/mlir-opt/MlirOptMain.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mlir</span><span class="o">::</span><span class="n">DialectRegistry</span> <span class="n">registry</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mlir</span><span class="o">::</span><span class="n">registerAllDialects</span><span class="p">(</span><span class="n">registry</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">mlir</span><span class="o">::</span><span class="n">PassRegistration</span><span class="o">&lt;</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">AffineFullUnrollPass</span><span class="o">&gt;</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">mlir</span><span class="o">::</span><span class="n">asMainReturnCode</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mlir</span><span class="o">::</span><span class="n">MlirOptMain</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="s">&#34;Tutorial Pass Driver&#34;</span><span class="p">,</span> <span class="n">registry</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li><code>mlir::registerAllDialects(registry);</code> 会调用 MLIR 库的函数，将所有可用的方言注册到 <code>registry</code> 中。方言是 MLIR 中用来定义各种中间表示的抽象，可以理解为不同类型的 IR.</li>
+<li><code>mlir::PassRegistration&lt;mlir::tutorial::AffineFullUnrollPass&gt;();</code> 将自定义的 <code>AffineFullUnrollPass</code> 注册到 MLIR 的 Pass 系统中。</li>
+<li><code>MlirOptMain</code> 是 MLIR 提供的一个函数，处理命令行参数，并执行相应的 Pass.
+<ul>
+<li>argc 和 argv：来自命令行的参数。</li>
+<li>&ldquo;Tutorial Pass Driver&rdquo;：这是一个程序描述字符串，通常是给用户的信息。</li>
+<li>registry：之前创建的 DialectRegistry，它包含了所有已注册的方言。</li>
+</ul>
+</li>
+<li><code>mlir::asMainReturnCode(...)</code> 将 <code>MlirOptMain</code> 的返回值转换为标准的退出代码 (0 表示成功，非零值表示失败).</li>
+</ul>
+<h1 id="test-the-pass">Test the Pass<a hidden class="anchor" aria-hidden="true" href="#test-the-pass">#</a></h1>
+<p>我们写一个 .mlir 来测试我们的 Pass，这是一个对数组进行累加的函数。FileCheck 检查经过 Pass 后函数中不会存在 <code>affine.for</code> 指令。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="c">// RUN: /leaning/build/chapter2/tools/02-tutorial-opt %s --affine-full-unroll &gt; %t
+</span></span></span><span class="line"><span class="cl"><span class="c">// RUN: FileCheck %s &lt; %t
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_single_nested_loop</span><span class="p">(</span><span class="nv">%buffer</span><span class="p">:</span> <span class="kt">memref</span><span class="p">&lt;</span><span class="m">4x</span><span class="k">i32</span><span class="p">&gt;)</span> <span class="p">-&gt;</span> <span class="p">(</span><span class="k">i32</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nv">%sum_0</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">  <span class="c">// CHECK-NOT: affine.for
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>  <span class="nv">%sum</span> <span class="p">=</span> affine<span class="p">.</span>for <span class="nv">%i</span> <span class="p">=</span> <span class="m">0</span> to <span class="m">4</span> iter_args<span class="p">(</span><span class="nv">%sum_iter</span> <span class="p">=</span> <span class="nv">%sum_0</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%t</span> <span class="p">=</span> affine<span class="p">.</span>load <span class="nv">%buffer</span><span class="p">[</span><span class="nv">%i</span><span class="p">]</span> <span class="p">:</span> <span class="kt">memref</span><span class="p">&lt;</span><span class="m">4x</span><span class="k">i32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%sum_next</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%sum_iter</span><span class="p">,</span> <span class="nv">%t</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    affine<span class="p">.</span>yield <span class="nv">%sum_next</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">return</span> <span class="nv">%sum</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>经过优化后的函数如下</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="nv">#map</span> <span class="p">=</span> affine_map<span class="p">&lt;(</span>d0<span class="p">)</span> <span class="p">-&gt;</span> <span class="p">(</span>d0 <span class="err">+</span> <span class="m">1</span><span class="p">)&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">#map1</span> <span class="p">=</span> affine_map<span class="p">&lt;(</span>d0<span class="p">)</span> <span class="p">-&gt;</span> <span class="p">(</span>d0 <span class="err">+</span> <span class="m">2</span><span class="p">)&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">#map2</span> <span class="p">=</span> affine_map<span class="p">&lt;(</span>d0<span class="p">)</span> <span class="p">-&gt;</span> <span class="p">(</span>d0 <span class="err">+</span> <span class="m">3</span><span class="p">)&gt;</span>
+</span></span><span class="line"><span class="cl">module <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_single_nested_loop</span><span class="p">(</span><span class="nv">%arg0</span><span class="p">:</span> <span class="kt">memref</span><span class="p">&lt;</span><span class="m">4x</span><span class="k">i32</span><span class="p">&gt;)</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%c0</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">0</span> <span class="p">:</span> <span class="k">index</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%c0_i32</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%0</span> <span class="p">=</span> affine<span class="p">.</span>load <span class="nv">%arg0</span><span class="p">[</span><span class="nv">%c0</span><span class="p">]</span> <span class="p">:</span> <span class="kt">memref</span><span class="p">&lt;</span><span class="m">4x</span><span class="k">i32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%1</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%c0_i32</span><span class="p">,</span> <span class="nv">%0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%2</span> <span class="p">=</span> affine<span class="p">.</span>apply <span class="nv">#map</span><span class="p">(</span><span class="nv">%c0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%3</span> <span class="p">=</span> affine<span class="p">.</span>load <span class="nv">%arg0</span><span class="p">[</span><span class="nv">%2</span><span class="p">]</span> <span class="p">:</span> <span class="kt">memref</span><span class="p">&lt;</span><span class="m">4x</span><span class="k">i32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%4</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%1</span><span class="p">,</span> <span class="nv">%3</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%5</span> <span class="p">=</span> affine<span class="p">.</span>apply <span class="nv">#map1</span><span class="p">(</span><span class="nv">%c0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%6</span> <span class="p">=</span> affine<span class="p">.</span>load <span class="nv">%arg0</span><span class="p">[</span><span class="nv">%5</span><span class="p">]</span> <span class="p">:</span> <span class="kt">memref</span><span class="p">&lt;</span><span class="m">4x</span><span class="k">i32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%7</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%4</span><span class="p">,</span> <span class="nv">%6</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%8</span> <span class="p">=</span> affine<span class="p">.</span>apply <span class="nv">#map2</span><span class="p">(</span><span class="nv">%c0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%9</span> <span class="p">=</span> affine<span class="p">.</span>load <span class="nv">%arg0</span><span class="p">[</span><span class="nv">%8</span><span class="p">]</span> <span class="p">:</span> <span class="kt">memref</span><span class="p">&lt;</span><span class="m">4x</span><span class="k">i32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%10</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%7</span><span class="p">,</span> <span class="nv">%9</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">return</span> <span class="nv">%10</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h1 id="a-rewrite-pattern-version">A Rewrite Pattern Version<a hidden class="anchor" aria-hidden="true" href="#a-rewrite-pattern-version">#</a></h1>
+<p>当想要对一个给定的 IR 子结构重复应用相同的变换子集，直到该子结构被完全去除时，需要写一个重写模式引擎。重写模式是 <code>OpRewritePattern</code> 的子类，它有一个名为 <code>matchAndRewrite</code> 的方法来执行转换。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// chapter2/lib/Transform/Affine/AffineFullUnroll.cpp
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="nc">AffineFullUnrollPattern</span> <span class="o">:</span> <span class="k">public</span> <span class="n">mlir</span><span class="o">::</span><span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">AffineForOp</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">AffineFullUnrollPattern</span><span class="p">(</span><span class="n">mlir</span><span class="o">::</span><span class="n">MLIRContext</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="o">:</span> <span class="n">mlir</span><span class="o">::</span><span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">AffineForOp</span><span class="o">&gt;</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// 一般在 OpRewritePattern 中，IR 的更改要通过 PatternRewriter
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// PatternRewriter 处理 OpRewritePattern中发生的突变的原子性
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">LogicalResult</span> <span class="nf">matchAndRewrite</span><span class="p">(</span><span class="n">AffineForOp</span> <span class="n">op</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                   <span class="n">PatternRewriter</span><span class="o">&amp;</span> <span class="n">rewriter</span><span class="p">)</span> <span class="k">const</span> <span class="k">override</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">loopUnrollFull</span><span class="p">(</span><span class="n">op</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><ul>
+<li><code>AffineFullUnrollPattern</code> 继承自 <code>OpRewritePattern&lt;AffineForOp&gt;</code>，<a href="https://github.com/llvm/llvm-project/blob/9654bc3960c460bd9d8b06cfa4cfe0e52c6582bd/mlir/include/mlir/IR/PatternMatch.h#L356">OpRewritePattern</a> 是 MLIR 中用于对特定操作类型 (在这里是 <code>AffineForOp</code>) 进行模式匹配和重写的基类。模板参数 <code>AffineForOp</code> 表示我们要为 <code>AffineForOp</code> 这个操作创建一个模式。</li>
+<li>构造函数初始化了基类 <code>OpRewritePattern&lt;AffineForOp&gt;</code>，并传递了两个参数
+<ul>
+<li><code>context</code>：<code>MLIRContext</code> 是 MLIR 的上下文，保存着所有的操作、方言和类型等信息。在这里，<code>context</code> 用来初始化模式对象。</li>
+<li><code>benefit</code> 是一个表示模式匹配优先级的整数值，优先级越高的模式越先应用。</li>
+</ul>
+</li>
+<li><code>matchAndRewrite</code> 是在 MLIR 中进行模式重写的核心方法。它的目的是：检查某个操作是否符合当前模式的要求。如果操作匹配模式，则执行重写操作，通常会用新的 IR 替换原来的 IR。
+<ul>
+<li><code>AffineForOp op</code> 表示要进行模式匹配的 <code>AffineForOp</code> 操作。</li>
+<li><code>PatternRewriter &amp;rewriter</code> 是一个用于生成新的 MLIR 操作的工具，它可以修改 IR.</li>
+</ul>
+</li>
+</ul>
+<p>我们同样要像上一节一样在头文件中声明一个 <code>AffineFullUnrollPassAsPatternRewrite</code> 类，然后实现其 <code>runOnOperation</code> 方法。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// chapter2/lib/Transform/Affine/AffineFullUnroll.cpp
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="n">AffineFullUnrollPassAsPatternRewrite</span><span class="o">::</span><span class="n">runOnOperation</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mlir</span><span class="o">::</span><span class="n">RewritePatternSet</span> <span class="n">patterns</span><span class="p">(</span><span class="o">&amp;</span><span class="n">getContext</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="n">patterns</span><span class="p">.</span><span class="n">add</span><span class="o">&lt;</span><span class="n">AffineFullUnrollPattern</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">getContext</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="n">applyPatternsGreedily</span><span class="p">(</span><span class="n">getOperation</span><span class="p">(),</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">patterns</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li><code>RewritePatternSet</code> 是 MLIR 中一个容器，用于存储多个 <code>Rewrite Pattern</code>. 每个模式都是针对某种特定操作进行的优化规则。<code>RewritePatternSet</code> 会把所有这些规则聚合在一起，方便在后续的步骤中批量应用。</li>
+<li>然后通过 <code>patterns.add&lt;AffineFullUnrollPattern&gt;</code>，将一个 Rewrite Pattern (这里是上面定义的 AffineFullUnrollPattern) 添加到 patterns 集合中。</li>
+<li><code>applyPatternsGreedily</code>是 MLIR 提供的一个函数，用于将定义的模式应用到给定的操作 (getOperation()) 上。这个函数使用贪心策略，在一次遍历中尽可能多地应用模式，直到无法再应用为止。</li>
+</ul>
+<details class="custom-details">
+    <summary class="custom-summary">std::move</summary>
+    <div><p><code>std::move</code> 是 C++11 引入的一个标准库函数，它的主要作用是将一个对象转换为右值引用，以便启用<strong>移动语义</strong> (Move Semantics). 简单来说，<code>std::move</code> 本身并不实际移动对象，而是为对象提供一个指示，告诉编译器该对象可以被<strong>移动</strong>而不是<strong>复制</strong>。</p>
+<p>在 C++ 中，有两种主要的值类别:</p>
+<ul>
+<li><strong>左值 (Lvalue)</strong> ：表示可以取地址的对象，可以理解为拥有持久生命周期的对象。它通常是变量、数组元素、对象成员等。</li>
+<li><strong>右值 (Rvalue)</strong> ：表示临时对象、非持久生命周期的对象，通常是返回值、字面常量等。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;utility&gt;</span><span class="cp">  </span><span class="c1">// std::move
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MyClass</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">MyClass</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;Constructor</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">MyClass</span><span class="p">(</span><span class="k">const</span> <span class="n">MyClass</span><span class="o">&amp;</span> <span class="n">other</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;Copy Constructor</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">MyClass</span><span class="p">(</span><span class="n">MyClass</span><span class="o">&amp;&amp;</span> <span class="n">other</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;Move Constructor</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">MyClass</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">MyClass</span><span class="o">&amp;</span> <span class="n">other</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;Copy Assignment</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">*</span><span class="k">this</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">MyClass</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="n">MyClass</span><span class="o">&amp;&amp;</span> <span class="n">other</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;Move Assignment</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">*</span><span class="k">this</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">MyClass</span> <span class="n">obj1</span><span class="p">;</span>  <span class="c1">// Constructor
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">MyClass</span> <span class="n">obj2</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">obj1</span><span class="p">);</span>  <span class="c1">// Move Constructor
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="n">MyClass</span> <span class="n">obj3</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">obj3</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">obj2</span><span class="p">);</span>  <span class="c1">// Move Assignment
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div></div>
+</details><br>
+<h1 id="a-proper-greedy-rewritepattern">A proper greedy RewritePattern<a hidden class="anchor" aria-hidden="true" href="#a-proper-greedy-rewritepattern">#</a></h1>
+<p>接下来写一个用重写模式定义的 <code>MulToAddPass</code>，它会将 <code>y=C*x</code> 形式的乘法转换为 <code>y=C/2*x+C/2*x</code> 形式的加法当 C 是偶数。否则转换成 <code>y=1+(C-1)/2*x+(C-1)/2*x</code> 形式的加法。</p>
+<h2 id="poweroftwoexpand">PowerOfTwoExpand<a hidden class="anchor" aria-hidden="true" href="#poweroftwoexpand">#</a></h2>
+<ul>
+<li>获取了 <code>rhs</code> 的定义操作（<code>rhs.getDefiningOp&lt;arith::ConstantIntOp&gt;()</code>），以确保右操作数是一个常数。</li>
+<li>如果右操作数的值是 2 的幂，即 <code>(value &amp; (value - 1)) == 0</code>，则进行优化。
+<ul>
+<li>将 <code>value</code> 除以 2 然后生成新的常数 <code>newConstant</code>。</li>
+<li>计算新的乘法 <code>lhs * newConstant</code>，并将其加倍（通过 <code>AddIOp</code> 来实现 <code>lhs * value</code>）。</li>
+<li>最终用新的加法替代原来的乘法。</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">PowerOfTwoExpand</span> <span class="o">:</span> <span class="k">public</span> <span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">MulIOp</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PowerOfTwoExpand</span><span class="p">(</span><span class="n">MLIRContext</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="o">:</span> <span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">MulIOp</span><span class="o">&gt;</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">LogicalResult</span> <span class="nf">matchAndRewrite</span><span class="p">(</span><span class="n">MulIOp</span> <span class="n">op</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                  <span class="n">PatternRewriter</span><span class="o">&amp;</span> <span class="n">rewriter</span><span class="p">)</span> <span class="k">const</span> <span class="k">override</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// Value represents an instance of an SSA value in the MLIR system
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">Value</span> <span class="n">lhs</span> <span class="o">=</span> <span class="n">op</span><span class="o">-&gt;</span><span class="n">getOperand</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Value</span> <span class="n">rhs</span> <span class="o">=</span> <span class="n">op</span><span class="o">-&gt;</span><span class="n">getOperand</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">auto</span> <span class="n">rhsDefiningOp</span> <span class="o">=</span> <span class="n">rhs</span><span class="p">.</span><span class="n">getDefiningOp</span><span class="o">&lt;</span><span class="n">arith</span><span class="o">::</span><span class="n">ConstantIntOp</span><span class="o">&gt;</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">rhsDefiningOp</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">failure</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kt">int64_t</span> <span class="n">value</span> <span class="o">=</span> <span class="n">rhsDefiningOp</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">bool</span> <span class="n">is_power_of_two</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">value</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">is_power_of_two</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">failure</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">auto</span> <span class="n">newConstant</span> <span class="o">=</span> <span class="n">rewriter</span><span class="p">.</span><span class="n">create</span><span class="o">&lt;</span><span class="n">ConstantOp</span><span class="o">&gt;</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rhsDefiningOp</span><span class="o">-&gt;</span><span class="n">getLoc</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rewriter</span><span class="p">.</span><span class="n">getIntegerAttr</span><span class="p">(</span><span class="n">rhs</span><span class="p">.</span><span class="n">getType</span><span class="p">(),</span> <span class="n">value</span> <span class="o">/</span> <span class="mi">2</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">        <span class="k">auto</span> <span class="n">newMul</span> <span class="o">=</span> <span class="n">rewriter</span><span class="p">.</span><span class="n">create</span><span class="o">&lt;</span><span class="n">MulIOp</span><span class="o">&gt;</span><span class="p">(</span><span class="n">op</span><span class="o">-&gt;</span><span class="n">getLoc</span><span class="p">(),</span> <span class="n">lhs</span><span class="p">,</span> <span class="n">newConstant</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">auto</span> <span class="n">newAdd</span> <span class="o">=</span> <span class="n">rewriter</span><span class="p">.</span><span class="n">create</span><span class="o">&lt;</span><span class="n">AddIOp</span><span class="o">&gt;</span><span class="p">(</span><span class="n">op</span><span class="o">-&gt;</span><span class="n">getLoc</span><span class="p">(),</span> <span class="n">newMul</span><span class="p">,</span> <span class="n">newMul</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">rewriter</span><span class="p">.</span><span class="n">replaceOp</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">newAdd</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rewriter</span><span class="p">.</span><span class="n">eraseOp</span><span class="p">(</span><span class="n">rhsDefiningOp</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">success</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="peelfrommul"><strong>PeelFromMul</strong><a hidden class="anchor" aria-hidden="true" href="#peelfrommul">#</a></h2>
+<p>这个 Pass 的目标是将一个常数乘法转化为加法形式，适用于常数值 <code>rhs</code> 不为 2 的幂时。</p>
+<ul>
+<li>将 <code>rhs</code> 减去 1，然后生成一个新的常数 <code>newConstant</code>（即 <code>value - 1</code>）。</li>
+<li>用 <code>lhs * newConstant</code> 进行计算，并将结果加上 <code>lhs</code>（即 <code>lhs * value</code> 转化为 <code>(lhs * (value - 1)) + lhs</code>）。</li>
+<li>最终用新的加法替代原来的乘法。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">PeelFromMul</span> <span class="o">:</span> <span class="k">public</span> <span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">MulIOp</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">PeelFromMul</span><span class="p">(</span><span class="n">MLIRContext</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span> <span class="o">:</span> <span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">MulIOp</span><span class="o">&gt;</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">LogicalResult</span> <span class="nf">matchAndRewrtite</span><span class="p">(</span><span class="n">MulIOp</span> <span class="n">op</span><span class="p">,</span> <span class="n">PatternRewriter</span><span class="o">&amp;</span> <span class="n">rewriter</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Value</span> <span class="n">lhs</span> <span class="o">=</span> <span class="n">op</span><span class="o">-&gt;</span><span class="n">getOperand</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Value</span> <span class="n">rhs</span> <span class="o">=</span> <span class="n">op</span><span class="o">-&gt;</span><span class="n">getOperand</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">auto</span> <span class="n">rhsDefiningOp</span> <span class="o">=</span> <span class="n">rhs</span><span class="p">.</span><span class="n">getDefiningOp</span><span class="o">&lt;</span><span class="n">arith</span><span class="o">::</span><span class="n">ConstantIntOp</span><span class="o">&gt;</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">rhsDefiningOp</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">failure</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kt">int64_t</span> <span class="n">value</span> <span class="o">=</span> <span class="n">rhsDefiningOp</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// Beacause PowerOfTwoExpand has higher benefit,
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">// value must not be power of 2
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">auto</span> <span class="n">newConstant</span> <span class="o">=</span> <span class="n">rewriter</span><span class="p">.</span><span class="n">create</span><span class="o">&lt;</span><span class="n">ConstantOp</span><span class="o">&gt;</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rhsDefiningOp</span><span class="o">-&gt;</span><span class="n">getLoc</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rewriter</span><span class="p">.</span><span class="n">getIntegerAttr</span><span class="p">(</span><span class="n">rhs</span><span class="p">.</span><span class="n">getType</span><span class="p">(),</span> <span class="n">value</span> <span class="o">-</span> <span class="mi">1</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">        <span class="k">auto</span> <span class="n">newMul</span> <span class="o">=</span> <span class="n">rewriter</span><span class="p">.</span><span class="n">create</span><span class="o">&lt;</span><span class="n">MulIOp</span><span class="o">&gt;</span><span class="p">(</span><span class="n">op</span><span class="p">.</span><span class="n">getLoc</span><span class="p">(),</span> <span class="n">lhs</span><span class="p">,</span> <span class="n">newConstant</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">auto</span> <span class="n">newAdd</span> <span class="o">=</span> <span class="n">rewriter</span><span class="p">.</span><span class="n">create</span><span class="o">&lt;</span><span class="n">AddIOp</span><span class="o">&gt;</span><span class="p">(</span><span class="n">op</span><span class="p">.</span><span class="n">getLoc</span><span class="p">(),</span> <span class="n">newMul</span><span class="p">,</span> <span class="n">lhs</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">rewriter</span><span class="p">.</span><span class="n">replaceOp</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">newAdd</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rewriter</span><span class="p">.</span><span class="n">eraseOp</span><span class="p">(</span><span class="n">rhsDefiningOp</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">success</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="add-the-pass">Add the Pass<a hidden class="anchor" aria-hidden="true" href="#add-the-pass">#</a></h2>
+<p>之后我们同样在 <code>runOnOperation</code> 方法中注册 <code>PowerOfTwoExpand</code> 和 <code>PeelFromMul</code> 两个模式。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">MulToAddPass</span><span class="o">::</span><span class="n">runOnOperation</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mlir</span><span class="o">::</span><span class="n">RewritePatternSet</span> <span class="n">patterns</span><span class="p">(</span><span class="o">&amp;</span><span class="n">getContext</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="n">patterns</span><span class="p">.</span><span class="n">add</span><span class="o">&lt;</span><span class="n">PowerOfTwoExpand</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">getContext</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="n">patterns</span><span class="p">.</span><span class="n">add</span><span class="o">&lt;</span><span class="n">PeelFromMul</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">getContext</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="n">applyPatternsAndFoldGreedily</span><span class="p">(</span><span class="n">getOperation</span><span class="p">(),</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">patterns</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h1 id="lit-filecheck">Lit, FileCheck<a hidden class="anchor" aria-hidden="true" href="#lit-filecheck">#</a></h1>
+<p>LLVM 和 MLIR 使用的是同一个测试框架，分为两个测试步骤。</p>
+<ol>
+<li><a href="https://llvm.org/docs/CommandGuide/lit.html">lit</a> (LLVM Integratesd Tester) 负责发现、组织和运行测试，并报告测试结果。测试文件中通常包含 RUN: 指令，告诉 lit 如何运行测试。</li>
+<li><a href="https://llvm.org/docs/CommandGuide/FileCheck.html">FileCheck</a> 通过模式匹配的方式，验证输出是否包含特定的字符串或结构。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># lit.cfg.py</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># CMD: llvm-lit -v path/to/test_files</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">path</span> <span class="k">as</span> <span class="n">osp</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">lit.formats</span> <span class="kn">import</span> <span class="n">ShTest</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">config</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&#34;MLIR-LEARN&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">config</span><span class="o">.</span><span class="n">test_format</span> <span class="o">=</span> <span class="n">ShTest</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">config</span><span class="o">.</span><span class="n">suffixes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;.mlir&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">current_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">tool_path</span> <span class="o">=</span> <span class="s2">&#34;path/to/build/opt_executable&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">config</span><span class="o">.</span><span class="n">environment</span><span class="p">[</span><span class="s2">&#34;PATH&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">osp</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_path</span><span class="p">,</span> <span class="n">tool_path</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&#34;:&#34;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;PATH&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span></code></pre></div><h2 id="test-the-pass-1">Test the Pass<a hidden class="anchor" aria-hidden="true" href="#test-the-pass-1">#</a></h2>
+<p>我们同样创建一个 .mlir 文件来测试我们的 Pass. 我们希望 Pass 能够将递归地将乘法转化为加法形式，</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="c">// RUN: /leaning/build/chapter2/tools/02-tutorial-opt %s --mul-to-add &gt; %t
+</span></span></span><span class="line"><span class="cl"><span class="c">// RUN: FileCheck %s &lt; %t
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@just_power_of_two</span><span class="p">(</span><span class="nv">%arg0</span><span class="p">:</span> <span class="k">i32</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%0</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">8</span><span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%1</span> <span class="p">=</span> arith<span class="p">.</span>muli <span class="nv">%arg0</span><span class="p">,</span> <span class="nv">%0</span><span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">func</span><span class="p">.</span><span class="kt">return</span> <span class="nv">%1</span><span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c">// CHECK-LABEL: func.func @just_power_of_two(
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK-SAME:    %[[ARG:.*]]: i32
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK-SAME:  ) -&gt; i32 {
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK:   %[[SUM_0:.*]] = arith.addi %[[ARG]], %[[ARG]]
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK:   %[[SUM_1:.*]] = arith.addi %[[SUM_0]], %[[SUM_0]]
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK:   %[[SUM_2:.*]] = arith.addi %[[SUM_1]], %[[SUM_1]]
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK:   return %[[SUM_2]] : i32
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK: }
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@power_of_two_plus_one</span><span class="p">(</span><span class="nv">%arg</span><span class="p">:</span> <span class="k">i32</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nv">%0</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">9</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">  <span class="nv">%1</span> <span class="p">=</span> arith<span class="p">.</span>muli <span class="nv">%arg</span><span class="p">,</span> <span class="nv">%0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">func</span><span class="p">.</span><span class="kt">return</span> <span class="nv">%1</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c">// CHECK-LABEL: func.func @power_of_two_plus_one(
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK-SAME:    %[[ARG:.*]]: i32
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK-SAME:  ) -&gt; i32 {
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK:   %[[SUM_0:.*]] = arith.addi %[[ARG]], %[[ARG]]
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK:   %[[SUM_1:.*]] = arith.addi %[[SUM_0]], %[[SUM_0]]
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK:   %[[SUM_2:.*]] = arith.addi %[[SUM_1]], %[[SUM_1]]
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK:   %[[SUM_3:.*]] = arith.addi %[[SUM_2]], %[[ARG]]
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK:   return %[[SUM_3]] : i32
+</span></span></span><span class="line"><span class="cl"><span class="c">// CHECK: }
+</span></span></span></code></pre></div><p>经过优化后的代码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl">module <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@just_power_of_two</span><span class="p">(</span><span class="nv">%arg0</span><span class="p">:</span> <span class="k">i32</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%0</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%arg0</span><span class="p">,</span> <span class="nv">%arg0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%1</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%0</span><span class="p">,</span> <span class="nv">%0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%2</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%1</span><span class="p">,</span> <span class="nv">%1</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">return</span> <span class="nv">%2</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@power_of_two_plus_one</span><span class="p">(</span><span class="nv">%arg0</span><span class="p">:</span> <span class="k">i32</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%0</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%arg0</span><span class="p">,</span> <span class="nv">%arg0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%1</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%0</span><span class="p">,</span> <span class="nv">%0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%2</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%1</span><span class="p">,</span> <span class="nv">%1</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">%3</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%2</span><span class="p">,</span> <span class="nv">%arg0</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">return</span> <span class="nv">%3</span> <span class="p">:</span> <span class="k">i32</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h1 id="summary">Summary<a hidden class="anchor" aria-hidden="true" href="#summary">#</a></h1>
+<p>使用模式重写引擎通常比编写遍历AST的代码更容易。不需要大型 case/switch 语句来处理 IR 中可能出现的所有内容。因此可以单独编写模式，并相信引擎会适当地组合它们。</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/jeremykun-mlir-learning/">Jeremykun MLIR Learning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/mlir-ch3-using-tablegen-for-passes/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>MLIR-Ch3 Using Tablegen for Passes</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/">
+    <span class="title">Next »</span>
+    <br>
+    <span>PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch2 Writing Our First Pass on x"
+            href="https://x.com/intent/tweet/?text=MLIR-Ch2%20Writing%20Our%20First%20Pass&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch2-writing-our-first-pass%2f&amp;hashtags=jeremykunMLIRlearning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch2 Writing Our First Pass on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch2-writing-our-first-pass%2f&amp;title=MLIR-Ch2%20Writing%20Our%20First%20Pass&amp;summary=MLIR-Ch2%20Writing%20Our%20First%20Pass&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch2-writing-our-first-pass%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch2 Writing Our First Pass on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch2-writing-our-first-pass%2f&title=MLIR-Ch2%20Writing%20Our%20First%20Pass">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch2 Writing Our First Pass on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch2-writing-our-first-pass%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch2 Writing Our First Pass on telegram"
+            href="https://telegram.me/share/url?text=MLIR-Ch2%20Writing%20Our%20First%20Pass&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch2-writing-our-first-pass%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

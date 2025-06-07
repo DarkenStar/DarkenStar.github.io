@@ -1,0 +1,6 @@
+<a href="{{ .Get "url" }}"
+    {{- if not (eq (.Get "blank") "false") }} target="_blank" rel="noopener noreferrer"{{ end -}}
+    {{- with .Get "class" }} class="{{ . }}"{{ end -}}
+    {{- with .Get "title" }} title="{{ . }}"{{ end -}}>
+    {{- .Get "text" -}}
+</a>

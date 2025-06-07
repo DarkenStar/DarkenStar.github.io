@@ -1,0 +1,21 @@
+<div class="image-pair-container">
+    <div class="image-pair-item">
+        <img src="{{ .Get "src1" }}" 
+            alt="{{ .Get "alt1" }}" 
+            width="{{ .Get "width1" }}"/>
+        {{ with .Get "caption1" }}
+        <div class="image-caption">{{ . }}</div>
+        {{ end }}
+    </div>
+    <div class="image-pair-item">
+        <img src="{{ .Get "src2" }}" 
+            alt="{{ .Get "alt2" }}" 
+            width="{{ .Get "width2" }}"/>
+        {{ with .Get "caption2" }}
+        <div class="image-caption">{{ . }}</div>
+        {{ end }}
+    </div>
+    {{ with .Get "caption" }}
+    <div class="image-caption">{{ . }}</div>
+    {{ end }}
+</div>

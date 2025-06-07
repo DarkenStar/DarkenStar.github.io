@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>PMPP Learning-Chapter 10 Reduction and Minimizing Divergence | WITHER</title>
+<meta name="keywords" content="CUDA">
+<meta name="description" content="Personal notebook 10 of Programming Massively Parallel">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/pmpp-ch10/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.57fd86fa03777cde771f7b2a41cf80559337875129cb3387f67260e81f43454c.css" integrity="sha256-V/2G&#43;gN3fN53H3sqQc&#43;AVZM3h1EpyzOH9nJg6B9DRUw=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/pmpp-ch10/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/pmpp-ch10/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="PMPP Learning-Chapter 10 Reduction and Minimizing Divergence">
+  <meta property="og:description" content="Personal notebook 10 of Programming Massively Parallel">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-09-10T21:07:12+08:00">
+    <meta property="article:modified_time" content="2024-09-10T21:07:12+08:00">
+    <meta property="article:tag" content="PMPP Learning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="PMPP Learning-Chapter 10 Reduction and Minimizing Divergence">
+<meta name="twitter:description" content="Personal notebook 10 of Programming Massively Parallel">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "PMPP Learning-Chapter 10 Reduction and Minimizing Divergence",
+      "item": "http://localhost:1313/blogs/pmpp-ch10/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "PMPP Learning-Chapter 10 Reduction and Minimizing Divergence",
+  "name": "PMPP Learning-Chapter 10 Reduction and Minimizing Divergence",
+  "description": "Personal notebook 10 of Programming Massively Parallel",
+  "keywords": [
+    "CUDA"
+  ],
+  "articleBody": "10 Reduction and Minimizing Divergence 归约 (Reduction) 是从输入数组计算出一个数的运算。\n10.1 Background 归约是从输入数组计算出一个数的运算，通常是通过对数组中的元素进行某种二元运算来实现的。如果二元操作符具有定义良好的恒等值 (例如加法中的 0，乘法中的 1)，则可以为基于该操作符进行运算的一个数组中的值定义归约操作。可以通过顺序遍历数组的每个元素来进行归约。下面伪代码为运算符的一般归约形式，它被定义为接受两个输入并返回一个值的函数。\nacc = IDENTITY; for (i = 0; i \u003c n; i++) { acc = Operator(acc, input[i]); } 10.2 Reduction Trees 并行归约的基本思想如下图所示，时间竖直向下增加，水平方向为线程在每个时间点并行执行的活动。并行约简假定输出不随着输入值进行运算的顺序而改变 (即具有交换律)。\n上图中的并行归约模式被称为归约树 (reduction tree)，因为它看起来像一棵叶子是原始输入元素，根是最终结果的树。归约树的边是无实际意义，只是反映了从一个时间步执行的操作到下一个时间步执行的操作的信息流。执行的操作总数是一个几何级数 $\\frac{1}{2}N + \\frac{1}{2^2}N + \\cdots + \\frac{1}{N}N = N-1$. 归约树需要 $log_{2}{N}$ 步骤来完成。完成计算所需的资源数量随着时间步的增加而迅速减少，每个时间步的并行度与所需的执行单元数量相同。并行度和资源消耗随着时间步长的剧烈变化让归约树成为一种具有挑战性的并行模式。\n10.3 A Simple Reduction Kernel 从实现一个在单个线程块内执行求和归约树的内核开始。其并行执行的情况如下图所示，假设输入数组位于全局内存中，并且在调用内核函数时将其指针作为输入参数传入。每个线程被分配到索引2*threadIdx.x 处，每一步归约的结果也会被写入此处。\n对应的内核代码如下所示，for 循环中的 __syncthreads() 确保任何一个线程开始下一次迭代之前，所有线程都已经完成了上一次迭代的计算。\n__global__ void SimpleReductionKernel(float* input, float* output) { // launch single block with 1/2 #elements threads unsigned int i = threadIdx.x * 2; for (unsigned int stride = 1; stride = blockDim.x; stride *= 2) { if (threadIdx.x % 2 == 0) { input[i] += input[i + stride]; } __syncthreads(); // Ensure partial sums have been written to the destinition. } if (threadIdx.x == 0) { *output = input[0]; } } 10.4 Minimizing Control Divergence 上面代码在每次迭代中对活动和非活动线程的管理导致了控制发散。只有那些线程的 threadIdx.x 为偶数的线程在第二次迭代中执行加法操作。由于控制发散造成的执行资源浪费随着迭代次数的增加而增加，第二次迭代中每个 warp 只有一半的线程执行加法操作，但消耗的计算资源却是相同的。如果输入数组的大小大于32，整个 warp 将在第五次迭代后不再执行加法操作。消耗的执行资源的总数与所有迭代中活动 warp 的总数成正比，计算方式如下。\n$$\\text{active warps} = (5+\\frac{1}{2}+\\frac{1}{4}+\\cdots+1)*\\frac{N}{64}*32$$其中 N/64 代表启动的 warp 总数。每个 warp 在前五次迭代中都处于活动状态，之后每次迭代都只有上次一半的线程在活动状态，直到只剩最后一个。 每次迭代中活动线程计算出的结果个数等于活动线程的总数\n$$\\text{active threads} = \\frac{N}{64}*(32+16+8+4+2+1)+\\frac{N}{64}*\\frac{1}{2}*1+\\frac{N}{64}*\\frac{1}{4}*1+\\cdots+1$$每个 warp 在前五次迭代中处于活动状态的线程数减半，之后每次迭代中每个处于活动状态的 warp 只有一个线程处于活动状态。这个结果应该非常直观的，因为其正等于完成归约所需的操作总数。 由此我们可以得出当输入大小为 256 时，执行资源利用率为 255/736 = 0.35. 如下图所示，为了减少控制分散应该安排线程和它们计算的位置使得能够随着时间的推移而彼此靠近。也就是说，我们希望步幅随着时间的推移而减少，而不是增加。修改后的内核函数如下，每次迭代中执行加法操作的线程数是相同的，但直到同时进行加法的线程数小于 32 之前，一个 warp 的线程数所走的分支相同。\n__global__ void ConvergentSumReductionKernel(float* input, float* output) { unsigned int i = threadIdx.x; for (unsigned int stride = blockDim.x; stride \u003e= 1; stride /= 2) { // Decrease stride to reduce control divergence if (threadIdx.x \u003c stride) { input[i] += input[i + stride]; } __syncthreads(); } if (threadIdx.x == 0) { *output = input[0]; } } 这种情况下的进行规约操作消耗的计算资源总数为 $$(\\frac{N}{64}*1 + \\frac{N}{64}*\\frac{1}{2}*1 + \\frac{N}{64}*\\frac{1}{4}*1 + \\cdots + 1 + 5*1) * 32 $$ 5*1 代表最后的五次迭代，只有一个活动的warp，并且它的所有32个线程都消耗执行资源，即使只有一小部分线程是活动状态。执行资源的利用率为 255/384 = 0.66.\n10.5 Minimizing Memory Divergence 上面的内核还有内存分散的问题。在每次迭代中，每个线程对全局内存执行 2 次读取和 1 次写入。第一次从自己的位置读取，第二次从离自己 stride 的位置读取，相加后写入到自己的位置。 10.3 节的内核代码中，第一次迭代每个 warp 中的相邻线程间隔 2 个元素，因此要访问 2 个内存位置，此后每次迭代 stride 都增加，直到第六次迭代时，每个 warp 都只有一个线程处于活动状态，只用访问 1 个位置。因此进行内存访问的总次数为 $$(5*\\frac{N}{64}*2+\\frac{N}{64}*1+\\frac{N}{64}*\\frac{1}{2}*1+\\cdots+1)*3$$ 10.4 节的内核代码中，每个 warp 在任何读或写时只进行一个全局内存请求，直到该 warp 中的所有线程都处于非活动状态。最后五次迭代的线程都位于一个 warp 中，因此进行内存访问的总次数为 $$((\\frac{N}{64}*1+\\frac{N}{64}*\\frac{1}{2}*1+\\frac{N}{64}*\\frac{1}{4}*1+\\cdots+1)+5)*3$$ 对于长度为 2048 的输入，前者和后者全局内存请求的总数分别为 1149 和 204. 后者在使用 DRAM 带宽方面也具有更高的效率。\n10.6 Minimizing Global Memory Accesses 通过使用共享内存，可以进一步改进 10.4 节的内核。在每次迭代中，线程将它们的部分和结果值写入全局内存，这些值在下一次迭代中由相同的线程和其他线程重新读取。如下图所示，通过将部分和结果保存在共享内存中，可以进一步提高执行速度。\n对应的代码如下，每个线程从全局内存加载并 2 个输入元素并将部分和写入共享内存。剩下的所有迭代中的计算都在共享内存中进行。\n#define BLOCK_DIM 512 __global__ void SharedMemoryReductionKernel(float* input) { __shared__ float input_s[BLOCK_DIM]; unsigned int i = threadIdx.x; input_s[i] = input[i] + input[i + blockDim.x]; // Partial sum of first iteration for (unsigned int stride = blockDim.x / 2; stride \u003e= 1; stride /= 2) { __syncthreads(); // Ensure all partial sums have been written to shared memory if (threadIdx.x \u003c stride) { input_s[i] += input_s[i + stride]; // Partial sum of subsequent iterations } } if (threadIdx.x == 0) { input[0] = input_s[0]; // Write final sum to output } } 全局内存访问的次数减少到初始加载输入数组和最终写入 input[0]，总共只有 (N/32) + 1 个全局内存请求。\n10.7 Hierarchical Reduction for Arbitrary Input Length 由于 __syncthreads() 只对同一块中的线程有效，因此无法在不同块之间同步。下图展示了如何使用分级归约来解决这个问题，其思想是将输入数组划分为多个适合于线程块大小的段。然后，所有块都独立地执行归约树，并使用原子加法操作将它们的结果累积到最终输出。\n对应的内核代码如下。每个线程块处理 2*blockDim.x 个元素。在每个线程块内，我们通过线程所属块的段起始位置加上 threadIdx.x 为每个线程分配其输入元素的位置。\n__global__ void SegmentedSumReductionKernel(float* input, float* output) { __shared__ float input_s[BLOCK_DIM]; unsigned int segment = blockIdx.x * blockDim.x * 2; // Each block processes 2*blockDim.x elements unsigned int i = segment + threadIdx.x; unsigned int t = threadIdx.x; input_s[t] = input[t + blockDim.x]; // Partial sum of first iteration of each block for (unsigned int stride = blockDim.x / 2; stride \u003e= 1; stride /= 2) { __syncthreads(); // Ensure all partial sums have been written to shared memory if (t \u003c stride) { input_s[t] += input_s[t + stride]; // Partial sum of subsequent iterations } } if (t == 0) { atomicAdd(\u0026output, input_s[0]); // Write final sum to output } } 10.8 Thread Coarsening for Reduced Overhead 到目前为止，我们使用过的归约内核都试图通过使用尽可能多的线程来最大化并行性。若线程块大小为 1024 个线程，则需要启动的线程块数量为 N/2048. 下图展示了如何将线程粗化。线程独立地添加它们负责的四个元素，它们不需要同步，直到将所有的四个元素相加之后才能将部分和结果写入共享内存。剩下的步骤与 10.7 节后续相同。\n对应的内核如下，我们乘以 COARSE_FACTOR 来表示每个线程块的负责的段的大小是原来的 COARSE_FACTOR 倍。部分和累加到局部变量 sum 中，并且因为线程是独立运行的，在循环中不会调用 __syncthreads().\n#define COARSE_FACTOR 2 __global__ void CoarsenedSumReductionKernel(float* input, float* output) { __shared__ float input_s[BLOCK_DIM]; unsigned int segment = blockIdx.x * COARSE_FACTOR * blockDim.x * 2; unsigned int i = segment + threadIdx.x; unsigned int t = threadIdx.x; float sum = input[i]; for (int tile = 1; tile \u003c COARSE_FACTOR; tile++) { // Partitial sum is accumulated independently sum += input[i + tile * blockDim.x]; } input_s[t] = sum; for (unsigned int stride = blockDim.x / 2; stride \u003e= 1; stride /= 2) { __syncthreads(); if (t \u003c stride) { input_s[t] += input_s[t + stride]; } } if (t == 0) { atomicAdd(\u0026output, input_s[0]); } } 下图比较了两个原始线程块在没有进行线程粗化下被硬件顺序执行情况，图 A 当第一个线程块完成后，硬件调度第二个线程块，在不同的数据段上执行相同的步骤。图 B 的这个线程块开始需要三个步骤，其中每个线程对它负责的四个元素求和。剩下的三个步骤执行归约树，每个步骤中有一半的线程退出活动状态。相比图 A，图 B 只需要6个步骤 (而不是 8 个)，其中 3 个步骤 (而不是 2 个) 充分利用了硬件。 当我们粗化线程时，并行完成的工作就会减少。因此，增加粗化因子将减少硬件正在利用的数据并行性的数量。\n",
+  "wordCount" : "3075",
+  "inLanguage": "en",
+  "datePublished": "2024-09-10T21:07:12+08:00",
+  "dateModified": "2024-09-10T21:07:12+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/pmpp-ch10/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      PMPP Learning-Chapter 10 Reduction and Minimizing Divergence
+    </h1>
+    <div class="post-description">
+      Personal notebook 10 of Programming Massively Parallel
+    </div>
+    <div class="post-meta"><span title='2024-09-10 21:07:12 +0800 CST'>Sep-10-2024</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;3075 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#10-reduction-and-minimizing-divergence" aria-label="10 Reduction and Minimizing Divergence">10 Reduction and Minimizing Divergence</a><ul>
+                            
+                    <li>
+                        <a href="#101-background" aria-label="10.1 Background">10.1 Background</a></li>
+                    <li>
+                        <a href="#102-reduction-trees" aria-label="10.2 Reduction Trees">10.2 Reduction Trees</a></li>
+                    <li>
+                        <a href="#103-a-simple-reduction-kernel" aria-label="10.3 A Simple Reduction Kernel">10.3 A Simple Reduction Kernel</a></li>
+                    <li>
+                        <a href="#104-minimizing-control-divergence" aria-label="10.4 Minimizing Control Divergence">10.4 Minimizing Control Divergence</a></li>
+                    <li>
+                        <a href="#105-minimizing-memory-divergence" aria-label="10.5 Minimizing Memory Divergence">10.5 Minimizing Memory Divergence</a></li>
+                    <li>
+                        <a href="#106-minimizing-global-memory-accesses" aria-label="10.6 Minimizing Global Memory Accesses">10.6 Minimizing Global Memory Accesses</a></li>
+                    <li>
+                        <a href="#107-hierarchical-reduction-for-arbitrary-input-length" aria-label="10.7 Hierarchical Reduction for Arbitrary Input Length">10.7 Hierarchical Reduction for Arbitrary Input Length</a></li>
+                    <li>
+                        <a href="#108-thread-coarsening-for-reduced-overhead" aria-label="10.8 Thread Coarsening for Reduced Overhead">10.8 Thread Coarsening for Reduced Overhead</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="10-reduction-and-minimizing-divergence">10 Reduction and Minimizing Divergence<a hidden class="anchor" aria-hidden="true" href="#10-reduction-and-minimizing-divergence">#</a></h1>
+<p>归约 (<em>Reduction</em>) 是从输入数组计算出一个数的运算。</p>
+<h2 id="101-background">10.1 Background<a hidden class="anchor" aria-hidden="true" href="#101-background">#</a></h2>
+<p>归约是从输入数组计算出一个数的运算，通常是通过对数组中的元素进行某种二元运算来实现的。如果二元操作符具有定义良好的恒等值 (例如加法中的 0，乘法中的 1)，则可以为基于该操作符进行运算的一个数组中的值定义归约操作。可以通过顺序遍历数组的每个元素来进行归约。下面伪代码为运算符的一般归约形式，它被定义为接受两个输入并返回一个值的函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">acc</span> <span class="o">=</span> <span class="n">IDENTITY</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">acc</span> <span class="o">=</span> <span class="n">Operator</span><span class="p">(</span><span class="n">acc</span><span class="p">,</span> <span class="n">input</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="102-reduction-trees">10.2 Reduction Trees<a hidden class="anchor" aria-hidden="true" href="#102-reduction-trees">#</a></h2>
+<p>并行归约的基本思想如下图所示，时间竖直向下增加，水平方向为线程在每个时间点并行执行的活动。并行约简假定输出不随着输入值进行运算的顺序而改变 (即具有交换律)。</p>
+<p><img alt="A Parallel Max Reduction Tree" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB3cdc79f24938b60e8ec694cf1efa2314?method=download&shareKey=81f05475b6bb20cc0a5a2f767e1c4d51" title="A Parallel Max Reduction Tree"></p>
+<p>上图中的并行归约模式被称为归约树 (<em>reduction tree</em>)，因为它看起来像一棵叶子是原始输入元素，根是最终结果的树。归约树的边是无实际意义，只是反映了从一个时间步执行的操作到下一个时间步执行的操作的信息流。执行的操作总数是一个几何级数 $\frac{1}{2}N + \frac{1}{2^2}N + \cdots + \frac{1}{N}N = N-1$. 归约树需要 $log_{2}{N}$ 步骤来完成。完成计算所需的资源数量随着时间步的增加而迅速减少，每个时间步的并行度与所需的执行单元数量相同。并行度和资源消耗随着时间步长的剧烈变化让归约树成为一种具有挑战性的并行模式。</p>
+<h2 id="103-a-simple-reduction-kernel">10.3 A Simple Reduction Kernel<a hidden class="anchor" aria-hidden="true" href="#103-a-simple-reduction-kernel">#</a></h2>
+<p>从实现一个<strong>在单个线程块内</strong>执行求和归约树的内核开始。其并行执行的情况如下图所示，假设输入数组位于全局内存中，并且在调用内核函数时将其指针作为输入参数传入。每个线程被分配到索引<code>2*threadIdx.x</code> 处，每一步归约的结果也会被写入此处。</p>
+<p><img alt="Threads Arrangment of the Input Array in the Simple Kernel" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB1a32016b07d2b257c2c1aa0bdd008b25?method=download&shareKey=618b57308d448ccbd4dcb5e12b391ac0" title="Threads Arrangment of the Input Array in the Simple Kernel"></p>
+<p>对应的内核代码如下所示，for 循环中的 __syncthreads() 确保任何一个线程开始下一次迭代之前，所有线程都已经完成了上一次迭代的计算。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">SimpleReductionKernel</span><span class="p">(</span><span class="kt">float</span><span class="o">*</span> <span class="n">input</span><span class="p">,</span> <span class="kt">float</span><span class="o">*</span> <span class="n">output</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// launch single block with  1/2 #elements threads
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="mi">2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">stride</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">;</span> <span class="n">stride</span> <span class="o">*=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">input</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">input</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">stride</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>  <span class="c1">// Ensure partial sums have been written to the destinition.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="o">*</span><span class="n">output</span> <span class="o">=</span> <span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="104-minimizing-control-divergence">10.4 Minimizing Control Divergence<a hidden class="anchor" aria-hidden="true" href="#104-minimizing-control-divergence">#</a></h2>
+<p>上面代码在每次迭代中对活动和非活动线程的管理导致了控制发散。只有那些线程的 <code>threadIdx.x</code> 为偶数的线程在第二次迭代中执行加法操作。由于控制发散造成的执行资源浪费随着迭代次数的增加而增加，第二次迭代中每个 warp 只有一半的线程执行加法操作，但消耗的计算资源却是相同的。如果输入数组的大小大于32，整个 warp 将在第五次迭代后不再执行加法操作。消耗的执行资源的总数与所有迭代中活动 warp 的总数成正比，计算方式如下。</p>
+$$\text{active warps} = (5+\frac{1}{2}+\frac{1}{4}+\cdots+1)*\frac{N}{64}*32$$<p>其中 N/64 代表启动的 warp 总数。每个 warp 在前五次迭代中都处于活动状态，之后每次迭代都只有上次一半的线程在活动状态，直到只剩最后一个。
+每次迭代中活动线程计算出的结果个数等于活动线程的总数</p>
+$$\text{active threads} = \frac{N}{64}*(32+16+8+4+2+1)+\frac{N}{64}*\frac{1}{2}*1+\frac{N}{64}*\frac{1}{4}*1+\cdots+1$$<p>每个 warp 在前五次迭代中处于活动状态的线程数减半，之后每次迭代中每个处于活动状态的 warp 只有一个线程处于活动状态。这个结果应该非常直观的，因为其正等于完成归约所需的操作总数。
+由此我们可以得出当输入大小为 256 时，执行资源利用率为 255/736 = 0.35. 如下图所示，为了减少控制分散应该安排线程和它们计算的位置使得能够随着时间的推移而彼此靠近。也就是说，我们希望步幅随着时间的推移而减少，而不是增加。修改后的内核函数如下，每次迭代中执行加法操作的线程数是相同的，但直到同时进行加法的线程数小于 32 之前，一个 warp 的线程数所走的分支相同。</p>
+<p><img alt="Arrangement with Less Control Divergence" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB284d0ca9febf8b2fdd3644aee218b475?method=download&shareKey=a97e91212ca491a84532186a3398b9a4" title="Arrangement with Less Control Divergence"></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">ConvergentSumReductionKernel</span><span class="p">(</span><span class="kt">float</span><span class="o">*</span> <span class="n">input</span><span class="p">,</span> <span class="kt">float</span><span class="o">*</span> <span class="n">output</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">/=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Decrease stride to reduce control divergence
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">input</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">input</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">stride</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="o">*</span><span class="n">output</span> <span class="o">=</span> <span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>这种情况下的进行规约操作消耗的计算资源总数为
+</p>
+$$(\frac{N}{64}*1 + \frac{N}{64}*\frac{1}{2}*1 + \frac{N}{64}*\frac{1}{4}*1 + \cdots + 1 + 5*1) * 32 $$<p>
+5*1 代表最后的五次迭代，只有一个活动的warp，并且它的所有32个线程都消耗执行资源，即使只有一小部分线程是活动状态。执行资源的利用率为 255/384 = 0.66.</p>
+<h2 id="105-minimizing-memory-divergence">10.5 Minimizing Memory Divergence<a hidden class="anchor" aria-hidden="true" href="#105-minimizing-memory-divergence">#</a></h2>
+<p>上面的内核还有内存分散的问题。在每次迭代中，每个线程对全局内存执行 2 次读取和 1 次写入。第一次从自己的位置读取，第二次从离自己 stride 的位置读取，相加后写入到自己的位置。
+<a href="/blogs/pmpp-ch10/#10-3-A-Simple-Reduction-Kernel">10.3</a> 节的内核代码中，第一次迭代每个 warp 中的相邻线程间隔 2 个元素，因此要访问 2 个内存位置，此后每次迭代 stride 都增加，直到第六次迭代时，每个 warp 都只有一个线程处于活动状态，只用访问 1 个位置。因此进行内存访问的总次数为
+</p>
+$$(5*\frac{N}{64}*2+\frac{N}{64}*1+\frac{N}{64}*\frac{1}{2}*1+\cdots+1)*3$$<p>
+<a href="/blogs/pmpp-ch10/#10-4-Minimizing-Control-Divergence">10.4</a> 节的内核代码中，每个 warp 在任何读或写时只进行一个全局内存请求，直到该 warp 中的所有线程都处于非活动状态。最后五次迭代的线程都位于一个 warp 中，因此进行内存访问的总次数为
+</p>
+$$((\frac{N}{64}*1+\frac{N}{64}*\frac{1}{2}*1+\frac{N}{64}*\frac{1}{4}*1+\cdots+1)+5)*3$$<p>
+对于长度为 2048 的输入，前者和后者全局内存请求的总数分别为 1149 和 204. 后者在使用 DRAM 带宽方面也具有更高的效率。</p>
+<h2 id="106-minimizing-global-memory-accesses">10.6 Minimizing Global Memory Accesses<a hidden class="anchor" aria-hidden="true" href="#106-minimizing-global-memory-accesses">#</a></h2>
+<p>通过使用共享内存，可以进一步改进 <a href="/blogs/pmpp-ch10/#10-4-Minimizing-Control-Divergence">10.4</a> 节的内核。在每次迭代中，线程将它们的部分和结果值写入全局内存，这些值在下一次迭代中由相同的线程和其他线程重新读取。如下图所示，通过将部分和结果保存在共享内存中，可以进一步提高执行速度。</p>
+<p><img alt="Use Shared Memory to Reduce Accesses from the Global Memory" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB73d407923a5daa0e9e69860be0089c98?method=download&shareKey=b6e4d5ed19de5a3712f1ed1eed127674" title="Use Shared Memory to Reduce Accesses from the Global Memory">
+对应的代码如下，每个线程从全局内存加载并 2 个输入元素并将部分和写入共享内存。剩下的所有迭代中的计算都在共享内存中进行。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#define BLOCK_DIM 512
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">SharedMemoryReductionKernel</span><span class="p">(</span><span class="kt">float</span><span class="o">*</span> <span class="n">input</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">input_s</span><span class="p">[</span><span class="n">BLOCK_DIM</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">input_s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">input</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">input</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>  <span class="c1">// Partial sum of first iteration
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">/=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>  <span class="c1">// Ensure all partial sums have been written to shared memory
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">input_s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">input_s</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">stride</span><span class="p">];</span>  <span class="c1">// Partial sum of subsequent iterations
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_s</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>  <span class="c1">// Write final sum to output
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>全局内存访问的次数减少到初始加载输入数组和最终写入 <code>input[0]</code>，总共只有 (N/32) + 1 个全局内存请求。</p>
+<h2 id="107-hierarchical-reduction-for-arbitrary-input-length">10.7 Hierarchical Reduction for Arbitrary Input Length<a hidden class="anchor" aria-hidden="true" href="#107-hierarchical-reduction-for-arbitrary-input-length">#</a></h2>
+<p>由于 <code>__syncthreads()</code> 只对同一块中的线程有效，因此无法在不同块之间同步。下图展示了如何使用分级归约来解决这个问题，其思想是将输入数组划分为多个适合于线程块大小的段。然后，所有块都独立地执行归约树，并使用原子加法操作将它们的结果累积到最终输出。</p>
+<p><img alt="Segmented Multiblock Reduction Using Atomic Operations" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB857e94f9f4cbf28c1f9a7980fdd83536?method=download&shareKey=29a4f000e0073fa0ae1ee6e4b8e08852" title="Segmented Multiblock Reduction Using Atomic Operations">
+对应的内核代码如下。每个线程块处理 <code>2*blockDim.x</code> 个元素。在每个线程块内，我们通过线程所属块的段起始位置加上 <code>threadIdx.x</code> 为每个线程分配其输入元素的位置。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">SegmentedSumReductionKernel</span><span class="p">(</span><span class="kt">float</span><span class="o">*</span> <span class="n">input</span><span class="p">,</span> <span class="kt">float</span><span class="o">*</span> <span class="n">output</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">input_s</span><span class="p">[</span><span class="n">BLOCK_DIM</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">segment</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="mi">2</span><span class="p">;</span>  <span class="c1">// Each block processes 2*blockDim.x elements
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">segment</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">t</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="n">input_s</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">input</span><span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>  <span class="c1">// Partial sum of first iteration of each block
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">/=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>  <span class="c1">// Ensure all partial sums have been written to shared memory
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">if</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">input_s</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+=</span> <span class="n">input_s</span><span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="n">stride</span><span class="p">];</span>  <span class="c1">// Partial sum of subsequent iterations
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">atomicAdd</span><span class="p">(</span><span class="o">&amp;</span><span class="n">output</span><span class="p">,</span> <span class="n">input_s</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>  <span class="c1">// Write final sum to output
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="108-thread-coarsening-for-reduced-overhead">10.8 Thread Coarsening for Reduced Overhead<a hidden class="anchor" aria-hidden="true" href="#108-thread-coarsening-for-reduced-overhead">#</a></h2>
+<p>到目前为止，我们使用过的归约内核都试图通过使用尽可能多的线程来最大化并行性。若线程块大小为 1024 个线程，则需要启动的线程块数量为 N/2048.
+下图展示了如何将线程粗化。线程独立地添加它们负责的四个元素，它们不需要同步，直到将所有的四个元素相加之后才能将部分和结果写入共享内存。剩下的步骤与 10.7 节后续相同。</p>
+<p><img alt="Thread Coarsening in Reduction" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB4358648a96bbd27f045c7beb2f736e73?method=download&shareKey=770c7cecefe849a2acfe2353f538504a" title="Thread Coarsening in Reduction">
+对应的内核如下，我们乘以 <code>COARSE_FACTOR</code> 来表示每个线程块的负责的段的大小是原来的 <code>COARSE_FACTOR</code> 倍。部分和累加到局部变量 <code>sum</code> 中，并且因为线程是独立运行的，在循环中不会调用 <code>__syncthreads()</code>.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#define COARSE_FACTOR 2
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">CoarsenedSumReductionKernel</span><span class="p">(</span><span class="kt">float</span><span class="o">*</span> <span class="n">input</span><span class="p">,</span> <span class="kt">float</span><span class="o">*</span> <span class="n">output</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">input_s</span><span class="p">[</span><span class="n">BLOCK_DIM</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">segment</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">COARSE_FACTOR</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="mi">2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">segment</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">t</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">float</span> <span class="n">sum</span> <span class="o">=</span> <span class="n">input</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">tile</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>  <span class="n">tile</span> <span class="o">&lt;</span> <span class="n">COARSE_FACTOR</span><span class="p">;</span> <span class="n">tile</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Partitial sum is accumulated independently
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="n">sum</span> <span class="o">+=</span> <span class="n">input</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">tile</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="n">input_s</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">sum</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">/=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">input_s</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+=</span> <span class="n">input_s</span><span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="n">stride</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">atomicAdd</span><span class="p">(</span><span class="o">&amp;</span><span class="n">output</span><span class="p">,</span> <span class="n">input_s</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>下图比较了两个原始线程块在没有进行线程粗化下被硬件顺序执行情况，图 A 当第一个线程块完成后，硬件调度第二个线程块，在不同的数据段上执行相同的步骤。图 B 的这个线程块开始需要三个步骤，其中每个线程对它负责的四个元素求和。剩下的三个步骤执行归约树，每个步骤中有一半的线程退出活动状态。相比图 A，图 B 只需要6个步骤 (而不是 8 个)，其中 3 个步骤 (而不是 2 个) 充分利用了硬件。
+当我们粗化线程时，并行完成的工作就会减少。因此，增加粗化因子将减少硬件正在利用的数据并行性的数量。</p>
+<p><img alt="Comparing Parallel Reduction with and without Thread Coarsening" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBa50e84d0dc2bb278fdf643ea81cfd694?method=download&shareKey=c8899f1ad2ad8059daf269e68a9dac2c" title="Comparing Parallel Reduction with and without Thread Coarsening"></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/pmpp-learning/">PMPP Learning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/pmpp-ch11/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/pmpp-ch8/">
+    <span class="title">Next »</span>
+    <br>
+    <span>PMPP Learning-Chapter 8 Stencil</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 10 Reduction and Minimizing Divergence on x"
+            href="https://x.com/intent/tweet/?text=PMPP%20Learning-Chapter%2010%20Reduction%20and%20Minimizing%20Divergence&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch10%2f&amp;hashtags=PMPPlearning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 10 Reduction and Minimizing Divergence on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch10%2f&amp;title=PMPP%20Learning-Chapter%2010%20Reduction%20and%20Minimizing%20Divergence&amp;summary=PMPP%20Learning-Chapter%2010%20Reduction%20and%20Minimizing%20Divergence&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch10%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 10 Reduction and Minimizing Divergence on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch10%2f&title=PMPP%20Learning-Chapter%2010%20Reduction%20and%20Minimizing%20Divergence">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 10 Reduction and Minimizing Divergence on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch10%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 10 Reduction and Minimizing Divergence on telegram"
+            href="https://telegram.me/share/url?text=PMPP%20Learning-Chapter%2010%20Reduction%20and%20Minimizing%20Divergence&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fpmpp-ch10%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

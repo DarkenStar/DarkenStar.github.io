@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Paper Reading on WITHER</title>
+    <link>http://localhost:1313/categories/paper-reading/</link>
+    <description>Recent content in Paper Reading on WITHER</description>
+    <generator>Hugo -- 0.147.7</generator>
+    <language>en</language>
+    <copyright>2024-2025 WITHER</copyright>
+    <atom:link href="http://localhost:1313/categories/paper-reading/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Real-Time Video Generation With Pyramid Attention Broadcast</title>
+      <link>http://localhost:1313/posts/real-time-video-generation-with-pyramid-attention-broadcast/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/real-time-video-generation-with-pyramid-attention-broadcast/</guid>
+      <description>&lt;h1 id=&#34;abstract&#34;&gt;Abstract&lt;/h1&gt;
+&lt;p&gt;我们观察到 Attention 输出差异在扩散过程中呈现 U 型，表明显著的冗余。因此提出了金字塔注意力广播 (Pyramid Attention Broadcast, PAB)，在三种模型中表现出卓越的效果，实现了高达 720p 视频的实时生成。&lt;/p&gt;</description>
+      <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
+<p>我们观察到 Attention 输出差异在扩散过程中呈现 U 型，表明显著的冗余。因此提出了金字塔注意力广播 (Pyramid Attention Broadcast, PAB)，在三种模型中表现出卓越的效果，实现了高达 720p 视频的实时生成。</p>
+<p><img alt="Results and Speed Comparison of PAB and 1 GPU" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBf950ef91053e850a0adb2514c4853940?method=download&shareKey=73ede235df7f10620306857f711995bd" title="Results and Speed Comparison of PAB and 1 GPU"></p>
+<h1 id="introduction">Introduction</h1>
+<p>基于 DiT 的视频生成在改进的质量的同时也增加了更多的内存占用、计算量和推理时间。模型压缩方法通常需要巨大的计算资源和数据集进行额外的训练。一部分工作通过缓存和重用部分网络输出来减轻冗余，从而消除了额外的训练。然而这种基于卷积网络的方法因为模型架构和计算模式的不同不能直接适用于视频 DiT.</p>
+<p>我们仔细研究了视频 DiT 中的注意力，并得出了下图所示的两个观察结果</p>
+<ol>
+<li>相邻扩散步骤之间的注意力差异呈现 U 形，在中间 70% 的步骤中保持稳定，表明注意力有相当大的冗余性。</li>
+<li>在稳定的中间区间内，不同的 Attention 模块也表现出不同程度的差异。空间，时间，交叉注意力的差异依次减小。</li>
+</ol>
+<p><img alt="Comparison of the Attention Outputs MSE between Neighbor Diffusion Steps" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB0bb054b37ba0cec928b8260ed128675d?method=download&shareKey=9d91f907f275bb2052b40f1ff1c1f589" title="Comparison of the Attention Outputs MSE between Neighbor Diffusion Steps"></p>
+<p>根据上面的发现，我们以金字塔的方式对不同的注意力使用不同的广播范围。我们发现这种广播策略也可以很好地适用于 MLP 层和连续的扩散时间步之间。此外，为了实现高效的分布式推理，我们提出了广播序列并行，这大大减少了生成时间和通信成本。</p>
+<h1 id="how-to-achieve-real-time-video-generation">How to Achieve Real-Time Video Generation</h1>
+<p>下图给出了基于 DiT 的视频扩散模型的基本架构。主干由空间和时间 Transformer block 组成。交叉注意力使模型能够在每个步骤中合入来自条件输入的信息。</p>
+<p><img alt="Overview of Backbone of Current DiT-based Video Generation Models" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB3e8f95a99fa87b6930a88097ae1764ee?method=download&shareKey=5e2d7773ea97a7d73c5cb28af41b9247" title="Overview of Backbone of Current DiT-based Video Generation Models"></p>
+<p>如下图 (b) 所示，视频 DiT 中注意力占总推理时间的比例明显大于 CNN 方法。图 (a) 描绘了不同阶段注意力输出的可视化差异。对于中间部分差异很小，模式相似。图 (c) 展示了所有扩散步骤中注意力输出的量化差异。注意力输出的差异在中间部分的扩散步骤中表现出大约 70% 的相似。空间注意力输出有着最大的差异，其次是时间注意力，然后是交叉注意力。</p>
+<p><img alt="Visualization of Attention Differences in Open-Sora" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBdf6bd70172b57b8bbfb32fe9c5be4f92?method=download&shareKey=0d40acd0a959af6a2310cd7d5b1cb23b" title="Visualization of Attention Differences in Open-Sora"></p>
+<p>基于上述发现，我们提出的 PAB 方法与之前重复使用 attention score 的方法不同，我们选择将<strong>注意力输出</strong>从一些扩散步骤广播到中间部分。这样可以在后续步骤中完全绕过冗余的注意力计算，从而显著降低计算成本。公式可以表示如下</p>
+<p>{% mathjax %}
+O_{\mathrm{attn.}}={F(X_t),\underbrace{Y_t^<em>,\cdots,Y_t^</em>}<em>{\text{broadcast range}},F(X</em>{t-n}),\underbrace{Y_{t-n}^<em>,\cdots,Y_{t-n}^</em>,\cdots}_{\text{broadcast range}}}.
+{% endmathjax %}</p>
+<p><code>&lt;br&gt;</code>{% mathjax %}O_{\mathrm{attn.}}{% endmathjax %} 表示注意模块在所有时间步长的输出，{% mathjax %}F(X_{t-n}){% endmathjax %} 表示时间步 t 进行的注意力计算，{% mathjax %}Y_t^*{% endmathjax %}表示注意结果从时间步 t 开始广播。</p>
+<p>为了在保持质量的同时提高效率，为每种注意力类型定制广播范围，如下图所示。广播范围的确定基于两个关键因素：每种注意类型的变化率和稳定性。</p>
+<p><img alt="Overview of Pyramid Attention Broadcast" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB118af684d50e0e2c4261a8c74c1a57f6?method=download&shareKey=e0cf3e9df05a852d867d81955fe8d34c" title="Overview of Pyramid Attention Broadcast"></p>
+<p>我们在动态序列并行 (DSP) 的基础上引入广播序列并行来提高视频生成速度。如下图所示，通过广播时间注意力，可以在不损失质量的情况下消除序列并行方法在模型内的通信开销。</p>
+<p><img alt="Comparison between Original Sequence Parallelism and Ours" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBfb182db5e8ce47dc003bb9138e4b72d6?method=download&shareKey=dfab593e0fcf534c8a9f7501f7df2af0" title="Comparison between Original Sequence Parallelism and Ours"></p>
+<h1 id="experiments">Experiments</h1>
+<h2 id="experiment-setup">Experiment Setup</h2>
+<ul>
+<li>Models: 选择 Open-Sora, Open-Sora- plan &amp; Latte 作为实验模型。</li>
+<li>Metrics: VBench, PSNR, LPIPS, SSIM.</li>
+<li>Baselines: Δ-DiT, T-GATE，它们都是基于缓存的方法。</li>
+<li>Implementation details: 采用 PyTorch 框架，8x NVIDIA H100 80GB GPUs，默认使用 FlashAttention.</li>
+</ul>
+<h2 id="qualitative-results">Qualitative Results</h2>
+<p>下表展示了我们的方法和在三个模型上与两个 baseline 之间的四个指标比较。结论如下</p>
+<ol>
+<li>我们的方法与两个 baseline 质量相当，同时在单个 GPU 上实现了高达 1.58 倍的加速。</li>
+<li>我们的方法在所有三个模型中都表现良好，它们使用了不同的训练策略和去噪 scheduler，证明了它的泛化性。</li>
+</ol>
+<!-- raw HTML omitted -->
+<p>下图展示了在利用具有广播序列并行性的多个 GPU 进行推理时，我们的方法在三种不同的模型中随着 GPU 数量的增加，加速几乎是线性的。当使用 8 个 GPU 时，实现了 10.60 倍加速。</p>
+<p><img alt="Speedups" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB29579ca0a8a65785909de5d69d3e78a7?method=download&shareKey=75fd5b821906f255b6475d73bd148ae1" title="Speedups"></p>
+<h2 id="ablation-study">Ablation Study</h2>
+<p>消融实验的设置为 PAB246，Open-Sora 模型，使用单个 NVIDIA H100 GPU 生成 2s 480p 视频。</p>
+<p>下表展示了不同组件的影响，我们单独禁用每个组件的广播策略，并测量 VBench 分数和延迟的增加。结果显示虽然对 VBench 分数的影响可以忽略不计，但每个组件都有助于整体加速。</p>
+<table>
+  <thead>
+      <tr>
+          <th>broadcast strategy</th>
+          <th>latency (s)</th>
+          <th>∆</th>
+          <th>VBench (%) ↑</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>w/o spatial attn.</td>
+          <td>21.74</td>
+          <td>+1.87</td>
+          <td>78.45</td>
+      </tr>
+      <tr>
+          <td>w/o temporal attn.</td>
+          <td>23.95</td>
+          <td>+4.08</td>
+          <td>78.98</td>
+      </tr>
+      <tr>
+          <td>w/o cross attn.</td>
+          <td>20.98</td>
+          <td>+1.11</td>
+          <td>78.58</td>
+      </tr>
+      <tr>
+          <td>w/o mlp</td>
+          <td>20.27</td>
+          <td>+0.40</td>
+          <td>78.59</td>
+      </tr>
+      <tr>
+          <td>all components</td>
+          <td>19.87</td>
+          <td>–</td>
+          <td>78.51</td>
+      </tr>
+  </tbody>
+</table>
+<p>下图展示了广播范围的影响，结果表示广播范围和视频质量之间明显的反比关系。此外，可以观察到不同的广播范围对不同注意力的影响是不同的。</p>
+<p><img alt="Evaluation of Attention Broadcast Ranges" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB31674d82742e94dc74297a93caa11674?method=download&shareKey=6d5abc5385260295c615a20e2e60f8e5" title="Evaluation of Attention Broadcast Ranges"></p>
+<p>以前的研究通常重复利用 attention score，但我们发现广播注意力输出效果更好。下表比较了广播 attention score 与注意力输出所获得的加速和视频质量。结果表明，广播注意力输出保持了相似的质量，同时提供了更好的效率，主要有两个原因：</p>
+<ol>
+<li>注意力输出变化小，因为尽管像素发生了变化，但注意力计算后的结果仍然相似。这进一步表明了注意力计算中的显著冗余。</li>
+<li>广播 attention score 降低了使用优化的内核带来的效率提升。</li>
+</ol>
+<!-- raw HTML omitted -->
+<h2 id="scaling-ability">Scaling Ability</h2>
+<p>为了评估方法的可扩展性，在每个实验中，我们都将 PAB246 作为 Open-Sora 的基准配置，仅更改视频大小，并行方法和 GPU 数量。</p>
+<p>我们使用 8x NVIDIA H100 GPUs 生成 2s 480p 视频，对 3 种序列并行方法比较了使用和不使用我们的方法的扩展效率。下表结果表明：</p>
+<ol>
+<li>PAB 显着减少了所有序列并行方法的通信量。此外，与其他技术相比，我们的方法实现了最低的通信成本，并在 8 个 GPU 上实现了近线性扩展。</li>
+<li>单独实现序列并行不足以获得最佳性能，因为跨多个设备的通信开销很大。</li>
+</ol>
+<!-- raw HTML omitted -->
+<p>为了评估我们的方法在处理更大视频尺寸的能力，我们在各种视频长度和分辨率上进行了测试，如下图所示。结果表明，随着视频大小的增加，我们可以在单个 GPU 上提供稳定的加速，并在扩展到多个 GPU 时提供更好的扩展能力。</p>
+<p><img alt="Scaling Viideo Size" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB5fca4576217161dd60ae27fab51f6c67?method=download&shareKey=aeda29896dd87d12ad066432bc68534e" title="Scaling Viideo Size"></p>
+<p>我们通过在 8 个和 16 个设备上推理的 FPS 来评估 PAB 的速度。首先拆分批处理，并对每个批处理应用序列并行；通过这种方式，PAB 可以几乎线性扩展到 16 个设备。如下图所示，我们可以在  8台设备上实现 480p 视频的实时高 FPS 视频生成，甚至在 16 台设备上实现 720p 视频生成.</p>
+<p><img alt="Real-Time Video Generation Performance" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBe127b73dd18c1ebbbcb1bdc75a1c4353?method=download&shareKey=46e5fff12e7ddf764b421c03a2f73dd3" title="Real-Time Video Generation Performance"></p>
+<p>下图展示了各种组件的时间消耗的分解。结果表面注意力计算本身并不会消耗大量的时间，因为对每个维度分别进行注意计算，序列的长度会短得多。然而，与注意力相关的操作，如归一化和线性层，比注意力机制本身要费时得多。</p>
+<p><img alt="Runtime Breakdown for Generating a 2s 480p Video" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB364bd203f6dfea7fef873d0956e6b0ca?method=download&shareKey=b8f48d04f34ff8ded09c0be1cb244b38" title="Runtime Breakdown for Generating a 2s 480p Video"></p>
+<h1 id="discussion-and-conclusion">Discussion and Conclusion</h1>
+<p>PAB 利用注意力差异呈现 U 型，通过金字塔式传播减少冗余。此外，广播序列并行化方法显著提高了分布式推理效率。然而 PAB 的性能可能会因输入数据的复杂性而有所不同，特别是在动态场景下。固定广播策略可能不适用于所有视频类型和任务。</p>
+]]></content:encoded>
+    </item>
+  </channel>
+</rss>

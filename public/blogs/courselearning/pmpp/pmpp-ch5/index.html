@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>PMPP Learning-Chapter 5 Memory Architecture and Data Locality | WITHER</title>
+<meta name="keywords" content="CUDA">
+<meta name="description" content="Personal notebook 5 of Programming Massively Parallel">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch5/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a3afc927e13c8d8d72138af4254aadf37b5653f96e325fea8d50c85abdca381a.css" integrity="sha256-o6/JJ&#43;E8jY1yE4r0JUqt83tWU/luMl/qjVDIWr3KOBo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch5/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch5/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="PMPP Learning-Chapter 5 Memory Architecture and Data Locality">
+  <meta property="og:description" content="Personal notebook 5 of Programming Massively Parallel">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-09-05T09:18:11+08:00">
+    <meta property="article:modified_time" content="2024-09-05T09:18:11+08:00">
+    <meta property="article:tag" content="PMPP Learning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="PMPP Learning-Chapter 5 Memory Architecture and Data Locality">
+<meta name="twitter:description" content="Personal notebook 5 of Programming Massively Parallel">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Course Learning",
+      "item": "http://localhost:1313/blogs/courselearning/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "Programming Massive Parallel",
+      "item": "http://localhost:1313/blogs/courselearning/pmpp/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  4 ,
+      "name": "PMPP Learning-Chapter 5 Memory Architecture and Data Locality",
+      "item": "http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch5/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "PMPP Learning-Chapter 5 Memory Architecture and Data Locality",
+  "name": "PMPP Learning-Chapter 5 Memory Architecture and Data Locality",
+  "description": "Personal notebook 5 of Programming Massively Parallel",
+  "keywords": [
+    "CUDA"
+  ],
+  "articleBody": "5 Memory Architecture and Data Locality 之前章节所写的 CUDA 内核只能达到底层硬件峰值算里的一小部分。因为全局内存 (通常使用片外 DRAM 实现) 往往具有较长的访问延迟 (数百个时钟周期) 和有限的访问带宽。\n5.1 Importance of Memory Access Efficiency 在之前矩阵乘法的内核函数中，每次迭代里执行一次浮点乘法和一次浮点加法需要访问全局内存两次。因此，从全局内存访问的浮点操作次数 (FLOP) 与字节数 (B) 的比率为 2 FLOP-to-8 B，即 0.25FLOP/B. 计算访存比 (compute to global memory access ratio) 定义为在程序的一个区域内对全局内存访问的单位字节执行的 FLOPS 数。 计算访存比对 CUDA 内核的性能有重大影响。A100 GPU 的全局内存带宽峰值为 1555 GB/s，矩阵乘法内核计算访存比为 0.25 OP/B，因此内核可以执行的单精度 FLOPs 的吞吐量为 389 GFLOPS，仅为 A100 GPU 峰值单精度运算吞吐量 (19,500 GFLOPS) 的 2%. 我们把执行速度受内存带宽限制的程序称为内存瓶颈 (memory bound) 程序。\nRoofline Model Rooline 模型用于评估应用程序相在其所运行的硬件的限制上达到的性能。如下图所示，x 轴表示算术或计算强度 (computational intensity)，单位为 FLOP/B. y 轴表示以 GFLOPS 为单位的计算吞吐量。横线表示硬件可以提供的峰值计算吞吐量。 硬件通常关注两个指标:\n算力 π：也称为计算平台的性能上限，指的是一个计算平台倾尽全力每秒钟所能完成的浮点运算数。单位是 FLOP/s。 带宽 ß：即计算平台的带宽上限，指的是一个计算平台倾尽全力每秒所能完成的内存交换量。单位是Byte/s。 两个指标相除即可得到计算平台的计算强度上限 I_max = π / ß，它描述的是在这个计算平台上，单位内存交换最多用来进行多少次计算。 Roofline Model\n从图中可以看出算力决定“屋顶”的高度（绿色线段），带宽决定“房檐”的斜率（红色线段）。\nMemory-Bound: 当模型的计算强度 I 小于硬件的计算强度上限 I_max 时，由于此时模型位于“房檐”区间，因此模型理论性能 P 的大小完全由硬件的带宽上限 ß （房檐的斜率）以及模型自身的计算强度 I 所决定，因此这时候就称模型处于 Memory-Bound 状态。 Compute-Bound: 不管模型的计算强度 I 有多大，它的理论性能 P 最大只能等于硬件的算力 π 。当模型的计算强度 I 大于硬件的计算强度上限 I_max 时，模型在当前硬件处于 Compute-Bound 状态 为了让内核具有更高的性能，需要通过减少内核执行的全局内存访问次数来增加计算访存比。\n5.2 CUDA memory types 下图展示了 CUDA 设备的内存。全局内存和常量内存这两种类型的内存都可以被主机写入 (W) 和读取 (R) 。全局内存也可以被设备读写，而常量内存只支持设备对其读取。 另一种类型的内存是本地内存，也可以被读写。本地内存实际上放在全局内存中，具有相似的访问延迟，但它不是跨线程共享的。每个线程都有自己的全局内存部分，将其用作自己的私有本地内存，存放私有但不能在寄存器中分配的数据。 寄存器 (register) 和共享内存 (shared memory) 是片上内存。存储在这些类型内存中的变量可以以高度并行的方式以高速访问。其中每个线程只能访问自己的寄存器。\nOverview of CUDA Memory Model\n与基于冯·诺伊曼模型的计算机类比，CUDA 设备中的全局内存对应于内存框，寄存器对应于寄存器堆。与访问全局内存相比，每次访问寄存器所涉及的指令更少。当算术指令的操作数在寄存器中时，不需要额外的指令使算术逻辑单元(ALU)可以使用该操作数的值。如果操作数值在全局内存中，处理器需要执行内存加载操作让 ALU 能使用操作数。并且从寄存器堆访问所消耗的能量至少比从全局内存访问低一个数量级。\nMemory vs. Registers in a Modern Computer Based on the von Neumann Model\n下图展示了 CUDA 设备中的共享内存和寄存器。共享内存实际上是一种暂存存储器 (scratchpad memory)，作为片上内存的一部分。当处理器访问存储在共享内存中的数据时，需要执行内存加载操作。CUDA 中共享内存和寄存器之间的一个重要区别是，存储在共享内存中的变量可以被块中的所有线程访问，而寄存器数据是线程私有的。\nShared Memory vs. Registers in a CUDA Device SM\n下表给出了将程序变量声明为各种内存类型的 CUDA 语法。\n所有在内核和设备函数中声明的 automatic scalar variables 都被放入寄存器中。 Automatic array variables 存储在线程的本地内存中。如果所有访问都使用常量索引值，编译器可能决定将将其存储到寄存器中。 块中的所有线程都看到 shared variable 的相同版本。内核执行期间每个块会创建和使用一个私有版本。通常使用共享变量来保存在内核执行阶段经常使用和重用的全局内存数据部分。 Constant variables 通常用于向核函数提供输入。内核函数不能修改常量变量的值。 Global variables 通常用于将信息从一个内核调用传递到另一个内核调用。 Variable Declaration Memory Scope Lifetime Automatic variables other than arrays Register Thread Kernel Automatic array variables Local Thread Kernel __device__ __shared__ int SharedVar; Shared Block Kernel __device__ int GlobalVar; Global Grid Application __device__ __constant__ int ConstantVar; Constant Grid Application 在 CUDA 中，指针可以用来指向全局内存中的数据对象，通常有以下两种情况会使用\n对象由主机函数分配，指向对象的指针由内存分配函数 (如 cudaMalloc) 初始化，作为参数传递给内核函数。 将在全局内存中声明的变量的地址赋给指针变量。 5.3 Tiling for Reduced Memory Traffic 一种常见的策略是将数据划分为称为 tile 的子集，以便每个 tile 都适合共享内存。能进行划分的一个重要的标准是这些 tile 上的内核计算可以彼此独立地完成。 下图展示了 block(0,0) 的四个线程所完成的计算。这四个线程计算P(0,0), P(0,1), P(1,0) 和 P(1,1). 每个线程在执行过程中访问 M 的 4 个元素和 N 的 4 个元素，可以看出有明显重复的部分。将每个块需要访问的数据先加载到共享内存，这样可以避免每个线程从全局内存里加载重复的数据。全局内存流量的减少与块的维度成正比。每个块大小为 Width*Width 时，全局内存流量将减少为原来的 1/Width.\nA Small Example of Matrix Multiplication\n按 tile 进行矩阵乘法的基本思想是让线程在各自使用元素来进行内积计算之前，将 M 和 N 元素的子集加载到共享内存中。如下图所示把 M 和 N 分成大小为 2*2 的块。每个线程执行的内积计算现在被划分为几个阶段。在每个阶段，一个块中的所有线程协作将对应的 M 和 N 的 tile 加载到共享内存中。这样每个阶段关注的是输入矩阵元素的一个小子集。这种集中的访问行为称为局部性 (locality).\nTiling M and N to Utilize Shared Memory\n5.4 A Tiled Matrix Multiplication Kernel 按照上述方法编写的内核函数如下。如下图所示，x 轴方向上坐标为 bx 和 tx 的线程应该负责计算 P 中索引为 bx * tile_width + tx 元素。类似地，y 轴方向上线程要处理的 P 中索引为 by * tile_width + ty. 外循环的每次迭代对应于计算的一个阶段。两次调用 __syncthreads() 的原因不同，第一次被称为写后读 (read-after-write) 依赖关系，因为线程在尝试读取数据之前必须等待其他线程将数据写入正确的位置。第二种被称为读后写 (write-after-read) 依赖，因为线程必须等待所有需要它的线程读取数据，然后才能覆盖它。\n写后读依赖是一种真正依赖 (true dependence)，因为读线程确实需要写线程提供的数据，所以它别无选择，只能等待。读后写依赖关系是伪依赖 (false dependence) 关系，因为写线程不需要来自读线程的任何数据。这种依赖性是因为它们访问相同的内存地址，如果它们访问不同的地址，则不存在这种依赖性。\n__global__ void TilingMatrixMulKernel(float* M, float* N, float* P, int width) { __shared__ float Mds[TILE_WIDTH][TILE_WIDTH]; __shared__ float Nds[TILE_WIDTH][TILE_WIDTH]; int bx = blockIdx.x; int by = blockIdx.y; int tx = threadIdx.x; int ty = threadIdx.y; // Identify the row and column of the P element to work on int Row = by * TILE_WIDTH + ty; int Col = bx * TILE_WIDTH + tx; float Pvalue = 0; // Loop over the M and N tiles required to compute the P elemrnt for (int ph = 0; ph \u003c width/TILE_WIDTH; ph++) { // Collaborative loading of M and N tiles into shared memory Mds[ty][tx] = M[Row * width + ph * TILE_WIDTH + tx]; Nds[ty][tx] = N[(ph * TILE_WIDTH + ty) * width + Col]; __syncthreads(); for (int k = 0; k \u003c TILE_WIDTH; k++) { Pvalue += Mds[ty][k] * Nds[k][tx]; } __syncthreads(); P[Row * width + Col] = Pvalue; } } Tiling 技术并不是 GPU 上才能实现。CPU 上的 tiling 依赖缓存来将重用的数据保留在芯片上，而 GPU 上的 tiling 则直接地使用共享内存来存储片上数据。CPU 核心通常只运行一个或两个线程，因此线程可以依赖于缓存来保存最近使用的数据。相反，GPU SM 同时运行多个线程以隐藏延迟，些线程会竞争缓存槽，使得 GPU 缓存不太可靠。\n5.5 Boundary Checks 我们需要扩展 tiling 矩阵乘法内核使其处理任意大小的矩阵。下图展示了 block(0,0) 在 phase 1 的内存访问模式。在不进行边界检查时 thead(0,1) 试图访问 M(0,3) 时实际上获得的是 M(1,0). 同样在 Block(1,1) 在 phase 0 访问时也会出现类似的问题。因此在加载所需的 M 和 N 的 tile 时边界条件为两个索引都小于 Width: Row \u003c Width \u0026\u0026 (ph * TILE_WIDT + tx) \u003c Width，否则将 0.0f 存入对应位置。\nMemory Access of Block(0,0) in Phase 1\n扩展为一般的矩阵乘法内核是很容易的。将 Width 参数替换为三个无符号整数参数: m, k, n; 将用于指代 M 的行数/列数和 P 的行数/列数的 Width 替换为 m/n；将用于指代 M 的列数和 P 的行数的 Width 替换为 k. 修改后代码如下\nCalculation of the Matrix Indexes in Tiled Multiplication\n__global__ void GEMMKernel(float* M, float* N, float* P, int m, int n, int k) { __shared__ float Mds[TILE_WIDTH][TILE_WIDTH]; __shared__ float Nds[TILE_WIDTH][TILE_WIDTH]; int bx = blockIdx.x; int by = blockIdx.y; int tx = threadIdx.x; int ty = threadIdx.y; // Identify the row and column of the P element to work on int Row = by * TILE_WIDTH + ty; int Col = bx * TILE_WIDTH + tx; float Pvalue = 0; // Loop over the M and N tiles required to compute the P element for (int ph = 0; ph \u003c (k + TILE_WIDTH - 1) / TILE_WIDTH; ph++) { // Collaborative loading of M and N tiles into shared memory if (Row \u003c m \u0026\u0026 ph * TILE_WIDTH + tx \u003c k) { Mds[ty][tx] = M[Row * k + ph * TILE_WIDTH + tx]; } else { Mds[ty][tx] = 0.0f; } if (ph * TILE_WIDTH + ty \u003c k \u0026\u0026 Col \u003c n) { Nds[ty][tx] = N[(ph * TILE_WIDTH + ty) * n + Col]; } else { Nds[ty][tx] = 0.0f; } __syncthreads(); for (int i = 0; i \u003c TILE_WIDTH; i++) { Pvalue += Mds[ty][i] * Nds[i][tx]; } __syncthreads(); } if (Row \u003c m \u0026\u0026 Col \u003c n) { P[Row * n + Col] = Pvalue; } } 5.6 Impact of Memory Usage on Occupancy CUDA 设备提供有限的资源限制了可以同时在给定程序的 SM 中分配的线程数量。上面代码不支持主机代码对共享内存使用情况的任何动态调整，因为共享内存使用的大小是一个常量。 解决的方法是共享内存声明前添加一个 extern 关键字，并在声明中省略数组的大小。当调用内核时，可以根据设备查询结果动态配置每个块要使用的共享内存量，并将其作为第三个执行配置参数提供给内核调用。然后将数组中每个部分的大小作为参数传递给内核函数。\nsize = ...; matrixMulKernel\u003c\u003c\u003cdimGrid,dimBlock,size\u003e\u003e\u003e(Md，Nd，Pd, Width，size/2，size/2); __global__ void matrixMulKernel(float* M, float* N,float* P,int width, unsigned Mdz_sz, unsigned Nds_sz) { extern __shared__ char float Mds_Nds[]; float *Mds = (float *) Mds_Nds; float *Nds = (float*) Mds_Nds + Mds_sz; } ",
+  "wordCount" : "3666",
+  "inLanguage": "en",
+  "datePublished": "2024-09-05T09:18:11+08:00",
+  "dateModified": "2024-09-05T09:18:11+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch5/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/">Course Learning</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/pmpp/">Programming Massive Parallel</a></div>
+    <h1 class="post-title entry-hint-parent">
+      PMPP Learning-Chapter 5 Memory Architecture and Data Locality
+    </h1>
+    <div class="post-description">
+      Personal notebook 5 of Programming Massively Parallel
+    </div>
+    <div class="post-meta"><span title='2024-09-05 09:18:11 +0800 CST'>Sep-05-2024</span>&nbsp;·&nbsp;8 min&nbsp;·&nbsp;3666 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#5-memory-architecture-and-data-locality" aria-label="5 Memory Architecture and Data Locality">5 Memory Architecture and Data Locality</a><ul>
+                            
+                    <li>
+                        <a href="#51-importance-of--memory-access-efficiency" aria-label="5.1 Importance of  Memory Access Efficiency">5.1 Importance of  Memory Access Efficiency</a></li>
+                    <li>
+                        <a href="#52-cuda-memory-types" aria-label="5.2 CUDA memory types">5.2 CUDA memory types</a></li>
+                    <li>
+                        <a href="#53-tiling-for-reduced-memory-traffic" aria-label="5.3 Tiling for Reduced Memory Traffic">5.3 Tiling for Reduced Memory Traffic</a></li>
+                    <li>
+                        <a href="#54-a-tiled-matrix-multiplication-kernel" aria-label="5.4 A Tiled Matrix Multiplication Kernel">5.4 A Tiled Matrix Multiplication Kernel</a></li>
+                    <li>
+                        <a href="#55-boundary-checks" aria-label="5.5 Boundary Checks">5.5 Boundary Checks</a></li>
+                    <li>
+                        <a href="#56-impact-of-memory-usage-on-occupancy" aria-label="5.6 Impact of Memory Usage on Occupancy">5.6 Impact of Memory Usage on Occupancy</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="5-memory-architecture-and-data-locality">5 Memory Architecture and Data Locality<a hidden class="anchor" aria-hidden="true" href="#5-memory-architecture-and-data-locality">#</a></h1>
+<p>之前章节所写的 CUDA 内核只能达到底层硬件峰值算里的一小部分。因为全局内存 (通常使用片外 DRAM 实现) 往往具有较长的访问延迟 (数百个时钟周期) 和有限的访问带宽。</p>
+<h2 id="51-importance-of--memory-access-efficiency">5.1 Importance of  Memory Access Efficiency<a hidden class="anchor" aria-hidden="true" href="#51-importance-of--memory-access-efficiency">#</a></h2>
+<p>在之前矩阵乘法的内核函数中，每次迭代里执行一次浮点乘法和一次浮点加法需要访问全局内存两次。因此，从全局内存访问的浮点操作次数 (FLOP) 与字节数 (B) 的比率为 2 FLOP-to-8 B，即 0.25FLOP/B. 计算访存比 (<em>compute to global memory access ratio</em>) 定义为在程序的一个区域内对全局内存访问的单位字节执行的 FLOPS 数。
+计算访存比对 CUDA 内核的性能有重大影响。A100 GPU 的全局内存带宽峰值为 1555 GB/s，矩阵乘法内核计算访存比为 0.25 OP/B，因此内核可以执行的单精度 FLOPs 的吞吐量为 389 GFLOPS，仅为 A100 GPU 峰值单精度运算吞吐量 (19,500 GFLOPS) 的 2%. 我们把执行速度受内存带宽限制的程序称为内存瓶颈 (<em>memory bound</em>) 程序。</p>
+<details class="custom-details">
+    <summary class="custom-summary">Roofline Model</summary>
+    <div><p>Rooline 模型用于评估应用程序相在其所运行的硬件的限制上达到的性能。如下图所示，x 轴表示算术或计算强度 (<em>computational intensity</em>)，单位为 FLOP/B. y 轴表示以 GFLOPS 为单位的计算吞吐量。横线表示硬件可以提供的峰值计算吞吐量。
+硬件通常关注两个指标:</p>
+<ul>
+<li>算力 π：也称为计算平台的性能上限，指的是一个计算平台倾尽全力每秒钟所能完成的浮点运算数。单位是 FLOP/s。</li>
+<li>带宽 ß：即计算平台的带宽上限，指的是一个计算平台倾尽全力每秒所能完成的内存交换量。单位是Byte/s。
+两个指标相除即可得到计算平台的计算强度上限 I_max = π / ß，它描述的是在这个计算平台上，单位内存交换最多用来进行多少次计算。</li>
+</ul>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB6d519969c36c2ceb8f94fda0644c984a?method=download&amp;shareKey=f85b96fc7fa07712421487c9b01f7e1b" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB6d519969c36c2ceb8f94fda0644c984a?method=download&amp;shareKey=f85b96fc7fa07712421487c9b01f7e1b" alt="Roofline Model">
+    </a><figcaption>Roofline Model</figcaption></figure></p>
+<p>从图中可以看出算力决定“屋顶”的高度（绿色线段），带宽决定“房檐”的斜率（红色线段）。</p>
+<ul>
+<li>Memory-Bound: 当模型的计算强度 I 小于硬件的计算强度上限 I_max 时，由于此时模型位于“房檐”区间，因此模型理论性能 P 的大小完全由硬件的带宽上限 ß （房檐的斜率）以及模型自身的计算强度 I 所决定，因此这时候就称模型处于 Memory-Bound 状态。</li>
+<li>Compute-Bound: 不管模型的计算强度 I 有多大，它的理论性能 P 最大只能等于硬件的算力 π 。当模型的计算强度 I 大于硬件的计算强度上限 I_max 时，模型在当前硬件处于 Compute-Bound 状态</li>
+</ul>
+</div>
+</details><br>
+<p>为了让内核具有更高的性能，需要通过减少内核执行的全局内存访问次数来增加计算访存比。</p>
+<h2 id="52-cuda-memory-types">5.2 CUDA memory types<a hidden class="anchor" aria-hidden="true" href="#52-cuda-memory-types">#</a></h2>
+<p>下图展示了 CUDA 设备的内存。全局内存和常量内存这两种类型的内存都可以被主机写入 (W) 和读取 (R) 。全局内存也可以被设备读写，而常量内存只支持设备对其读取。
+另一种类型的内存是本地内存，也可以被读写。<strong>本地内存实际上放在全局内存中</strong>，具有相似的访问延迟，但它不是跨线程共享的。每个线程都有自己的全局内存部分，将其用作自己的私有本地内存，存放私有但不能在寄存器中分配的数据。
+寄存器 (<em>register</em>) 和共享内存 (<em>shared memory</em>) 是片上内存。存储在这些类型内存中的变量可以以高度并行的方式以高速访问。其中每个线程只能访问自己的寄存器。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB6b7cbeee7a8279269c480cc3dd307c92?method=download&amp;shareKey=c9a05598ffe57e76def11f1ea20593fa" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB6b7cbeee7a8279269c480cc3dd307c92?method=download&amp;shareKey=c9a05598ffe57e76def11f1ea20593fa" alt="Overview of CUDA Memory Model">
+    </a><figcaption>Overview of CUDA Memory Model</figcaption></figure></p>
+<p>与基于冯·诺伊曼模型的计算机类比，CUDA 设备中的全局内存对应于内存框，寄存器对应于寄存器堆。与访问全局内存相比，每次访问寄存器所涉及的指令更少。当算术指令的操作数在寄存器中时，不需要额外的指令使算术逻辑单元(ALU)可以使用该操作数的值。如果操作数值在全局内存中，处理器需要执行内存加载操作让 ALU 能使用操作数。并且从寄存器堆访问所消耗的能量至少比从全局内存访问低一个数量级。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB976785b7c8c819c9e53543306299645d?method=download&amp;shareKey=6af41bb3bef56687bcbe90e6d21f1204" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB976785b7c8c819c9e53543306299645d?method=download&amp;shareKey=6af41bb3bef56687bcbe90e6d21f1204" alt="Memory vs. Registers in a Modern Computer Based on the von Neumann Model">
+    </a><figcaption>Memory vs. Registers in a Modern Computer Based on the von Neumann Model</figcaption></figure></p>
+<p>下图展示了 CUDA 设备中的共享内存和寄存器。共享内存实际上是一种暂存存储器 (<em>scratchpad memory</em>)，作为片上内存的一部分。当处理器访问存储在共享内存中的数据时，需要执行内存加载操作。CUDA 中共享内存和寄存器之间的一个重要区别是，存储在共享内存中的变量可以被块中的所有线程访问，而寄存器数据是线程私有的。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB9683f5c9b3fdd69aa62d8c8751be45f7?method=download&amp;shareKey=62797256af4f18ce4ebf652d411de315" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB9683f5c9b3fdd69aa62d8c8751be45f7?method=download&amp;shareKey=62797256af4f18ce4ebf652d411de315" alt="Shared Memory vs. Registers in a CUDA Device SM">
+    </a><figcaption>Shared Memory vs. Registers in a CUDA Device SM</figcaption></figure></p>
+<p>下表给出了将程序变量声明为各种内存类型的 CUDA 语法。</p>
+<ul>
+<li>所有在内核和设备函数中声明的 automatic scalar variables 都被放入寄存器中。</li>
+<li>Automatic array variables 存储在线程的本地内存中。如果所有访问都使用常量索引值，编译器可能决定将将其存储到寄存器中。</li>
+<li>块中的所有线程都看到 shared variable 的相同版本。内核执行期间每个块会创建和使用一个私有版本。通常使用共享变量来保存在内核执行阶段经常使用和重用的全局内存数据部分。</li>
+<li>Constant variables 通常用于向核函数提供输入。内核函数不能修改常量变量的值。</li>
+<li>Global variables 通常用于将信息从一个内核调用传递到另一个内核调用。</li>
+</ul>
+<table>
+  <thead>
+      <tr>
+          <th>Variable Declaration</th>
+          <th>Memory</th>
+          <th>Scope</th>
+          <th>Lifetime</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Automatic variables other than arrays</td>
+          <td>Register</td>
+          <td>Thread</td>
+          <td>Kernel</td>
+      </tr>
+      <tr>
+          <td>Automatic  array variables</td>
+          <td>Local</td>
+          <td>Thread</td>
+          <td>Kernel</td>
+      </tr>
+      <tr>
+          <td><code>__device__ __shared__ int SharedVar;</code></td>
+          <td>Shared</td>
+          <td>Block</td>
+          <td>Kernel</td>
+      </tr>
+      <tr>
+          <td><code>__device__ int GlobalVar;</code></td>
+          <td>Global</td>
+          <td>Grid</td>
+          <td>Application</td>
+      </tr>
+      <tr>
+          <td><code>__device__ __constant__ int ConstantVar;</code></td>
+          <td>Constant</td>
+          <td>Grid</td>
+          <td>Application</td>
+      </tr>
+  </tbody>
+</table>
+<p>在 CUDA 中，指针可以用来指向全局内存中的数据对象，通常有以下两种情况会使用</p>
+<ul>
+<li>对象由主机函数分配，指向对象的指针由内存分配函数 (如 <code>cudaMalloc</code>) 初始化，作为参数传递给内核函数。</li>
+<li>将在全局内存中声明的变量的地址赋给指针变量。</li>
+</ul>
+<h2 id="53-tiling-for-reduced-memory-traffic">5.3 Tiling for Reduced Memory Traffic<a hidden class="anchor" aria-hidden="true" href="#53-tiling-for-reduced-memory-traffic">#</a></h2>
+<p>一种常见的策略是将数据划分为称为 <em>tile</em> 的子集，以便每个 tile 都适合共享内存。能进行划分的一个重要的标准是这些 tile 上的内核计算可以彼此独立地完成。
+下图展示了 block(0,0) 的四个线程所完成的计算。这四个线程计算P(0,0), P(0,1), P(1,0) 和 P(1,1). 每个线程在执行过程中访问 M 的 4 个元素和 N 的 4 个元素，可以看出有明显重复的部分。将每个块需要访问的数据先加载到共享内存，这样可以避免每个线程从全局内存里加载重复的数据。全局内存流量的减少与块的维度成正比。每个块大小为 Width*Width 时，全局内存流量将减少为原来的 1/Width.</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB3ed7adc0960b337ea099f2d34a5474db?method=download&amp;shareKey=18100aa957fb01bf5f29920b908fd02f" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB3ed7adc0960b337ea099f2d34a5474db?method=download&amp;shareKey=18100aa957fb01bf5f29920b908fd02f" alt="A Small Example of Matrix Multiplication">
+    </a><figcaption>A Small Example of Matrix Multiplication</figcaption></figure></p>
+<p>按 tile 进行矩阵乘法的基本思想是让线程在各自使用元素来进行内积计算之前，将 M 和 N 元素的子集加载到共享内存中。如下图所示把 M 和 N 分成大小为 <code>2*2</code> 的块。每个线程执行的内积计算现在被划分为几个阶段。在每个阶段，一个块中的所有线程协作将对应的 M 和 N 的 tile 加载到共享内存中。这样每个阶段关注的是输入矩阵元素的一个小子集。这种集中的访问行为称为局部性 (<em>locality</em>).</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBae4e4638b9bd98256ba51c1f67530364?method=download&amp;shareKey=d9458ef5fa7b14ad19e1f0e72defa1b7" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBae4e4638b9bd98256ba51c1f67530364?method=download&amp;shareKey=d9458ef5fa7b14ad19e1f0e72defa1b7" alt="Tiling M and N to Utilize Shared Memory">
+    </a><figcaption>Tiling M and N to Utilize Shared Memory</figcaption></figure></p>
+<h2 id="54-a-tiled-matrix-multiplication-kernel">5.4 A Tiled Matrix Multiplication Kernel<a hidden class="anchor" aria-hidden="true" href="#54-a-tiled-matrix-multiplication-kernel">#</a></h2>
+<p>按照上述方法编写的内核函数如下。如下图所示，x 轴方向上坐标为 bx 和 tx 的线程应该负责计算 P 中索引为 <code>bx * tile_width + tx</code> 元素。类似地，y 轴方向上线程要处理的 P 中索引为 <code>by * tile_width + ty</code>. 外循环的每次迭代对应于计算的一个阶段。两次调用 <code>__syncthreads()</code> 的原因不同，第一次被称为写后读 (<em>read-after-write</em>) 依赖关系，因为线程在尝试读取数据之前必须等待其他线程将数据写入正确的位置。第二种被称为读后写 (<em>write-after-read</em>) 依赖，因为线程必须等待所有需要它的线程读取数据，然后才能覆盖它。</p>
+<p>写后读依赖是一种真正依赖 (<em>true dependence</em>)，因为读线程确实需要写线程提供的数据，所以它别无选择，只能等待。读后写依赖关系是伪依赖 (<em>false dependence</em>) 关系，因为写线程不需要来自读线程的任何数据。这种依赖性是因为它们访问相同的内存地址，如果它们访问不同的地址，则不存在这种依赖性。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">TilingMatrixMulKernel</span><span class="p">(</span><span class="kt">float</span><span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="kt">float</span><span class="o">*</span> <span class="n">N</span><span class="p">,</span> <span class="kt">float</span><span class="o">*</span> <span class="n">P</span><span class="p">,</span> <span class="kt">int</span> <span class="n">width</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">Mds</span><span class="p">[</span><span class="n">TILE_WIDTH</span><span class="p">][</span><span class="n">TILE_WIDTH</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">Nds</span><span class="p">[</span><span class="n">TILE_WIDTH</span><span class="p">][</span><span class="n">TILE_WIDTH</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">bx</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>  <span class="kt">int</span> <span class="n">by</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">tx</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span> <span class="kt">int</span> <span class="n">ty</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Identify the row and column of the P element to work on
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">Row</span> <span class="o">=</span> <span class="n">by</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">ty</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">Col</span> <span class="o">=</span> <span class="n">bx</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">tx</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="kt">float</span> <span class="n">Pvalue</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Loop over the M and N tiles required to compute the P elemrnt
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ph</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">ph</span> <span class="o">&lt;</span> <span class="n">width</span><span class="o">/</span><span class="n">TILE_WIDTH</span><span class="p">;</span> <span class="n">ph</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="c1">// Collaborative loading of M and N tiles into shared memory
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="n">Mds</span><span class="p">[</span><span class="n">ty</span><span class="p">][</span><span class="n">tx</span><span class="p">]</span> <span class="o">=</span> <span class="n">M</span><span class="p">[</span><span class="n">Row</span> <span class="o">*</span> <span class="n">width</span> <span class="o">+</span> <span class="n">ph</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">tx</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="n">Nds</span><span class="p">[</span><span class="n">ty</span><span class="p">][</span><span class="n">tx</span><span class="p">]</span> <span class="o">=</span> <span class="n">N</span><span class="p">[(</span><span class="n">ph</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">ty</span><span class="p">)</span> <span class="o">*</span> <span class="n">width</span> <span class="o">+</span> <span class="n">Col</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">TILE_WIDTH</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">Pvalue</span> <span class="o">+=</span> <span class="n">Mds</span><span class="p">[</span><span class="n">ty</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">Nds</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">tx</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">		<span class="n">P</span><span class="p">[</span><span class="n">Row</span> <span class="o">*</span> <span class="n">width</span> <span class="o">+</span> <span class="n">Col</span><span class="p">]</span> <span class="o">=</span> <span class="n">Pvalue</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Tiling 技术并不是 GPU 上才能实现。CPU 上的 tiling 依赖缓存来将重用的数据保留在芯片上，而 GPU 上的 tiling 则直接地使用共享内存来存储片上数据。CPU 核心通常只运行一个或两个线程，因此线程可以依赖于缓存来保存最近使用的数据。相反，GPU SM 同时运行多个线程以隐藏延迟，些线程会竞争缓存槽，使得 GPU 缓存不太可靠。</p>
+<h2 id="55-boundary-checks">5.5 Boundary Checks<a hidden class="anchor" aria-hidden="true" href="#55-boundary-checks">#</a></h2>
+<p>我们需要扩展 tiling 矩阵乘法内核使其处理任意大小的矩阵。下图展示了 block(0,0) 在 phase 1 的内存访问模式。在不进行边界检查时 thead(0,1) 试图访问 M(0,3) 时实际上获得的是 M(1,0). 同样在 Block(1,1) 在 phase 0 访问时也会出现类似的问题。因此在加载所需的 M 和 N 的 tile 时边界条件为两个索引都小于 Width: <code>Row &lt; Width &amp;&amp; (ph * TILE_WIDT + tx) &lt; Width</code>，否则将 0.0f 存入对应位置。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB3510a9da44c7c085a52a178e1a9f1381?method=download&amp;shareKey=ba4ad85a9a2fa48d75e5911e34f0342e" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB3510a9da44c7c085a52a178e1a9f1381?method=download&amp;shareKey=ba4ad85a9a2fa48d75e5911e34f0342e" alt="Memory Access of Block(0,0) in Phase 1">
+    </a><figcaption>Memory Access of Block(0,0) in Phase 1</figcaption></figure></p>
+<p>扩展为一般的矩阵乘法内核是很容易的。将 Width 参数替换为三个无符号整数参数: m, k, n; 将用于指代 M 的行数/列数和 P 的行数/列数的 Width 替换为 m/n；将用于指代 M 的列数和 P 的行数的 Width 替换为 k. 修改后代码如下</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB4072b51d6111b15f740c4efb83237a0f?method=download&amp;shareKey=629c82b8ccd78e137a597b5a3e364c4b" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB4072b51d6111b15f740c4efb83237a0f?method=download&amp;shareKey=629c82b8ccd78e137a597b5a3e364c4b" alt="Calculation of the Matrix Indexes in Tiled Multiplication">
+    </a><figcaption>Calculation of the Matrix Indexes in Tiled Multiplication</figcaption></figure></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">GEMMKernel</span><span class="p">(</span><span class="kt">float</span><span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="kt">float</span><span class="o">*</span> <span class="n">N</span><span class="p">,</span> <span class="kt">float</span><span class="o">*</span> <span class="n">P</span><span class="p">,</span> <span class="kt">int</span> <span class="n">m</span><span class="p">,</span> <span class="kt">int</span> <span class="n">n</span><span class="p">,</span> <span class="kt">int</span> <span class="n">k</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">Mds</span><span class="p">[</span><span class="n">TILE_WIDTH</span><span class="p">][</span><span class="n">TILE_WIDTH</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">Nds</span><span class="p">[</span><span class="n">TILE_WIDTH</span><span class="p">][</span><span class="n">TILE_WIDTH</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">bx</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>  <span class="kt">int</span> <span class="n">by</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">tx</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span> <span class="kt">int</span> <span class="n">ty</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Identify the row and column of the P element to work on
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">Row</span> <span class="o">=</span> <span class="n">by</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">ty</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">Col</span> <span class="o">=</span> <span class="n">bx</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">tx</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="kt">float</span> <span class="n">Pvalue</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Loop over the M and N tiles required to compute the P element
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ph</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">ph</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="n">TILE_WIDTH</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">TILE_WIDTH</span><span class="p">;</span> <span class="n">ph</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="c1">// Collaborative loading of M and N tiles into shared memory
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">if</span> <span class="p">(</span><span class="n">Row</span> <span class="o">&lt;</span> <span class="n">m</span> <span class="o">&amp;&amp;</span> <span class="n">ph</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">tx</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">Mds</span><span class="p">[</span><span class="n">ty</span><span class="p">][</span><span class="n">tx</span><span class="p">]</span> <span class="o">=</span> <span class="n">M</span><span class="p">[</span><span class="n">Row</span> <span class="o">*</span> <span class="n">k</span> <span class="o">+</span> <span class="n">ph</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">tx</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">Mds</span><span class="p">[</span><span class="n">ty</span><span class="p">][</span><span class="n">tx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0f</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">ph</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">ty</span> <span class="o">&lt;</span> <span class="n">k</span> <span class="o">&amp;&amp;</span> <span class="n">Col</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">Nds</span><span class="p">[</span><span class="n">ty</span><span class="p">][</span><span class="n">tx</span><span class="p">]</span> <span class="o">=</span> <span class="n">N</span><span class="p">[(</span><span class="n">ph</span> <span class="o">*</span> <span class="n">TILE_WIDTH</span> <span class="o">+</span> <span class="n">ty</span><span class="p">)</span> <span class="o">*</span> <span class="n">n</span> <span class="o">+</span> <span class="n">Col</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">Nds</span><span class="p">[</span><span class="n">ty</span><span class="p">][</span><span class="n">tx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0f</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">TILE_WIDTH</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">Pvalue</span> <span class="o">+=</span> <span class="n">Mds</span><span class="p">[</span><span class="n">ty</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">Nds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">tx</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">Row</span> <span class="o">&lt;</span> <span class="n">m</span> <span class="o">&amp;&amp;</span> <span class="n">Col</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">P</span><span class="p">[</span><span class="n">Row</span> <span class="o">*</span> <span class="n">n</span> <span class="o">+</span> <span class="n">Col</span><span class="p">]</span> <span class="o">=</span> <span class="n">Pvalue</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="56-impact-of-memory-usage-on-occupancy">5.6 Impact of Memory Usage on Occupancy<a hidden class="anchor" aria-hidden="true" href="#56-impact-of-memory-usage-on-occupancy">#</a></h2>
+<p>CUDA 设备提供有限的资源限制了可以同时在给定程序的 SM 中分配的线程数量。上面代码不支持主机代码对共享内存使用情况的任何动态调整，因为共享内存使用的大小是一个常量。
+解决的方法是共享内存声明前添加一个 <code>extern</code> 关键字，并在声明中省略数组的大小。当调用内核时，可以根据设备查询结果动态配置每个块要使用的共享内存量，并将其作为第三个执行配置参数提供给内核调用。然后将数组中每个部分的大小作为参数传递给内核函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">size</span> <span class="o">=</span> <span class="p">...;</span>
+</span></span><span class="line"><span class="cl"><span class="n">matrixMulKernel</span><span class="o">&lt;&lt;&lt;</span><span class="n">dimGrid</span><span class="p">,</span><span class="n">dimBlock</span><span class="p">,</span><span class="n">size</span><span class="o">&gt;&gt;&gt;</span><span class="p">(</span><span class="n">Md</span><span class="err">，</span><span class="n">Nd</span><span class="err">，</span><span class="n">Pd</span><span class="p">,</span> <span class="n">Width</span><span class="err">，</span><span class="n">size</span><span class="o">/</span><span class="mi">2</span><span class="err">，</span><span class="n">size</span><span class="o">/</span><span class="mi">2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">matrixMulKernel</span><span class="p">(</span><span class="kt">float</span><span class="o">*</span> <span class="n">M</span><span class="p">,</span> <span class="kt">float</span><span class="o">*</span> <span class="n">N</span><span class="p">,</span><span class="kt">float</span><span class="o">*</span> <span class="n">P</span><span class="p">,</span><span class="kt">int</span> <span class="n">width</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">Mdz_sz</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">Nds_sz</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">extern</span> <span class="n">__shared__</span> <span class="kt">char</span> <span class="kt">float</span> <span class="n">Mds_Nds</span><span class="p">[];</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">float</span> <span class="o">*</span><span class="n">Mds</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span> <span class="o">*</span><span class="p">)</span> <span class="n">Mds_Nds</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">float</span> <span class="o">*</span><span class="n">Nds</span> <span class="o">=</span> <span class="p">(</span><span class="kt">float</span><span class="o">*</span><span class="p">)</span> <span class="n">Mds_Nds</span> <span class="o">+</span> <span class="n">Mds_sz</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/pmpp-learning/">PMPP Learning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch4/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>PMPP Learning-Chapter 4 Compute Architecture and Scheduling</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch3/">
+    <span class="title">Next »</span>
+    <br>
+    <span>PMPP Learning-Chapter 3 Multidimensional Grids and Data</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 5 Memory Architecture and Data Locality on x"
+            href="https://x.com/intent/tweet/?text=PMPP%20Learning-Chapter%205%20Memory%20Architecture%20and%20Data%20Locality&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch5%2f&amp;hashtags=PMPPlearning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 5 Memory Architecture and Data Locality on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch5%2f&amp;title=PMPP%20Learning-Chapter%205%20Memory%20Architecture%20and%20Data%20Locality&amp;summary=PMPP%20Learning-Chapter%205%20Memory%20Architecture%20and%20Data%20Locality&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch5%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 5 Memory Architecture and Data Locality on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch5%2f&title=PMPP%20Learning-Chapter%205%20Memory%20Architecture%20and%20Data%20Locality">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 5 Memory Architecture and Data Locality on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch5%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 5 Memory Architecture and Data Locality on telegram"
+            href="https://telegram.me/share/url?text=PMPP%20Learning-Chapter%205%20Memory%20Architecture%20and%20Data%20Locality&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch5%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

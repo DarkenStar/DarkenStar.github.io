@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Python-C&#43;&#43; Binding on WITHER</title>
+    <link>http://localhost:1313/categories/python-c&#43;&#43;-binding/</link>
+    <description>Recent content in Python-C&#43;&#43; Binding on WITHER</description>
+    <generator>Hugo -- 0.147.7</generator>
+    <language>en</language>
+    <copyright>2024-2025 WITHER</copyright>
+    <atom:link href="http://localhost:1313/categories/python-c++-binding/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>pybind11-Installation</title>
+      <link>http://localhost:1313/posts/pybind11-installation/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/pybind11-installation/</guid>
+      <description>&lt;h1 id=&#34;introduction&#34;&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;pybind11 是一个轻量级的纯头文件库，可以在 Python 中公开 C++ 类型，反之亦然，主要用于创建现有 C++ 代码的 Python 绑定。它的目标和语法与 David Abrahams 的 Boost.Python 库相似：通过使用编译时自省推断类型信息，最大限度地减少传统扩展模块中的模板代码。&lt;/p&gt;</description>
+      <content:encoded><![CDATA[<h1 id="introduction">Introduction</h1>
+<p>pybind11 是一个轻量级的纯头文件库，可以在 Python 中公开 C++ 类型，反之亦然，主要用于创建现有 C++ 代码的 Python 绑定。它的目标和语法与 David Abrahams 的 Boost.Python 库相似：通过使用编译时自省推断类型信息，最大限度地减少传统扩展模块中的模板代码。</p>
+<blockquote>
+<p>pybind11 is a lightweight header-only library that exposes C++ types in Python and vice versa, mainly to create Python bindings of existing C++ code. Its goals and syntax are similar to the excellent Boost.Python library by David Abrahams: to minimize boilerplate code in traditional extension modules by inferring type information using compile-time introspection.</p></blockquote>
+<h1 id="git-clone-source-code">Git Clone Source Code</h1>
+<p>首先在你想下载的文件夹下(我的是 <code>D:\</code>) git clone pybind11 的源码后进行构建，并运行测试用例</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">git clone https://github.com/pybind/pybind11.git
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> pybind11
+</span></span><span class="line"><span class="cl">mkdir build
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> build
+</span></span><span class="line"><span class="cl">cmake ..
+</span></span><span class="line"><span class="cl">cmake --build . --config Release --target check
+</span></span></code></pre></div><p>如果没有报错则安装成功</p>
+<h1 id="visual-studio-project-properties-configuration">Visual Studio Project Properties Configuration</h1>
+<p>创建一个 Visual Studio 的一个空项目，并新建一个 .cpp 文件，以一个简单的加法程序作为测试</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#include&#34;pybind11/pybind11.h&#34;
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">add</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="kt">int</span> <span class="n">j</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="n">j</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">PYBIND11_MODULE</span><span class="p">(</span><span class="n">example</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">m</span><span class="p">.</span><span class="n">doc</span><span class="p">()</span> <span class="o">=</span> <span class="s">&#34;TestPybind plugin&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">m</span><span class="p">.</span><span class="n">def</span><span class="p">(</span><span class="s">&#34;add&#34;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">add</span><span class="p">,</span> <span class="s">&#34;A function that adds two integers&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>接着我们打开项目的 Property Pages (属性页)，修改 Configuration Type 为 Dynamic Library(.dll)</p>
+<p><img alt="Configuration Type" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBc899c7ae6555c5350aa0552639832df1?method=download&shareKey=32e95705185dd0d926c832a9d7894285" title="Configuration Type"></p>
+<p>{% note info %}
+这里需要注意我们要使上一行 Target Name (默认和 ProjectName 相等) 和 <code>PYBIND11_MODULE</code> 的模块名一致，否则后面从 python import 时候会报错。
+{% endnote %}</p>
+<p>然后在 Advanced 中修改后缀名称为 .pyd</p>
+<p><img alt="Target File Extension" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB3157936ceabae45bba0942113730f1d7?method=download&shareKey=359620a4deb60a22105eace5a412f310" title="Target File Extension"></p>
+<p>接着我们需要在 C/C++ 的 General 选项卡中添加 python 和 pybind11 的包含目录，我是通过 miniconda 安装的 python，因此 python.h 所在的包含目录位置为 <code>C:\Users\$(UserName)\miniconda3\include</code>. pybind11 的包含目录在刚才 git clone 源码的文件夹下 <code>D:\pybind11\include</code></p>
+<p><img alt="Additional Include Directories" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBf8dbe9524a2884d432a37e74f42865eb?method=download&shareKey=99b52578a779fe100736f36709a0f225" title="Additional Include Directories"></p>
+<p><img alt="Add python &amp; pybind11 include Directories" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB812be16a1deefe9a72e87ee433d243b7?method=download&shareKey=bdd01c679498e701324c4e4a8cddca37" title="Add python &amp; pybind11 include Directories"></p>
+<p>然后在 Linker 的 General 选项卡中添加 python 的库目录 (前文已经说过 pybind11 是一个 header—only 库) <code>C:\Users\$(UserName)\miniconda3\libs</code></p>
+<p><img alt="Additional Library Directories" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB59d1852e15cfb3c91f569b08213e22ac?method=download&shareKey=2413a1377116273ecf26de07d7dbca74" title="Additional Library Directories"></p>
+<p><img alt="Add python Library Directories" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB6979ba5b4c026a5d7b4e749ea2492f02?method=download&shareKey=d114804fa69efd7c11f291ac0ddcaea1" title="Add python Library Directories"></p>
+<p>右键项目进行 build，成功后会在项目目录下的 <code>x64\Debug</code> 文件夹下 生成 .pyd 文件，可以在命令行中进行测试。</p>
+<p><img alt="Test Module" loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBb5c3df3e13e95ccc9250a15c90233b6c?method=download&shareKey=5fc5f0db83ca30c9d0e3d705de285f0c" title="Test Module"></p>
+]]></content:encoded>
+    </item>
+  </channel>
+</rss>

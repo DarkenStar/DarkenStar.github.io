@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>MLIR-Ch4 Defining a New Dialect | WITHER</title>
+<meta name="keywords" content="MLIR">
+<meta name="description" content="Personal MLIR learning notes 4.">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a3afc927e13c8d8d72138af4254aadf37b5653f96e325fea8d50c85abdca381a.css" integrity="sha256-o6/JJ&#43;E8jY1yE4r0JUqt83tWU/luMl/qjVDIWr3KOBo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="MLIR-Ch4 Defining a New Dialect">
+  <meta property="og:description" content="Personal MLIR learning notes 4.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-11-07T18:16:23+08:00">
+    <meta property="article:modified_time" content="2024-11-07T18:16:23+08:00">
+    <meta property="article:tag" content="Jeremykun MLIR Learning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MLIR-Ch4 Defining a New Dialect">
+<meta name="twitter:description" content="Personal MLIR learning notes 4.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Course Learning",
+      "item": "http://localhost:1313/blogs/courselearning/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "Multi Layer Intermediate Representation",
+      "item": "http://localhost:1313/blogs/courselearning/mlir/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  4 ,
+      "name": "MLIR-Ch4 Defining a New Dialect",
+      "item": "http://localhost:1313/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "MLIR-Ch4 Defining a New Dialect",
+  "name": "MLIR-Ch4 Defining a New Dialect",
+  "description": "Personal MLIR learning notes 4.",
+  "keywords": [
+    "MLIR"
+  ],
+  "articleBody": "Sketching Out a Dseign TableGen 也可以用来定义 dialect. 本文将定义一个单未知数多项式运算的 dialect，系数用 uint32_t 类型表示。，并提供通过从标准 MLIR 类型指定多项式系数来定义多项式的操作，提取关于多项式的数据以将结果存储在标准MLIR类型中，以及对多项式进行算术运算。\nAn Empty Dialect 我们首先用 TableGen 定义一个空的 dialect. 它和上一章定义 Pass 没什么不同，只不过 include 的是 DialectBase.td 文件。同时也定义了命名空间为 ::mlir::tutorial::poly.\ninclude \"mlir/IR/DialectBase.td\" def Poly_Dialect : Dialect { let name = \"poly\"; let summary = \"A dialect for polynomial math\"; let description = [{ The poly dialect defines types and operations for single-variable polynomials over integers. }]; let cppNamespace = \"::mlir::tutorial::poly\"; } 我们需要在 include 目录下的 CMakeLists.txt 文件中添加\nset(TARGET_NAME \"${PROJECT_TARGET_PREFIX}-Dialect-PolyDialect-IncGen\") set(LLVM_TARGET_DEFINITIONS mlir-learning/Dialect/Poly/PolyDialect.td) mlir_tablegen(mlir-learning/Dialect/Poly/PolyDialect.hpp.inc --gen-dialect-decls) mlir_tablegen(mlir-learning/Dialect/Poly/PolyDialect.cpp.inc --gen-dialect-defs) add_public_tablegen_target(${TARGET_NAME}) 然后在 tutorial-opt.cpp 中注册所有 mlir 自带的所有 dialect 后进行构建，我们可以查看生成的 .hpp.inc 和.cpp.inc 文件。\nnamespace mlir { namespace tutorial { class PolyDialect : public ::mlir::Dialect { explicit PolyDialect(::mlir::MLIRContext *context); void initialize(); friend class ::mlir::MLIRContext; public: ~PolyDialect() override; static constexpr ::llvm::StringLiteral getDialectNamespace() { return ::llvm::StringLiteral(\"poly\"); } }; } // namespace tutorial } // namespace mlir MLIR_DECLARE_EXPLICIT_TYPE_ID(::mlir::tutorial::PolyDialect) 编译器会报错，因为 inc 不会包含 Dialect 等类所在的头文件。这需要我们自己在 PolyDialect.h 文件中进行 include，这样 当重新构建的时候该文件注入变不会报错\n// include/mlir-learning/Dialect/Poly/PolyDialect.h #ifndef LIB_DIALECT_POLY_POLYDIALECT_H #define LIB_DIALECT_POLY_POLYDIALECT_H #include \"mlir/IR/DialectImplementation.h\" // include mannually #include \"mlir-learning/Dialect/Poly/PolyDialect.hpp.inc\" #endif 生成的 .cpp.inc 如下，他只包含了该类基本的构造函数和析构函数。\nMLIR_DEFINE_EXPLICIT_TYPE_ID(::mlir::tutorial::poly::PolyDialect) namespace mlir { namespace tutorial { namespace poly { PolyDialect::PolyDialect(::mlir::MLIRContext *context) : ::mlir::Dialect(getDialectNamespace(), context, ::mlir::TypeID::get\u003cPolyDialect\u003e()) { initialize(); } PolyDialect::~PolyDialect() = default; } // namespace poly } // namespace tutorial } // namespace mlir 然后我们可以在 tutorial-opt.cpp 中注册该 dialect.\n/* other includes */ #include \"mlir-learning/Dialect/Poly/PolyDialect.h\" int main(int argc, char** argv) { // Register all built-in MLIR dialects mlir::DialectRegistry registry; // Register our Dialect registry.insert\u003cmlir::tutorial::poly::PolyDialect\u003e(); mlir::registerAllDialects(registry); return mlir::asMainReturnCode( mlir::MlirOptMain(argc, argv, \"Tutorial Pass Driver\", registry)); } Adding a Trival Type 下面我们需要定义自己的 poly.poly 类型.\n// poly_types.td #ifndef LIB_DIALECT_POLY_POLYTYPES_TD_ #define LIB_DIALECT_POLY_POLYTYPES_TD_ include \"mlir-learning/Dialect/Poly/PolyDialect.td\" include \"mlir/IR/AttrTypeBase.td\" // a base class for all types in the dialect class Poly_Type\u003cstring name, string typeMnemonic\u003e : TypeDef\u003cPoly_Dialect, name\u003e { let mnemonic = typeMnemonic; } def Polynomial: Poly_Type\u003c\"Polynomial\", \"poly\"\u003e { let summary = \"A polynomial with u32 coefficients\"; let description = [{ A type for polynomials with integer coefficients in a single-variable polynomial ring. }]; } #endif 在 MLIR 的 TableGen 文件中，class 和 def 的用法和含义有所不同\nclass 用于定义一个模板或基类，可以被其他类型或定义继承和重用。它本身不会创建实际的对象或具体类型，它只是一种结构，可以包含参数和默认属性。其他定义可以通过继承该类来获得其功能。 def 用于创建一个具体的实例，比如一个类型、操作或属性。它会将所定义的内容应用到 TableGen 中，使其成为可用的具体类型或功能。 这里我们定义了一个名为 Poly_Type 的类，参数为 name（类型的名称）和 typeMnemonic（类型的简写或助记符）。这个类继承自 TypeDef. 然后 def 特定的多项式类型 Polynomial，继承自 Poly_Type.\n在 MLIR 的 TableGen 中，TypeDef 本身也是一个类，它接受模板参数，用于指定该类型所属的 dialect 和名称字段。其作用包括将生成的C++类与该 dialect 的命名空间相关联。\n生成的 .hpp.inc 文件如下。生成的类 PolynomialType 就是在我们的 TableGen 文件中定义的 Polynomial 类型后面加上了 Type.\n#ifdef GET_TYPEDEF_CLASSES #undef GET_TYPEDEF_CLASSES namespace mlir { class AsmParser; class AsmPrinter; } // namespace mlir namespace mlir { namespace tutorial { namespace poly { class PolynomialType; class PolynomialType : public ::mlir::Type::TypeBase\u003cPolynomialType, ::mlir::Type, ::mlir::TypeStorage\u003e { public: using Base::Base; static constexpr ::llvm::StringLiteral name = \"poly.poly\"; static constexpr ::llvm::StringLiteral dialectName = \"poly\"; static constexpr ::llvm::StringLiteral getMnemonic() { return {\"poly\"}; } }; } // namespace poly } // namespace tutorial } // namespace mlir MLIR_DECLARE_EXPLICIT_TYPE_ID(::mlir::tutorial::poly::PolynomialType) #endif // GET_TYPEDEF_CLASSES 生成的 .cpp.inc 文件如下。TableGen 试图为 dialect 中的 PolynomialType 自动生成一个 类型解析器 (type parser) 和类型打印器 (type printer). 不过此时这些功能还不可用，构建项目时会看到一些编译警告。\n代码中使用了 头文件保护 (header guards) 来将 cpp 文件分隔为两个受保护的部分。这样可以分别管理类型声明和函数实现。\nGET_TYPEDEF_LIST 只包含类名的逗号分隔列表。原因在于 PolyDialect.cpp 文件需要负责将类型注册到 dialect 中，而该注册过程通过在方言初始化函数中将这些 C++ 类名作为模板参数来实现。换句话说，GET_TYPEDEF_LIST 提供了一种简化机制，使得 PolyDialect.cpp 可以自动获取所有类名称列表，便于统一注册，而不需要手动添加每一个类型。\ngeneratedTypeParser 函数是为 PolynomialType 定义的解析器。当解析器遇到 PolynomialType 的助记符（poly）时，会将 PolynomialType 类型实例化。KeywordSwitch 使用 getMnemonic() 来匹配 PolynomialType 的助记符（poly）。如果匹配成功，则调用 PolynomialType::get() 来获取类型实例。Default 子句在助记符不匹配时执行，记录未知的助记符，并返回 std::nullopt 表示解析失败。 generatedTypePrinter 函数为 PolynomialType 提供了打印功能。当类型为 PolynomialType 时，打印其助记符（poly），否则返回失败。TypeSwitch 用于检查 def 类型是否是 PolynomialType。如果是，打印助记符；否则返回失败，表示该类型不属于此方言。 PolyDialect::parseType 和 PolyDialect::printType 作为方言接口调用这两个函数，从而实现类型的解析和打印功能。 #ifdef GET_TYPEDEF_LIST #undef GET_TYPEDEF_LIST ::mlir::tutorial::poly::PolynomialType #endif // GET_TYPEDEF_LIST #ifdef GET_TYPEDEF_CLASSES #undef GET_TYPEDEF_CLASSES static ::mlir::OptionalParseResult generatedTypeParser(::mlir::AsmParser \u0026parser, ::llvm::StringRef *mnemonic, ::mlir::Type \u0026value) { return ::mlir::AsmParser::KeywordSwitch\u003c::mlir::OptionalParseResult\u003e(parser) .Case(::mlir::tutorial::poly::PolynomialType::getMnemonic(), [\u0026](llvm::StringRef, llvm::SMLoc) { value = ::mlir::tutorial::poly::PolynomialType::get(parser.getContext()); return ::mlir::success(!!value); }) .Default([\u0026](llvm::StringRef keyword, llvm::SMLoc) { *mnemonic = keyword; return std::nullopt; }); } static ::llvm::LogicalResult generatedTypePrinter(::mlir::Type def, ::mlir::AsmPrinter \u0026printer) { return ::llvm::TypeSwitch\u003c::mlir::Type, ::llvm::LogicalResult\u003e(def) .Case\u003c::mlir::tutorial::poly::PolynomialType\u003e([\u0026](auto t) { printer \u003c\u003c ::mlir::tutorial::poly::PolynomialType::getMnemonic(); return ::mlir::success(); }) .Default([](auto) { return ::mlir::failure(); }); } namespace mlir { namespace tutorial { namespace poly { } // namespace poly } // namespace tutorial } // namespace mlir MLIR_DEFINE_EXPLICIT_TYPE_ID(::mlir::tutorial::poly::PolynomialType) namespace mlir { namespace tutorial { namespace poly { /// Parse a type registered to this dialect. ::mlir::Type PolyDialect::parseType(::mlir::DialectAsmParser \u0026parser) const { ::llvm::SMLoc typeLoc = parser.getCurrentLocation(); ::llvm::StringRef mnemonic; ::mlir::Type genType; auto parseResult = generatedTypeParser(parser, \u0026mnemonic, genType); if (parseResult.has_value()) return genType; parser.emitError(typeLoc) \u003c\u003c \"unknown type `\" \u003c\u003c mnemonic \u003c\u003c \"` in dialect `\" \u003c\u003c getNamespace() \u003c\u003c \"`\"; return {}; } /// Print a type registered to this dialect. void PolyDialect::printType(::mlir::Type type, ::mlir::DialectAsmPrinter \u0026printer) const { if (::mlir::succeeded(generatedTypePrinter(type, printer))) return; } } // namespace poly } // namespace tutorial } // namespace mlir #endif // GET_TYPEDEF_CLASSES 在设置 C++ 接口以使用 TableGen 文件时，通常会按照以下步骤来组织代码文件和包含关系。\nPolyTypes.h 是唯一被允许包含 PolyTypes.h.inc 的文件。 PolyTypes.cpp.inc 文件包含了 TableGen 为 PolyDialect 中的类型生成的实现。我们需要在 PolyDialect.cpp 中将其包含进去，以确保所有实现都能在该方言的主文件中使用。 PolyTypes.cpp 文件应该包含 PolyTypes.h，以便访问类型声明，并在该文件中实现所有需要的额外功能。 ./Ch3-DefiningANewDialect/\r├── CMakeLists.txt\r├── include\r│ ├── CMakeLists.txt\r│ └── mlir-tutorial\r│ └── Dialect\r│ └── Poly\r│ ├── PolyDialect.hpp\r│ ├── PolyDialect.td\r│ ├── PolyOps.hpp\r│ ├── PolyOps.td\r│ ├── PolyTypes.hpp\r│ └── PolyTypes.td\r├── lib\r│ ├── CMakeLists.txt\r│ └── Dialect\r│ └── Poly\r│ └── PolyDialect.cpp 为了让类型解析器和打印器能够正确编译和运行，需要最后在方言的 TableGen 文件中添加 let useDefaultTypePrinterParser = 1;，这个指令告诉 TableGen 使用默认的类型解析和打印器。当这个选项启用后，TableGen 会生成相应的解析和打印代码，并将这些实现作为 PolyDialect 类的成员函数。\n/// Parse a type registered to this dialect. ::mlir::Type parseType(::mlir::DialectAsmParser \u0026parser) const override; /// Print a type registered to this dialect. void printType(::mlir::Type type, ::mlir::DialectAsmPrinter \u0026os) const override; 我们可以写一个 .mlir 来测试属性是是否获取正确。在 MLIR 中自定义的 dialect 前都需要加上 !.\n// CHECK-LABEL: test_type_syntax func.func @test_type_syntax(%arg0: !poly.poly\u003c10\u003e) -\u003e !poly.poly\u003c10\u003e { // CHECK: poly.poly return %arg0: !poly.poly\u003c10\u003e } Add a Poly Type Parameter 我们需要为多项式类型添加一个属性，表示它的次数上限。\n// include/mlir-tutorial/Dialect/Poly/PolyTypes.td\rlet parameters = (ins \"int\":$degreeBound);\rlet assemblyFormat = \"`\u003c` $degreeBound `\u003e`\"; 第一行定义了类型的一个参数 degreeBound，类型为 int. 表示在实例化该类型时，用户可以指定一个整数值作为类型的参数。parameters 中的 (ins \"int\":$degreeBound) 指定了输入参数的类型和名称，其中 int 是数据类型，$degreeBound 是参数的占位符。assemblyFormat 用于定义该类型在 MLIR 文本格式中的打印和解析格式。\"\u003c\" $degreeBound \"\u003e\" 表示该类型的参数会用尖括号包裹。第二行是必需的，因为现在一个 Poly 类型有了这个关联的数据，我们需要能够将它打印出来并从文本 IR 表示中解析它。\n加上这两行代码后进行 build 会发现多了一些新的内容。\nPolynomialType 有一个新的 int getDegreeBound() 方法，以及一个静态 get 工厂方法。 parse 和 print 升级为新格式。 有一个名为 typestorage 的新类，它包含 int 形参，并隐藏在内部细节名称空间中。 MLIR会自动生成简单类型的 storage 类，因为它们不需要复杂的内存管理。如果参数更复杂，就需要开发者手动编写 storage 类来定义构造、析构和其他语义。复杂的 storage 类需要实现更多细节，以确保类型能够在 MLIR 的 dialect 系统中顺利运行。\n// include/mlir-learning/Dialect/Poly/PolyTypes.hpp.inc static ::mlir::Type parse(::mlir::AsmParser \u0026odsParser); void print(::mlir::AsmPrinter \u0026odsPrinter) const; int getDegreeBound() const; // include/mlir-learning/Dialect/Poly/PolyTypes.cpp.inc struct PolynomialTypeStorage : public ::mlir::TypeStorage { /* lots of code */ }; PolynomialType PolynomialType::get(::mlir::MLIRContext *context, int degreeBound) { return Base::get(context, std::move(degreeBound)); } ::mlir::Type PolynomialType::parse(::mlir::AsmParser \u0026odsParser) { /* code to parse the type */ } void PolynomialType::print(::mlir::AsmPrinter \u0026odsPrinter) const { ::mlir::Builder odsBuilder(getContext()); odsPrinter \u003c\u003c \"\u003c\"; odsPrinter.printStrippedAttrOrType(getDegreeBound()); odsPrinter \u003c\u003c \"\u003e\"; } int PolynomialType::getDegreeBound() const { return getImpl()-\u003edegreeBound; } Adding Some Simple Operations 下面我们定义一个简单的多项式加法操作\n// include/mlir-tutorial/Dialect/Poly/PolyOps.td\rinclude \"PolyDialect.td\"\rinclude \"PolyTypes.td\"\rdef Poly_AddOp : Op",
+  "wordCount" : "3253",
+  "inLanguage": "en",
+  "datePublished": "2024-11-07T18:16:23+08:00",
+  "dateModified": "2024-11-07T18:16:23+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/">Course Learning</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/mlir/">Multi Layer Intermediate Representation</a></div>
+    <h1 class="post-title entry-hint-parent">
+      MLIR-Ch4 Defining a New Dialect
+    </h1>
+    <div class="post-description">
+      Personal MLIR learning notes 4.
+    </div>
+    <div class="post-meta"><span title='2024-11-07 18:16:23 +0800 CST'>Nov-07-2024</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;3253 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#sketching-out-a-dseign" aria-label="Sketching Out a Dseign">Sketching Out a Dseign</a></li>
+                    <li>
+                        <a href="#an-empty-dialect" aria-label="An Empty Dialect">An Empty Dialect</a></li>
+                    <li>
+                        <a href="#adding-a-trival-type" aria-label="Adding a Trival Type">Adding a Trival Type</a></li>
+                    <li>
+                        <a href="#add-a-poly-type-parameter" aria-label="Add a Poly Type Parameter">Add a Poly Type Parameter</a></li>
+                    <li>
+                        <a href="#adding-some-simple-operations" aria-label="Adding Some Simple Operations">Adding Some Simple Operations</a>
+                    </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="sketching-out-a-dseign">Sketching Out a Dseign<a hidden class="anchor" aria-hidden="true" href="#sketching-out-a-dseign">#</a></h1>
+<p>TableGen 也可以用来定义 dialect. 本文将定义一个单未知数多项式运算的 dialect，系数用 uint32_t 类型表示。，并提供通过从标准 MLIR 类型指定多项式系数来定义多项式的操作，提取关于多项式的数据以将结果存储在标准MLIR类型中，以及对多项式进行算术运算。</p>
+<h1 id="an-empty-dialect">An Empty Dialect<a hidden class="anchor" aria-hidden="true" href="#an-empty-dialect">#</a></h1>
+<p>我们首先用 TableGen 定义一个空的 dialect. 它和上一章定义 Pass 没什么不同，只不过 include 的是 DialectBase.td 文件。同时也定义了命名空间为 <code>::mlir::tutorial::poly</code>.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-tablegen" data-lang="tablegen"><span class="line"><span class="cl"><span class="nv">include</span> <span class="s">&#34;mlir/IR/DialectBase.td&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nv">Poly_Dialect</span> <span class="p">:</span> <span class="nv">Dialect</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">let</span> <span class="nv">name</span> <span class="p">=</span> <span class="s">&#34;poly&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">let</span> <span class="nv">summary</span> <span class="p">=</span> <span class="s">&#34;A dialect for polynomial math&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">let</span> <span class="nv">description</span> <span class="p">=</span> <span class="s">[{
+</span></span></span><span class="line"><span class="cl"><span class="s">    The poly dialect defines types and operations for single-variable
+</span></span></span><span class="line"><span class="cl"><span class="s">    polynomials over integers.
+</span></span></span><span class="line"><span class="cl"><span class="s">  }]</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">let</span> <span class="nv">cppNamespace</span> <span class="p">=</span> <span class="s">&#34;::mlir::tutorial::poly&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>我们需要在 include 目录下的 CMakeLists.txt 文件中添加</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cmake" data-lang="cmake"><span class="line"><span class="cl"><span class="nb">set</span><span class="p">(</span><span class="s">TARGET_NAME</span> <span class="s2">&#34;${PROJECT_TARGET_PREFIX}-Dialect-PolyDialect-IncGen&#34;</span><span class="p">)</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="nb">set</span><span class="p">(</span><span class="s">LLVM_TARGET_DEFINITIONS</span> <span class="s">mlir-learning/Dialect/Poly/PolyDialect.td</span><span class="p">)</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="nb">mlir_tablegen</span><span class="p">(</span><span class="s">mlir-learning/Dialect/Poly/PolyDialect.hpp.inc</span> <span class="s">--gen-dialect-decls</span><span class="p">)</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="nb">mlir_tablegen</span><span class="p">(</span><span class="s">mlir-learning/Dialect/Poly/PolyDialect.cpp.inc</span> <span class="s">--gen-dialect-defs</span><span class="p">)</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="nb">add_public_tablegen_target</span><span class="p">(</span><span class="o">${</span><span class="nv">TARGET_NAME</span><span class="o">}</span><span class="p">)</span><span class="err">
+</span></span></span></code></pre></div><p>然后在 tutorial-opt.cpp 中注册所有 mlir 自带的所有 dialect 后进行构建，我们可以查看生成的 .hpp.inc 和.cpp.inc 文件。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">mlir</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">tutorial</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PolyDialect</span> <span class="o">:</span> <span class="k">public</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Dialect</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">explicit</span> <span class="nf">PolyDialect</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">MLIRContext</span> <span class="o">*</span><span class="n">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">initialize</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">friend</span> <span class="k">class</span> <span class="err">::</span><span class="nc">mlir</span><span class="o">::</span><span class="n">MLIRContext</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="o">~</span><span class="n">PolyDialect</span><span class="p">()</span> <span class="k">override</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringLiteral</span> <span class="n">getDialectNamespace</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringLiteral</span><span class="p">(</span><span class="s">&#34;poly&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="c1">// namespace tutorial
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="c1">// namespace mlir
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">MLIR_DECLARE_EXPLICIT_TYPE_ID</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">PolyDialect</span><span class="p">)</span>
+</span></span></code></pre></div><p>编译器会报错，因为 inc 不会包含 Dialect 等类所在的头文件。这需要我们自己在 PolyDialect.h 文件中进行 include，这样 当重新构建的时候该文件注入变不会报错</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// include/mlir-learning/Dialect/Poly/PolyDialect.h
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#ifndef LIB_DIALECT_POLY_POLYDIALECT_H
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define LIB_DIALECT_POLY_POLYDIALECT_H
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;mlir/IR/DialectImplementation.h&#34;</span><span class="cp">  </span><span class="c1">// include mannually
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;mlir-learning/Dialect/Poly/PolyDialect.hpp.inc&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span></code></pre></div><p>生成的 .cpp.inc 如下，他只包含了该类基本的构造函数和析构函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">MLIR_DEFINE_EXPLICIT_TYPE_ID</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolyDialect</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">mlir</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">tutorial</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">poly</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">PolyDialect</span><span class="o">::</span><span class="n">PolyDialect</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">MLIRContext</span> <span class="o">*</span><span class="n">context</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">:</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Dialect</span><span class="p">(</span><span class="n">getDialectNamespace</span><span class="p">(),</span> <span class="n">context</span><span class="p">,</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">TypeID</span><span class="o">::</span><span class="n">get</span><span class="o">&lt;</span><span class="n">PolyDialect</span><span class="o">&gt;</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">     <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="n">initialize</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">PolyDialect</span><span class="o">::~</span><span class="n">PolyDialect</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="c1">// namespace poly
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="c1">// namespace tutorial
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="c1">// namespace mlir
+</span></span></span></code></pre></div><p>然后我们可以在 tutorial-opt.cpp 中注册该 dialect.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cm">/* other includes */</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;mlir-learning/Dialect/Poly/PolyDialect.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Register all built-in MLIR dialects
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">mlir</span><span class="o">::</span><span class="n">DialectRegistry</span> <span class="n">registry</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Register our Dialect
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">registry</span><span class="p">.</span><span class="n">insert</span><span class="o">&lt;</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolyDialect</span><span class="o">&gt;</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mlir</span><span class="o">::</span><span class="n">registerAllDialects</span><span class="p">(</span><span class="n">registry</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">mlir</span><span class="o">::</span><span class="n">asMainReturnCode</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mlir</span><span class="o">::</span><span class="n">MlirOptMain</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="s">&#34;Tutorial Pass Driver&#34;</span><span class="p">,</span> <span class="n">registry</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h1 id="adding-a-trival-type">Adding a Trival Type<a hidden class="anchor" aria-hidden="true" href="#adding-a-trival-type">#</a></h1>
+<p>下面我们需要定义自己的 poly.poly 类型.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-tablegen" data-lang="tablegen"><span class="line"><span class="cl"><span class="c">// poly_types.td
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="cp">#ifndef LIB_DIALECT_POLY_POLYTYPES_TD_</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define LIB_DIALECT_POLY_POLYTYPES_TD_</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">include</span> <span class="s">&#34;mlir-learning/Dialect/Poly/PolyDialect.td&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">include</span> <span class="s">&#34;mlir/IR/AttrTypeBase.td&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c">// a base class for all types in the dialect
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="k">class</span> <span class="nv">Poly_Type</span><span class="p">&lt;</span><span class="k">string</span> <span class="nv">name</span><span class="p">,</span> <span class="k">string</span> <span class="nv">typeMnemonic</span><span class="p">&gt;</span> <span class="p">:</span> <span class="nv">TypeDef</span><span class="p">&lt;</span><span class="nv">Poly_Dialect</span><span class="p">,</span> <span class="nv">name</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">let</span> <span class="nv">mnemonic</span> <span class="p">=</span> <span class="nv">typeMnemonic</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nv">Polynomial</span><span class="p">:</span> <span class="nv">Poly_Type</span><span class="p">&lt;</span><span class="s">&#34;Polynomial&#34;</span><span class="p">,</span> <span class="s">&#34;poly&#34;</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">let</span> <span class="nv">summary</span> <span class="p">=</span> <span class="s">&#34;A polynomial with u32 coefficients&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">let</span> <span class="nv">description</span> <span class="p">=</span> <span class="s">[{
+</span></span></span><span class="line"><span class="cl"><span class="s">    A type for polynomials with integer coefficients in a single-variable polynomial ring.
+</span></span></span><span class="line"><span class="cl"><span class="s">  }]</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif</span> 
+</span></span></code></pre></div><p>在 MLIR 的 TableGen 文件中，class 和 def 的用法和含义有所不同</p>
+<ul>
+<li><code>class</code> 用于定义一个模板或基类，可以被其他类型或定义继承和重用。它本身不会创建实际的对象或具体类型，它只是一种结构，可以包含参数和默认属性。其他定义可以通过继承该类来获得其功能。</li>
+<li><code>def</code> 用于创建一个具体的实例，比如一个类型、操作或属性。它会将所定义的内容应用到 TableGen 中，使其成为可用的具体类型或功能。</li>
+</ul>
+<p>这里我们定义了一个名为 <code>Poly_Type</code> 的类，参数为 <code>name</code>（类型的名称）和 <code>typeMnemonic</code>（类型的简写或助记符）。这个类继承自 <code>TypeDef&lt;Poly_Dialect, name&gt;</code>. 然后 <code>def</code> 特定的多项式类型 <code>Polynomial</code>，继承自 <code>Poly_Type</code>.</p>
+<p>在 MLIR 的 TableGen 中，<a href="https://github.com/llvm/llvm-project/blob/630ba7d705fa1d55096dbbf88c6886d64033a780/mlir/include/mlir/IR/AttrTypeBase.td#L281">TypeDef</a> 本身也是一个类，它接受模板参数，用于指定该类型所属的 dialect 和名称字段。其作用包括将生成的C++类与该 dialect 的命名空间相关联。</p>
+<p>生成的 .hpp.inc 文件如下。生成的类 <code>PolynomialType</code> 就是在我们的 TableGen 文件中定义的 <code>Polynomial</code> 类型后面加上了 Type.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#ifdef GET_TYPEDEF_CLASSES
+</span></span></span><span class="line"><span class="cl"><span class="cp">#undef GET_TYPEDEF_CLASSES
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">mlir</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">AsmParser</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">AsmPrinter</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="c1">// namespace mlir
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">namespace</span> <span class="n">mlir</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">tutorial</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">poly</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PolynomialType</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PolynomialType</span> <span class="o">:</span> <span class="k">public</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">TypeBase</span><span class="o">&lt;</span><span class="n">PolynomialType</span><span class="p">,</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span><span class="p">,</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">TypeStorage</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="n">Base</span><span class="o">::</span><span class="n">Base</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringLiteral</span> <span class="n">name</span> <span class="o">=</span> <span class="s">&#34;poly.poly&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringLiteral</span> <span class="n">dialectName</span> <span class="o">=</span> <span class="s">&#34;poly&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringLiteral</span> <span class="n">getMnemonic</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="s">&#34;poly&#34;</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="c1">// namespace poly
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="c1">// namespace tutorial
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="c1">// namespace mlir
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">MLIR_DECLARE_EXPLICIT_TYPE_ID</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#endif  </span><span class="c1">// GET_TYPEDEF_CLASSES
+</span></span></span></code></pre></div><p>生成的 .cpp.inc 文件如下。TableGen 试图为 dialect 中的 <code>PolynomialType</code> 自动生成一个 类型解析器 (type parser) 和类型打印器 (type printer). 不过此时这些功能还不可用，构建项目时会看到一些编译警告。</p>
+<p>代码中使用了 头文件保护 (header guards) 来将 <code>cpp</code> 文件分隔为两个受保护的部分。这样可以分别管理类型声明和函数实现。</p>
+<p><code>GET_TYPEDEF_LIST</code> 只包含类名的逗号分隔列表。原因在于 <code>PolyDialect.cpp</code> 文件需要负责将类型注册到 dialect 中，而该注册过程通过在方言初始化函数中将这些 C++ 类名作为模板参数来实现。换句话说，<code>GET_TYPEDEF_LIST</code> 提供了一种简化机制，使得 <code>PolyDialect.cpp</code> 可以自动获取所有类名称列表，便于统一注册，而不需要手动添加每一个类型。</p>
+<ul>
+<li><strong><code>generatedTypeParser</code></strong> 函数是为 <code>PolynomialType</code> 定义的解析器。当解析器遇到 <code>PolynomialType</code> 的助记符（<code>poly</code>）时，会将 <code>PolynomialType</code> 类型实例化。<code>KeywordSwitch</code> 使用 <code>getMnemonic()</code> 来匹配 <code>PolynomialType</code> 的助记符（<code>poly</code>）。如果匹配成功，则调用 <code>PolynomialType::get()</code> 来获取类型实例。<code>Default</code> 子句在助记符不匹配时执行，记录未知的助记符，并返回 <code>std::nullopt</code> 表示解析失败。</li>
+<li><strong><code>generatedTypePrinter</code></strong> 函数为 <code>PolynomialType</code> 提供了打印功能。当类型为 <code>PolynomialType</code> 时，打印其助记符（<code>poly</code>），否则返回失败。<code>TypeSwitch</code> 用于检查 <code>def</code> 类型是否是 <code>PolynomialType</code>。如果是，打印助记符；否则返回失败，表示该类型不属于此方言。</li>
+<li><code>PolyDialect::parseType</code> 和 <code>PolyDialect::printType</code> 作为方言接口调用这两个函数，从而实现类型的解析和打印功能。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#ifdef GET_TYPEDEF_LIST
+</span></span></span><span class="line"><span class="cl"><span class="cp">#undef GET_TYPEDEF_LIST
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#endif  </span><span class="c1">// GET_TYPEDEF_LIST
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#ifdef GET_TYPEDEF_CLASSES
+</span></span></span><span class="line"><span class="cl"><span class="cp">#undef GET_TYPEDEF_CLASSES
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OptionalParseResult</span> <span class="n">generatedTypeParser</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">AsmParser</span> <span class="o">&amp;</span><span class="n">parser</span><span class="p">,</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span> <span class="o">*</span><span class="n">mnemonic</span><span class="p">,</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="o">&amp;</span><span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">AsmParser</span><span class="o">::</span><span class="n">KeywordSwitch</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OptionalParseResult</span><span class="o">&gt;</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">.</span><span class="n">Case</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="o">::</span><span class="n">getMnemonic</span><span class="p">(),</span> <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span><span class="p">,</span> <span class="n">llvm</span><span class="o">::</span><span class="n">SMLoc</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">value</span> <span class="o">=</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="o">::</span><span class="n">get</span><span class="p">(</span><span class="n">parser</span><span class="p">.</span><span class="n">getContext</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">success</span><span class="p">(</span><span class="o">!!</span><span class="n">value</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">})</span>
+</span></span><span class="line"><span class="cl">    <span class="p">.</span><span class="n">Default</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span> <span class="n">keyword</span><span class="p">,</span> <span class="n">llvm</span><span class="o">::</span><span class="n">SMLoc</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="o">*</span><span class="n">mnemonic</span> <span class="o">=</span> <span class="n">keyword</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">LogicalResult</span> <span class="n">generatedTypePrinter</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">def</span><span class="p">,</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">AsmPrinter</span> <span class="o">&amp;</span><span class="n">printer</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">TypeSwitch</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span><span class="p">,</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">LogicalResult</span><span class="o">&gt;</span><span class="p">(</span><span class="n">def</span><span class="p">)</span>    <span class="p">.</span><span class="n">Case</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="o">&gt;</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="k">auto</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">printer</span> <span class="o">&lt;&lt;</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="o">::</span><span class="n">getMnemonic</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">success</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">})</span>
+</span></span><span class="line"><span class="cl">    <span class="p">.</span><span class="n">Default</span><span class="p">([](</span><span class="k">auto</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">failure</span><span class="p">();</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">mlir</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">tutorial</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">poly</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="c1">// namespace poly
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="c1">// namespace tutorial
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="c1">// namespace mlir
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">MLIR_DEFINE_EXPLICIT_TYPE_ID</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">mlir</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">tutorial</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">poly</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">/// Parse a type registered to this dialect.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">PolyDialect</span><span class="o">::</span><span class="n">parseType</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">DialectAsmParser</span> <span class="o">&amp;</span><span class="n">parser</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">SMLoc</span> <span class="n">typeLoc</span> <span class="o">=</span> <span class="n">parser</span><span class="p">.</span><span class="n">getCurrentLocation</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span> <span class="n">mnemonic</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">genType</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">parseResult</span> <span class="o">=</span> <span class="n">generatedTypeParser</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">mnemonic</span><span class="p">,</span> <span class="n">genType</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">parseResult</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">genType</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="n">parser</span><span class="p">.</span><span class="n">emitError</span><span class="p">(</span><span class="n">typeLoc</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;unknown  type `&#34;</span>
+</span></span><span class="line"><span class="cl">      <span class="o">&lt;&lt;</span> <span class="n">mnemonic</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;` in dialect `&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">getNamespace</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;`&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="p">{};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="c1">/// Print a type registered to this dialect.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="n">PolyDialect</span><span class="o">::</span><span class="n">printType</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">type</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                    <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">DialectAsmPrinter</span> <span class="o">&amp;</span><span class="n">printer</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">succeeded</span><span class="p">(</span><span class="n">generatedTypePrinter</span><span class="p">(</span><span class="n">type</span><span class="p">,</span> <span class="n">printer</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="c1">// namespace poly
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="c1">// namespace tutorial
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="c1">// namespace mlir
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif  </span><span class="c1">// GET_TYPEDEF_CLASSES
+</span></span></span></code></pre></div><p>在设置 C++ 接口以使用 TableGen 文件时，通常会按照以下步骤来组织代码文件和包含关系。</p>
+<ul>
+<li><code>PolyTypes.h</code> 是唯一被允许包含 <code>PolyTypes.h.inc</code> 的文件。</li>
+<li><code>PolyTypes.cpp.inc</code> 文件包含了 TableGen 为 <code>PolyDialect</code> 中的类型生成的实现。我们需要在 <code>PolyDialect.cpp</code> 中将其包含进去，以确保所有实现都能在该方言的主文件中使用。</li>
+<li><code>PolyTypes.cpp</code> 文件应该包含 <code>PolyTypes.h</code>，以便访问类型声明，并在该文件中实现所有需要的额外功能。</li>
+</ul>
+<pre tabindex="0"><code class="language-plaintexxt" data-lang="plaintexxt">./Ch3-DefiningANewDialect/
+├── CMakeLists.txt
+├── include
+│   ├── CMakeLists.txt
+│   └── mlir-tutorial
+│       └── Dialect
+│           └── Poly
+│               ├── PolyDialect.hpp
+│               ├── PolyDialect.td
+│               ├── PolyOps.hpp
+│               ├── PolyOps.td
+│               ├── PolyTypes.hpp
+│               └── PolyTypes.td
+├── lib
+│   ├── CMakeLists.txt
+│   └── Dialect
+│       └── Poly
+│           └── PolyDialect.cpp
+</code></pre><p>为了让类型解析器和打印器能够正确编译和运行，需要最后在方言的 TableGen 文件中添加 <code>let useDefaultTypePrinterParser = 1</code>;，这个指令告诉 TableGen 使用默认的类型解析和打印器。当这个选项启用后，TableGen 会生成相应的解析和打印代码，并将这些实现作为 <code>PolyDialect</code> 类的成员函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">/// Parse a type registered to this dialect.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">parseType</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">DialectAsmParser</span> <span class="o">&amp;</span><span class="n">parser</span><span class="p">)</span> <span class="k">const</span> <span class="k">override</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">/// Print a type registered to this dialect.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="nf">printType</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">type</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">DialectAsmPrinter</span> <span class="o">&amp;</span><span class="n">os</span><span class="p">)</span> <span class="k">const</span> <span class="k">override</span><span class="p">;</span>
+</span></span></code></pre></div><p>我们可以写一个 .mlir 来测试属性是是否获取正确。在 MLIR 中自定义的 dialect 前都需要加上 <code>!</code>.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl">    <span class="c">// CHECK-LABEL: test_type_syntax
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_type_syntax</span><span class="p">(</span><span class="nv">%arg0</span><span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;)</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c">// CHECK: poly.poly
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>        <span class="kt">return</span> <span class="nv">%arg0</span><span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre></div><h1 id="add-a-poly-type-parameter">Add a Poly Type Parameter<a hidden class="anchor" aria-hidden="true" href="#add-a-poly-type-parameter">#</a></h1>
+<p>我们需要为多项式类型添加一个属性，表示它的次数上限。</p>
+<pre tabindex="0"><code>// include/mlir-tutorial/Dialect/Poly/PolyTypes.td
+let parameters = (ins &#34;int&#34;:$degreeBound);
+let assemblyFormat = &#34;`&lt;` $degreeBound `&gt;`&#34;;
+</code></pre><p>第一行定义了类型的一个参数 <code>degreeBound</code>，类型为 <code>int</code>. 表示在实例化该类型时，用户可以指定一个整数值作为类型的参数。<code>parameters</code> 中的 (<code>ins &quot;int&quot;:$degreeBound</code>) 指定了输入参数的类型和名称，其中 int 是数据类型，<code>$degreeBound</code> 是参数的占位符。<code>assemblyFormat</code> 用于定义该类型在 MLIR 文本格式中的打印和解析格式。<code>&quot;&lt;&quot; $degreeBound &quot;&gt;&quot;</code> 表示该类型的参数会用尖括号包裹。第二行是必需的，因为现在一个 Poly 类型有了这个关联的数据，我们需要能够将它打印出来并从文本 IR 表示中解析它。</p>
+<p>加上这两行代码后进行 build 会发现多了一些新的内容。</p>
+<ul>
+<li><code>PolynomialType</code> 有一个新的 <code>int getDegreeBound()</code> 方法，以及一个静态 <code>get</code> 工厂方法。</li>
+<li><code>parse</code> 和 <code>print</code> 升级为新格式。</li>
+<li>有一个名为 <code>typestorage</code> 的新类，它包含 int 形参，并隐藏在内部细节名称空间中。</li>
+</ul>
+<p>MLIR会自动生成简单类型的 storage 类，因为它们不需要复杂的内存管理。如果参数更复杂，就需要开发者手动编写 storage 类来定义构造、析构和其他语义。复杂的 storage 类需要实现更多细节，以确保类型能够在 MLIR 的 dialect 系统中顺利运行。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// include/mlir-learning/Dialect/Poly/PolyTypes.hpp.inc
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">static</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">parse</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">AsmParser</span> <span class="o">&amp;</span><span class="n">odsParser</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">print</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">AsmPrinter</span> <span class="o">&amp;</span><span class="n">odsPrinter</span><span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="nf">getDegreeBound</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// include/mlir-learning/Dialect/Poly/PolyTypes.cpp.inc
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">PolynomialTypeStorage</span> <span class="o">:</span> <span class="k">public</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">TypeStorage</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="cm">/* lots of code */</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">PolynomialType</span> <span class="n">PolynomialType</span><span class="o">::</span><span class="n">get</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">MLIRContext</span> <span class="o">*</span><span class="n">context</span><span class="p">,</span> <span class="kt">int</span> <span class="n">degreeBound</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">Base</span><span class="o">::</span><span class="n">get</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">degreeBound</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">PolynomialType</span><span class="o">::</span><span class="n">parse</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">AsmParser</span> <span class="o">&amp;</span><span class="n">odsParser</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="cm">/* code to parse the type */</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">PolynomialType</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">AsmPrinter</span> <span class="o">&amp;</span><span class="n">odsPrinter</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Builder</span> <span class="n">odsBuilder</span><span class="p">(</span><span class="n">getContext</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">  <span class="n">odsPrinter</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;&lt;&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">odsPrinter</span><span class="p">.</span><span class="n">printStrippedAttrOrType</span><span class="p">(</span><span class="n">getDegreeBound</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">  <span class="n">odsPrinter</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;&gt;&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">PolynomialType</span><span class="o">::</span><span class="n">getDegreeBound</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nf">getImpl</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">degreeBound</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h1 id="adding-some-simple-operations">Adding Some Simple Operations<a hidden class="anchor" aria-hidden="true" href="#adding-some-simple-operations">#</a></h1>
+<p>下面我们定义一个简单的多项式加法操作</p>
+<pre tabindex="0"><code>// include/mlir-tutorial/Dialect/Poly/PolyOps.td
+include &#34;PolyDialect.td&#34;
+include &#34;PolyTypes.td&#34;
+
+def Poly_AddOp : Op&lt;Poly_Dialect, &#34;add&#34;&gt; {
+  let summary = &#34;Addition operation between polynomials.&#34;;
+  let arguments = (ins Polynomial:$lhs, Polynomial:$rhs);
+  let results = (outs Polynomial:$output);
+  let assemblyFormat = &#34;$lhs `,` $rhs attr-dict `:` `(` type($lhs) `,` type($rhs) `)` `-&gt;` type($output)&#34;;
+}
+</code></pre><p>和刚才定义 types 非常相近，但基类是 Op，arguments 对应于操作的输入，assemblyFormat 更复杂。生成的 .hpp.inc 和 .cpp.inc 非常复杂。我们可以编写一个 .mlir 来测试。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl">  <span class="c">// CHECK-LABEL: test_add_syntax
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>  <span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_add_syntax</span><span class="p">(</span><span class="nv">%arg0</span><span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;,</span> <span class="nv">%arg1</span><span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;)</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c">// CHECK: poly.add
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="nv">%0</span> <span class="p">=</span> poly<span class="p">.</span>add <span class="nv">%arg0</span><span class="p">,</span> <span class="nv">%arg1</span> <span class="p">:</span> <span class="p">(!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;,</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;)</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">return</span> <span class="nv">%0</span> <span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span></code></pre></div><p>生成的代码定义了以下几个方面：</p>
+<ol>
+<li>
+<p>Adaptor Classes:</p>
+<ul>
+<li>AddOpGenericAdaptorBase 和 AddOpAdaptor: 提供了便捷的方式来访问操作的操作数 (operands) 和属性 (attributes)。它们在编写转换和重写模式时特别有用。</li>
+</ul>
+</li>
+<li>
+<p>Properties Handling:</p>
+<ul>
+<li>诸如 setPropertiesFromAttr , getPropertiesAsAttr , computePropertiesHash 等函数是 MLIR 操作属性系统的接口。虽然在这个特定的 AddOp 实现中，有些函数可能是空实现或返回默认值，但它们是操作定义结构的一部分。</li>
+</ul>
+</li>
+<li>
+<p>Builder Methods:</p>
+<ul>
+<li>多个重载的 AddOp::build 静态方法。这些方法用于在代码中以编程方式创建 AddOp 的实例。</li>
+</ul>
+</li>
+<li>
+<p>Verification:</p>
+<ul>
+<li>AddOp::verifyInvariantsImpl() 和 AddOp::verifyInvariants() : 这些方法用于检查一个 AddOp 实例是否符合其定义。例如，它们会验证操作数的数量和类型是否正确，结果类型是否符合预期。代码中调用了像 __mlir_ods_local_type_constraint_PolyOps2 这样的辅助函数来进行类型约束检查。</li>
+</ul>
+</li>
+<li>
+<p>Assembly Format Parsing and Printing:</p>
+<ul>
+<li>AddOp::parse(::mlir::OpAsmParser&amp; parser, ::mlir::OperationState&amp; result) : 这个方法定义了如何从 MLIR 的文本汇编格式中解析出 AddOp 。当 MLIR 工具读取 .mlir 文件时，会调用此方法。</li>
+<li>AddOp::print(::mlir::OpAsmPrinter&amp; _odsPrinter) : 这个方法定义了如何将 AddOp 实例打印成 MLIR 的文本汇编格式。</li>
+</ul>
+</li>
+<li>
+<p>Type ID Definition:</p>
+<ul>
+<li>MLIR_DEFINE_EXPLICIT_TYPE_ID(::mlir::tutorial::poly::AddOp) : 这个宏用于 MLIR 的运行时类型信息 (RTTI) 系统，为 AddOp 类型生成一个唯一的标识符。</li>
+</ul>
+</li>
+</ol>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/jeremykun-mlir-learning/">Jeremykun MLIR Learning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/courselearning/mlir/mlir-ch5-using-traits/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>MLIR-Ch5 Using Traits</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/courselearning/mlir/mlir-ch3-using-tablegen-for-passes/">
+    <span class="title">Next »</span>
+    <br>
+    <span>MLIR-Ch3 Using Tablegen for Passes</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch4 Defining a New Dialect on x"
+            href="https://x.com/intent/tweet/?text=MLIR-Ch4%20Defining%20a%20New%20Dialect&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fmlir%2fmlir-ch4-defining-a-new-dialect%2f&amp;hashtags=jeremykunMLIRlearning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch4 Defining a New Dialect on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fmlir%2fmlir-ch4-defining-a-new-dialect%2f&amp;title=MLIR-Ch4%20Defining%20a%20New%20Dialect&amp;summary=MLIR-Ch4%20Defining%20a%20New%20Dialect&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fmlir%2fmlir-ch4-defining-a-new-dialect%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch4 Defining a New Dialect on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fmlir%2fmlir-ch4-defining-a-new-dialect%2f&title=MLIR-Ch4%20Defining%20a%20New%20Dialect">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch4 Defining a New Dialect on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fmlir%2fmlir-ch4-defining-a-new-dialect%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch4 Defining a New Dialect on telegram"
+            href="https://telegram.me/share/url?text=MLIR-Ch4%20Defining%20a%20New%20Dialect&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fmlir%2fmlir-ch4-defining-a-new-dialect%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification | WITHER</title>
+<meta name="keywords" content="CUDA">
+<meta name="description" content="Personal notebook 12 of Programming Massively Parallel">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a3afc927e13c8d8d72138af4254aadf37b5653f96e325fea8d50c85abdca381a.css" integrity="sha256-o6/JJ&#43;E8jY1yE4r0JUqt83tWU/luMl/qjVDIWr3KOBo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification">
+  <meta property="og:description" content="Personal notebook 12 of Programming Massively Parallel">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-09-13T22:58:03+08:00">
+    <meta property="article:modified_time" content="2024-09-13T22:58:03+08:00">
+    <meta property="article:tag" content="PMPP Learning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification">
+<meta name="twitter:description" content="Personal notebook 12 of Programming Massively Parallel">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Course Learning",
+      "item": "http://localhost:1313/blogs/courselearning/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "Programming Massive Parallel",
+      "item": "http://localhost:1313/blogs/courselearning/pmpp/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  4 ,
+      "name": "PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification",
+      "item": "http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification",
+  "name": "PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification",
+  "description": "Personal notebook 12 of Programming Massively Parallel",
+  "keywords": [
+    "CUDA"
+  ],
+  "articleBody": "12 Merge-An Introduction to Dynamic Input Data Identification 有序归并操作接受两个有序列表并生成一个合并后的有序列表。\n12.1 Background 假设数组中的每个元素都有一个键并且键定义了一个用 ≤ 表示的顺序关系。下图展示了基于数字排序关系的简单归并函数的操作。一般来说，如果键值相等的元素在输出中的顺序与其在输入中的顺序相同，则称排序操作是稳定的。\nExample of a Merge Operation\n12.2 A Sequential Merge Algorithm 归并操作可以用如下一个简单的顺序算法来实现。顺序归并函数访问 A 和 B 的每个输入元素一次，并向 C 中每个位置写入一次。其算法复杂度为 O(m+n).\nvoid merge_sequential(int* A, int* B, int* C, int m, int n) { int i = 0, j = 0, k = 0; // Indices for A, B, and C while (i \u003c m \u0026\u0026 j \u003c n) { if (A[i] \u003c B[j]) { C[k++] = A[i++]; } else { C[k++] = B[j++]; } if (i == m) { // Done with A[], handling remaining B while (j \u003c n) { C[k++] = B[j++]; } } else { // Done with B[], handling remaining A while (i \u003c m) { C[k++] = A[i++]; } } } } 12.3 A Parallelization Approach 每个线程首先确定它将要负责的输出位置范围，并使用该输出范围作为 co-rank 函数的输入，以确定所负责 C 输出范围的对应的 A 和 B 输入范围。这样每个线程在它们的子数组上执行顺序合并函数，从而并行地进行合并。\nExamples of Observations\nObservation 1：子数组 C[0]-C[k-1] (k 个元素) 是 A[0]-A[i-1] (i 个元素) 和 B[0]-B[k-i-1] (k-i 个元素) 的归并结果。 Observation 2：对于任意满足 0≤k≤m+n 的 k，我们可以找到唯一的 i 和 j 使得 k=i+j, 0≤i≤m, 0≤j≤n，并且子数组 C[0]-C[k-1] 是子数组 A[0]-A[i-1] 和子数组 B[0]-B[j-1] 合并的结果。唯一的索引 i 和 j 被称 C[k] 的 co-rank. 我们可以通过将输出数组划分为子数组，并让每个线程负责一个子数组的生成来划分工作。由于并行归并算法中每个线程使用的输入元素的范围取决于实际的输入值使得我们需要辅助函数来完成。\n12.4 Co-rank Function Implementation 将 co-rank 函数定义为接受输出数组 C 中元素的位置 k 和两个输入数组 A 和 B的信息，并返回输入数组 A 对应的 co-rank 值 i. 以下图为例，假设线程 1 的 co-rank 函数的目标是为其秩 k1=4 确定 co-rank值 i1=3 和 j1=1. 也就是说，从 C[4] 开始的子数组将由从 A[3] 和 B[1] 开始的子数组合并生成。我们可以发现线程 t 使用的输入子数组由线程 t 和线程 t+1 的 co-rank 确定。\nExample of co-rank Function Execution\n目标是找到使得 A[i - 1] \u003c= B[j] 并且 B[j - 1] \u003c= A[i] 的索引。\n如果 A[i-1] \u003e B[j]，说明 A[i] 太大，需要减少 i，并增加 j。 如果 B[j-1] \u003e A[i]，说明 B[j] 太大，需要减少 j，并增加 i。 每次调整时，i 和 j 都按照二分方式调整，即调整的步长是 delta / 2. i 和 i_low 确定了当前正在搜索的数组 A 的范围。 int co_rank(int k, int* A, int m, int* B, int n) { // C[k] comes from A[i] of B[j] // k = i + j int i = k \u003c m ? k : m; // max starting search value for A, i.e. A[k-1] \u003c B[0] int i_low = 0 \u003e (k - n) ? 0 : k - n; // when B is done, min starting search value for A is k-n int j = k - i; int j_low = 0 \u003e (k - m) ? 0 : (k - m); int delta; bool active = true; while (active) { // Binary search for C[k] if (i \u003e 0 \u0026\u0026 j \u003c n \u0026\u0026 A[i - 1] \u003e B[j]) { delta = (i - i_low + 1) \u003e\u003e 1; j_low = j; j += delta; i -= delta; } else if (j \u003e 0 \u0026\u0026 i \u003c m \u0026\u0026 B[j - 1] \u003e A[i]) { delta = (j - j_low + 1) \u003e\u003e 1; i_low = i; i += delta; j -= delta; } else { // Found the correct position for C[k] active = false; } return i; } } 12.5 A Basic Parallel Merge Kernel 在剩下的小节里，我们假设输入数组 A 和 B 存储在全局内存中，一个内核被启动用来合并两个输入数组，输出一个同样位于全局内存中的数组 C. 下面内核是并行归并的直接实现。它首先通过计算当前线程 (k_curr) 和下一个线程 (k_next) 产生的输出子数组的起点来确定负责输出的范围。然后分别调用自己和后一个线程的 co_rank 函数来确定对应的 A 和 B 输入子数组的范围。最后调用顺序合并函数来合并两个输入子数组，并将结果写入输出子数组。\n__global__ void mergre_basic_kernel(int* A, int* B, int* C, int m, int n) { // Each thread handles a section of C int tid = blockIdx.x * blockDim.x + threadIdx.x; int elementsPerThread = ceil(m + n) / (blockDim.x * gridDim.x); int start = tid * elementsPerThread; int end = std::min(start + elementsPerThread, m + n); // Determin the range of A and B to be merged for this thread int i_curr = co_rank(start, A, m, B, n); int i_next = co_rank(end, A, m, B, n); int j_curr = start - i_curr; int j_next = end - i_next; merge_sequential(A + i_curr, B + j_curr, C + start, i_next - i_curr, j_next - j_curr); } 上面的基本归并内核有 2 个问题：\nwarp 中的相邻线程在读写输入和输出子数组元素时不会访问相邻的内存位置。 线程在执行 co-rank 函数时还需要从全局内存访问 A 和 B 的元素。 12.6 A Tiled Merge Kernel to Improve Coalescing 注意到相邻线程使用的 A 和 B 子数组在内存中彼此相邻。我们可以为为每个块调用 co-rank 函数来获得其 A 和 B 子数组的起始和结束位置。 Info\n回忆一下改进内核内存合并的主要策略有三种:\n重新组织线程到数据的映射。 重新组织数据本身。 以合并的方式在全局内存和共享内存之间传输数据，并在共享内存中执行不规则访问。 下图展示了分段合并内核的块级别设计。A_S 和 B_S 可能无法覆盖块的整个输入子数组，因此在每次迭代期间，块中的所有线程将协作从块的 A 和 B 子数组中加载 x 个元素。这样每个块有足够的输入元素来生成至少 x 个输出数组元素 (在最坏的情况下，当前输出部分的所有元素可能都来自 A 或 B 的子数组)。假设每个块负责 y 个输出元素，则需要进行 y/x 次归并。每个块中的线程将在每次迭代中使用 A_S 的一部分和 B_S 的一部分 (深灰色部分)\nDesign of a Tiled Merge Kernel\n下面是分段合并内核的实现的第一部分。本质上是线程级基本合并内核的块级版本的代码。每个块的第一个线程负责计算当前块和下一个块的开始输出索引的位置以及他们的 co-rank. 结果被放入共享内存中，以便块中的所有线程都可以看到。\n__global__ void merge_tiled_kernel(int* A, int* B, int* C, int m, int n, int tile_size) { /* Part 1: Identify block-level output \u0026 input subarrays */ // Use extern keywords to determine // the shared memory size at runtime rather than compilation extern __shared__ int shared_AB[]; int* A_s = \u0026shared_AB[0]; // Start index of ShareA int* B_s = \u0026shared_AB[tile_size]; // Start index of ShareB int C_curr = blockIdx.x * ceil((m + n) / gridDim.x); // Start index of C for this block int C_next = std::min(C_curr + int(ceil((m + n) / gridDim.x)), m + n); // End index of C for this block if (threadIdx.x == 0) { A_s[0] = co_rank(C_curr, A, m, B, n); // Make block level co-rank values visible A_s[1] = co_rank(C_next, A, m, B, n); // Next threads co-rank values in the block } __synctyhreads(); int A_curr = A_s[0]; int A_next = A_s[1]; int B_curr = C_curr - A_curr; int B_next = C_next - A_next; 第二部分线程使用它们的 threadIdx.x 的值来确定要加载的元素，因此连续的线程加载连续的元素，内存访问是合并的。每次迭代从 A 和 B 数组中加载当前tile的起始点取决于块的所有线程在之前的迭代中消耗的 A 和 B 元素的总数。下图说明了 while 循环第二次迭代的索引计算。每个块在第一次迭代中消耗的 A 元素部分 为 A 子数组开头的白色小部分 (用竖条标记)。if 语句确保线程只加载 A 子数组剩余部分中的元素。\n/* Part 2: Loading A \u0026 B elements into the shared memory */ int counter = 0; int lenC = C_next - C_curr; int lenA = A_next - A_curr; int lenB = B_next - B_curr; int num_iterations = ceil(lenC / tile_size); // index of completed merge in int C_completed = 0; int A_completed = 0; int B_completed = 0; while (counter \u003c num_iterations) { // Each iter threads in a block will generate tile_size C elements // Loading tile_size A and B elements into shared memory for (int i = 0; i \u003c tile_size; i += blockDim.x) { // Coalecsing loading from global memory if (i + threadIdx.x \u003c lenA - A_completed) { A_s[i + threadIdx.x] = A[i + threadIdx.x + A_curr + A_completed]; } if (i + threadIdx.x \u003c lenB - B_completed) { B_s[i + threadIdx.x] = B[i + threadIdx.x + B_curr + B_completed]; } } __syncthreads(); 第三部分则是每个块的线程对共享内存的数组进行归并。在更新索引的部分中最后一次迭代中 A_s 和 B_s 可能没有 tile_size 个元素，调用 co-rank 可能会得到错误结果。但是，由于 while 循环不会进一步迭代，因此不会使用结果，因此不会造成任何影响。\n/* Part 3: All threads merge their subarrays in prallel */ int c_curr = threadIdx.x * (tile_size / blockDim.x); // Output index in shared memory int c_next = c_curr + (tile_size / blockDim.x); c_curr = (c_curr \u003c= lenC - C_completed) ? c_curr : lenC - C_completed; c_next = (c_next \u003c= lenC - C_completed) ? c_next : lenC - C_completed; // find co-rank for c_curr and c_next int a_curr = co_rank(c_curr, A_s, std::min(tile_size, lenA - A_completed), B_s, std::min(tile_size, lenB - B_completed)); int b_curr = c_curr - a_curr; int a_next = co_rank(c_next, A_s, std::min(tile_size, lenA - A_completed), B_s, std::min(tile_size, lenB - B_completed)); int b_next = c_next - a_next; // merge the subarrays merge_sequential(A_s + a_curr, B_s + b_curr, C + C_curr + C_completed + c_curr, a_next - a_curr, b_next - b_curr); // Update completed indices C_completed += tile_size; A_completed += co_rank(tile_size, A_s, tile_size, B_s, tile_size); // Idx of A_s to generate tile_size Idx of merged A_s and B_s B_completed += tile_size - A_completed; } } 12.7 A Circular Buffer Merge Kernel 上一节的内核不是那么高效因为下一次迭代 tile 的一部分已经被加载到共享内存中，但是我们每次迭代从全局内存中重新加载整个块，并覆盖掉前一次迭代中的这些元素。下图展示了 merge_circular_buffer_kernel 的主要思想，添加了两个额外的变量 A_S_start 和B_S_start，使得 while 循环的每次迭代动态确定从 A 和 B 的哪个位置开始加载，这样可以利用前一次迭代中剩余的 A_s 和 B_s 元素。修改后每个 for 循环都只加载 A_S_consumed 表示的填充 tile 所需的元素数量。因此，线程在第 i 次 for 循环迭代中加载的A 元素是 A[A_curr+A_S_consumed+i+threadIdx.x]. 取模(%) 操作检查索引值是否大于或等于 tile_size.\n!A Circular Buffer Scheme for Managing the Shared Memory Tiles\n12.8 Thread Coarsening for Merge 多个线程并行执行归并的代价是每个线程必须执行自己的二进制搜索操作来识别其输出索引的 co-rank. 本章中介绍的所有内核都已经应用了线程粗化，因为它们都是为每个线程处理多个元素而设计的。在完全未粗化的内核中，每个线程将负责单个输出元素。\n",
+  "wordCount" : "3021",
+  "inLanguage": "en",
+  "datePublished": "2024-09-13T22:58:03+08:00",
+  "dateModified": "2024-09-13T22:58:03+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/">Course Learning</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/pmpp/">Programming Massive Parallel</a></div>
+    <h1 class="post-title entry-hint-parent">
+      PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification
+    </h1>
+    <div class="post-description">
+      Personal notebook 12 of Programming Massively Parallel
+    </div>
+    <div class="post-meta"><span title='2024-09-13 22:58:03 +0800 CST'>Sep-13-2024</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;3021 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#12-merge-an-introduction-to-dynamic-input-data-identification" aria-label="12 Merge-An Introduction to Dynamic Input Data Identification">12 Merge-An Introduction to Dynamic Input Data Identification</a><ul>
+                            
+                    <li>
+                        <a href="#121-background" aria-label="12.1 Background">12.1 Background</a></li>
+                    <li>
+                        <a href="#122-a-sequential-merge-algorithm" aria-label="12.2 A Sequential Merge Algorithm">12.2 A Sequential Merge Algorithm</a></li>
+                    <li>
+                        <a href="#123-a-parallelization-approach" aria-label="12.3 A Parallelization Approach">12.3 A Parallelization Approach</a></li>
+                    <li>
+                        <a href="#124-co-rank-function-implementation" aria-label="12.4 Co-rank Function Implementation">12.4 Co-rank Function Implementation</a></li>
+                    <li>
+                        <a href="#125-a-basic-parallel-merge-kernel" aria-label="12.5 A Basic Parallel Merge Kernel">12.5 A Basic Parallel Merge Kernel</a></li>
+                    <li>
+                        <a href="#126-a-tiled-merge-kernel-to-improve-coalescing" aria-label="12.6 A Tiled Merge Kernel to Improve Coalescing">12.6 A Tiled Merge Kernel to Improve Coalescing</a></li>
+                    <li>
+                        <a href="#127-a-circular-buffer-merge-kernel" aria-label="12.7 A Circular Buffer Merge Kernel">12.7 A Circular Buffer Merge Kernel</a></li>
+                    <li>
+                        <a href="#128-thread-coarsening-for-merge" aria-label="12.8 Thread Coarsening for Merge">12.8 Thread Coarsening for Merge</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="12-merge-an-introduction-to-dynamic-input-data-identification">12 Merge-An Introduction to Dynamic Input Data Identification<a hidden class="anchor" aria-hidden="true" href="#12-merge-an-introduction-to-dynamic-input-data-identification">#</a></h1>
+<p>有序归并操作接受两个有序列表并生成一个合并后的有序列表。</p>
+<h2 id="121-background">12.1 Background<a hidden class="anchor" aria-hidden="true" href="#121-background">#</a></h2>
+<p>假设数组中的每个元素都有一个键并且键定义了一个用 ≤ 表示的顺序关系。下图展示了基于数字排序关系的简单归并函数的操作。一般来说，如果键值相等的元素在输出中的顺序与其在输入中的顺序相同，则称排序操作是稳定的。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB412d47f606b473f210d022c42a5bfb5a?method=download&amp;shareKey=615ec66182adab314c2bd9f9dbe85bc1" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB412d47f606b473f210d022c42a5bfb5a?method=download&amp;shareKey=615ec66182adab314c2bd9f9dbe85bc1" alt="Example of a Merge Operation">
+    </a><figcaption>Example of a Merge Operation</figcaption></figure></p>
+<h2 id="122-a-sequential-merge-algorithm">12.2 A Sequential Merge Algorithm<a hidden class="anchor" aria-hidden="true" href="#122-a-sequential-merge-algorithm">#</a></h2>
+<p>归并操作可以用如下一个简单的顺序算法来实现。顺序归并函数访问 A 和 B 的每个输入元素一次，并向 C 中每个位置写入一次。其算法复杂度为 O(m+n).</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">merge_sequential</span><span class="p">(</span><span class="kt">int</span><span class="o">*</span> <span class="n">A</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">B</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">C</span><span class="p">,</span> <span class="kt">int</span> <span class="n">m</span><span class="p">,</span> <span class="kt">int</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// Indices for A, B, and C
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">while</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">m</span> <span class="o">&amp;&amp;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">B</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">C</span><span class="p">[</span><span class="n">k</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="o">++</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">C</span><span class="p">[</span><span class="n">k</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">B</span><span class="p">[</span><span class="n">j</span><span class="o">++</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">m</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Done with A[], handling remaining B
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="k">while</span> <span class="p">(</span><span class="n">j</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">C</span><span class="p">[</span><span class="n">k</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">B</span><span class="p">[</span><span class="n">j</span><span class="o">++</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="k">else</span> <span class="p">{</span>  <span class="c1">// Done with B[], handling remaining A
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="k">while</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">m</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">C</span><span class="p">[</span><span class="n">k</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="o">++</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="123-a-parallelization-approach">12.3 A Parallelization Approach<a hidden class="anchor" aria-hidden="true" href="#123-a-parallelization-approach">#</a></h2>
+<p>每个线程首先确定它将要负责的输出位置范围，并使用该输出范围作为 <code>co-rank</code> 函数的输入，以确定所负责 C 输出范围的对应的 A 和 B 输入范围。这样每个线程在它们的子数组上执行顺序合并函数，从而并行地进行合并。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBcd07196d1e74562f5e44926357511c97?method=download&amp;shareKey=cdae7d4e37b42cde506885c860e9fb5b" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBcd07196d1e74562f5e44926357511c97?method=download&amp;shareKey=cdae7d4e37b42cde506885c860e9fb5b" alt="Examples of Observations">
+    </a><figcaption>Examples of Observations</figcaption></figure></p>
+<ul>
+<li><strong>Observation 1</strong>：子数组 <code>C[0]-C[k-1]</code> (k 个元素) 是 <code>A[0]-A[i-1]</code> (i 个元素) 和 <code>B[0]-B[k-i-1]</code> (k-i 个元素) 的归并结果。</li>
+<li><strong>Observation 2</strong>：对于任意满足 0≤k≤m+n 的 k，我们可以找到唯一的 i 和 j 使得 k=i+j, 0≤i≤m, 0≤j≤n，并且子数组 <code>C[0]-C[k-1]</code> 是子数组 <code>A[0]-A[i-1]</code> 和子数组 <code>B[0]-B[j-1]</code> 合并的结果。唯一的索引 i 和 j 被称 <code>C[k]</code> 的 co-rank.</li>
+</ul>
+<p>我们可以通过将输出数组划分为子数组，并让每个线程负责一个子数组的生成来划分工作。由于并行归并算法中每个线程使用的输入元素的范围取决于实际的输入值使得我们需要辅助函数来完成。</p>
+<h2 id="124-co-rank-function-implementation">12.4 Co-rank Function Implementation<a hidden class="anchor" aria-hidden="true" href="#124-co-rank-function-implementation">#</a></h2>
+<p>将 co-rank 函数定义为接受输出数组 C 中元素的位置 k 和两个输入数组 A 和 B的信息，并返回输入数组 A 对应的 co-rank 值 i.
+以下图为例，假设线程 1 的 co-rank 函数的目标是为其秩 k1=4 确定 co-rank值 i1=3 和 j1=1. 也就是说，从 <code>C[4]</code> 开始的子数组将由从 <code>A[3]</code> 和  <code>B[1]</code> 开始的子数组合并生成。我们可以发现线程 t 使用的输入子数组由线程 t 和线程 t+1 的 co-rank 确定。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBc24a7460cb3237cd2404a21d2f9984f9?method=download&amp;shareKey=09ff2b105b2d3b266478ce1b840d92bb" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBc24a7460cb3237cd2404a21d2f9984f9?method=download&amp;shareKey=09ff2b105b2d3b266478ce1b840d92bb" alt="Example of co-rank Function Execution">
+    </a><figcaption>Example of co-rank Function Execution</figcaption></figure></p>
+<p>目标是找到使得 <code>A[i - 1] &lt;= B[j]</code> 并且 <code>B[j - 1] &lt;= A[i]</code> 的索引。</p>
+<ul>
+<li>如果 <code>A[i-1] &gt; B[j]</code>，说明 <code>A[i]</code> 太大，需要减少 i，并增加 j。</li>
+<li>如果 <code>B[j-1] &gt; A[i]</code>，说明 <code>B[j]</code> 太大，需要减少 j，并增加 i。
+每次调整时，i 和 j 都按照二分方式调整，即调整的步长是 delta / 2. i 和 i_low 确定了当前正在搜索的数组 A 的范围。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">co_rank</span><span class="p">(</span><span class="kt">int</span> <span class="n">k</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">A</span><span class="p">,</span> <span class="kt">int</span> <span class="n">m</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">B</span><span class="p">,</span> <span class="kt">int</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// C[k] comes from A[i] of B[j]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// k = i + j
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">m</span> <span class="o">?</span> <span class="nl">k</span> <span class="p">:</span> <span class="n">m</span><span class="p">;</span>  <span class="c1">// max starting search value for A, i.e. A[k-1] &lt; B[0]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">i_low</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">n</span><span class="p">)</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="n">k</span> <span class="o">-</span> <span class="n">n</span><span class="p">;</span>  <span class="c1">// when B is done, min starting search value for A is k-n
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="n">k</span> <span class="o">-</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">j_low</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">m</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">delta</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">bool</span> <span class="n">active</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">while</span> <span class="p">(</span><span class="n">active</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Binary search for C[k]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="o">&amp;&amp;</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">B</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="n">i_low</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="n">j_low</span> <span class="o">=</span> <span class="n">j</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="n">j</span> <span class="o">+=</span> <span class="n">delta</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="n">i</span> <span class="o">-=</span> <span class="n">delta</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">m</span> <span class="o">&amp;&amp;</span> <span class="n">B</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="n">j_low</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="n">i_low</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="n">i</span> <span class="o">+=</span> <span class="n">delta</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="n">j</span> <span class="o">-=</span> <span class="n">delta</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>  <span class="c1">// Found the correct position for C[k]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="n">active</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="125-a-basic-parallel-merge-kernel">12.5 A Basic Parallel Merge Kernel<a hidden class="anchor" aria-hidden="true" href="#125-a-basic-parallel-merge-kernel">#</a></h2>
+<p>在剩下的小节里，我们假设输入数组 A 和 B 存储在全局内存中，一个内核被启动用来合并两个输入数组，输出一个同样位于全局内存中的数组 C.
+下面内核是并行归并的直接实现。它首先通过计算当前线程 (<code>k_curr</code>) 和下一个线程 (<code>k_next</code>) 产生的输出子数组的起点来确定负责输出的范围。然后分别调用自己和后一个线程的 co_rank 函数来确定对应的 A 和 B 输入子数组的范围。最后调用顺序合并函数来合并两个输入子数组，并将结果写入输出子数组。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">mergre_basic_kernel</span><span class="p">(</span><span class="kt">int</span><span class="o">*</span> <span class="n">A</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">B</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">C</span><span class="p">,</span> <span class="kt">int</span> <span class="n">m</span><span class="p">,</span> <span class="kt">int</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Each thread handles a section of C
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">tid</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">elementsPerThread</span> <span class="o">=</span> <span class="n">ceil</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">gridDim</span><span class="p">.</span><span class="n">x</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">start</span> <span class="o">=</span> <span class="n">tid</span> <span class="o">*</span> <span class="n">elementsPerThread</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">end</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">elementsPerThread</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Determin the range of A and B to be merged for this thread
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">i_curr</span> <span class="o">=</span> <span class="n">co_rank</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">i_next</span> <span class="o">=</span> <span class="n">co_rank</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">j_curr</span> <span class="o">=</span> <span class="n">start</span> <span class="o">-</span> <span class="n">i_curr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">j_next</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">i_next</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">merge_sequential</span><span class="p">(</span><span class="n">A</span> <span class="o">+</span> <span class="n">i_curr</span><span class="p">,</span> <span class="n">B</span> <span class="o">+</span> <span class="n">j_curr</span><span class="p">,</span> <span class="n">C</span> <span class="o">+</span> <span class="n">start</span><span class="p">,</span> <span class="n">i_next</span> <span class="o">-</span> <span class="n">i_curr</span><span class="p">,</span> <span class="n">j_next</span> <span class="o">-</span> <span class="n">j_curr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>上面的基本归并内核有 2 个问题：</p>
+<ol>
+<li>warp 中的相邻线程在读写输入和输出子数组元素时不会访问相邻的内存位置。</li>
+<li>线程在执行 co-rank 函数时还需要从全局内存访问 A 和 B 的元素。</li>
+</ol>
+<h2 id="126-a-tiled-merge-kernel-to-improve-coalescing">12.6 A Tiled Merge Kernel to Improve Coalescing<a hidden class="anchor" aria-hidden="true" href="#126-a-tiled-merge-kernel-to-improve-coalescing">#</a></h2>
+<p>注意到相邻线程使用的 A 和 B 子数组在内存中彼此相邻。我们可以为为每个块调用 co-rank 函数来获得其 A 和 B 子数组的起始和结束位置。
+<style type="text/css">
+     
+    .notice {
+        --title-color: #fff;
+        --title-background-color: #6be;
+        --content-color: #444;
+        --content-background-color: #e7f2fa;
+    }
+
+    .notice.info {
+        --title-background-color: #fb7;
+        --content-background-color: #fec;
+    }
+
+    .notice.tip {
+        --title-background-color: #5a5;
+        --content-background-color: #efe;
+    }
+
+    .notice.warning {
+        --title-background-color: #c33;
+        --content-background-color: #fee;
+    }
+
+     
+    @media (prefers-color-scheme:dark) {
+        .notice {
+            --title-color: #fff;
+            --title-background-color: #069;
+            --content-color: #ddd;
+            --content-background-color: #023;
+        }
+
+        .notice.info {
+            --title-background-color: #a50;
+            --content-background-color: #420;
+        }
+
+        .notice.tip {
+            --title-background-color: #363;
+            --content-background-color: #121;
+        }
+
+        .notice.warning {
+            --title-background-color: #800;
+            --content-background-color: #400;
+        }
+    }
+
+    body.dark .notice {
+        --title-color: #fff;
+        --title-background-color: #069;
+        --content-color: #ddd;
+        --content-background-color: #023;
+    }
+
+    body.dark .notice.info {
+        --title-background-color: #a50;
+        --content-background-color: #420;
+    }
+
+    body.dark .notice.tip {
+        --title-background-color: #363;
+        --content-background-color: #121;
+    }
+
+    body.dark .notice.warning {
+        --title-background-color: #800;
+        --content-background-color: #400;
+    }
+
+     
+    .notice {
+        padding: 18px;
+        line-height: 24px;
+        margin-bottom: 24px;
+        border-radius: 4px;
+        color: var(--content-color);
+        background: var(--content-background-color);
+    }
+
+    .notice p:last-child {
+        margin-bottom: 0
+    }
+
+     
+    .notice-title {
+        margin: -18px -18px 12px;
+        padding: 4px 18px;
+        border-radius: 4px 4px 0 0;
+        font-weight: 700;
+        color: var(--title-color);
+        background: var(--title-background-color);
+    }
+
+     
+    .icon-notice {
+        display: inline-flex;
+        align-self: center;
+        margin-right: 8px;
+    }
+
+    .icon-notice img,
+    .icon-notice svg {
+        height: 1em;
+        width: 1em;
+        fill: currentColor;
+    }
+
+    .icon-notice img,
+    .icon-notice.baseline svg {
+        top: .125em;
+        position: relative;
+    }
+</style><div class="notice info" >
+    <p class="notice-title">
+        <span class="icon-notice baseline">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="92 59.5 300 300">
+  <path d="M292 303.25V272c0-3.516-2.734-6.25-6.25-6.25H267v-100c0-3.516-2.734-6.25-6.25-6.25h-62.5c-3.516 0-6.25 2.734-6.25 6.25V197c0 3.516 2.734 6.25 6.25 6.25H217v62.5h-18.75c-3.516 0-6.25 2.734-6.25 6.25v31.25c0 3.516 2.734 6.25 6.25 6.25h87.5c3.516 0 6.25-2.734 6.25-6.25Zm-25-175V97c0-3.516-2.734-6.25-6.25-6.25h-37.5c-3.516 0-6.25 2.734-6.25 6.25v31.25c0 3.516 2.734 6.25 6.25 6.25h37.5c3.516 0 6.25-2.734 6.25-6.25Zm125 81.25c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+        </span>Info</p><p>回忆一下改进内核内存合并的主要策略有三种:</p>
+<ul>
+<li>重新组织线程到数据的映射。</li>
+<li>重新组织数据本身。</li>
+<li>以合并的方式在全局内存和共享内存之间传输数据，并在共享内存中执行不规则访问。</li>
+</ul></div>
+</p>
+<p>下图展示了分段合并内核的块级别设计。A_S 和 B_S 可能无法覆盖块的整个输入子数组，因此在每次迭代期间，块中的所有线程将协作从块的 A 和 B 子数组中加载 x 个元素。这样每个块有足够的输入元素来生成至少 x 个输出数组元素 (<strong>在最坏的情况下，当前输出部分的所有元素可能都来自 A 或 B 的子数组</strong>)。假设每个块负责 y 个输出元素，则需要进行 y/x 次归并。每个块中的线程将在每次迭代中使用 A_S 的一部分和 B_S 的一部分 (深灰色部分)</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB176c6f865fd366df31615935a842b2ab?method=download&amp;shareKey=bc8caa12fb14b0e5829a1fd57c3b8a14" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB176c6f865fd366df31615935a842b2ab?method=download&amp;shareKey=bc8caa12fb14b0e5829a1fd57c3b8a14" alt="Design of a Tiled Merge Kernel">
+    </a><figcaption>Design of a Tiled Merge Kernel</figcaption></figure></p>
+<p>下面是分段合并内核的实现的第一部分。本质上是线程级基本合并内核的块级版本的代码。每个块的第一个线程负责计算当前块和下一个块的开始输出索引的位置以及他们的 co-rank. 结果被放入共享内存中，以便块中的所有线程都可以看到。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">merge_tiled_kernel</span><span class="p">(</span><span class="kt">int</span><span class="o">*</span> <span class="n">A</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">B</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">C</span><span class="p">,</span> <span class="kt">int</span> <span class="n">m</span><span class="p">,</span> <span class="kt">int</span> <span class="n">n</span><span class="p">,</span> <span class="kt">int</span> <span class="n">tile_size</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="cm">/* Part 1: Identify block-level output &amp; input subarrays */</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Use extern keywords to determine 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// the shared memory size at runtime rather than compilation
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">extern</span> <span class="n">__shared__</span> <span class="kt">int</span> <span class="n">shared_AB</span><span class="p">[];</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span><span class="o">*</span> <span class="n">A_s</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">shared_AB</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>  <span class="c1">// Start index of ShareA
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span><span class="o">*</span> <span class="n">B_s</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">shared_AB</span><span class="p">[</span><span class="n">tile_size</span><span class="p">];</span>  <span class="c1">// Start index of ShareB
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">C_curr</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">ceil</span><span class="p">((</span><span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">)</span> <span class="o">/</span> <span class="n">gridDim</span><span class="p">.</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// Start index of C for this block
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">C_next</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">C_curr</span> <span class="o">+</span> <span class="kt">int</span><span class="p">(</span><span class="n">ceil</span><span class="p">((</span><span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">)</span> <span class="o">/</span> <span class="n">gridDim</span><span class="p">.</span><span class="n">x</span><span class="p">)),</span> <span class="n">m</span> <span class="o">+</span> <span class="n">n</span><span class="p">);</span>  <span class="c1">// End index of C for this block
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">A_s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">co_rank</span><span class="p">(</span><span class="n">C_curr</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>  <span class="c1">// Make block level co-rank values visible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="n">A_s</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">co_rank</span><span class="p">(</span><span class="n">C_next</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>  <span class="c1">// Next threads co-rank values in the block
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__synctyhreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">A_curr</span> <span class="o">=</span> <span class="n">A_s</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">A_next</span> <span class="o">=</span> <span class="n">A_s</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">B_curr</span> <span class="o">=</span> <span class="n">C_curr</span> <span class="o">-</span> <span class="n">A_curr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">B_next</span> <span class="o">=</span> <span class="n">C_next</span> <span class="o">-</span> <span class="n">A_next</span><span class="p">;</span>
+</span></span></code></pre></div><p>第二部分线程使用它们的 <code>threadIdx.x</code> 的值来确定要加载的元素，因此连续的线程加载连续的元素，内存访问是合并的。每次迭代从 A 和 B 数组中加载当前tile的起始点取决于块的所有线程在之前的迭代中消耗的 A 和 B 元素的总数。下图说明了 while 循环第二次迭代的索引计算。每个块在第一次迭代中消耗的 A 元素部分 为 A 子数组开头的白色小部分 (用竖条标记)。if 语句确保线程只加载 A 子数组剩余部分中的元素。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cm">/* Part 2: Loading A &amp; B elements into the shared memory */</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">lenC</span> <span class="o">=</span> <span class="n">C_next</span> <span class="o">-</span> <span class="n">C_curr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">lenA</span> <span class="o">=</span> <span class="n">A_next</span> <span class="o">-</span> <span class="n">A_curr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">lenB</span> <span class="o">=</span> <span class="n">B_next</span> <span class="o">-</span> <span class="n">B_curr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">num_iterations</span> <span class="o">=</span> <span class="n">ceil</span><span class="p">(</span><span class="n">lenC</span> <span class="o">/</span> <span class="n">tile_size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// index of completed merge in 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">int</span> <span class="n">C_completed</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">A_completed</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">int</span> <span class="n">B_completed</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">while</span> <span class="p">(</span><span class="n">counter</span> <span class="o">&lt;</span> <span class="n">num_iterations</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Each iter threads in a block will generate tile_size C elements
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// Loading tile_size A and B elements into shared memory
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">tile_size</span><span class="p">;</span> <span class="n">i</span> <span class="o">+=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Coalecsing loading from global memory
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">lenA</span> <span class="o">-</span> <span class="n">A_completed</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">A_s</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">A_curr</span> <span class="o">+</span> <span class="n">A_completed</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">lenB</span> <span class="o">-</span> <span class="n">B_completed</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">B_s</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">B</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">B_curr</span> <span class="o">+</span> <span class="n">B_completed</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span></code></pre></div><p>第三部分则是每个块的线程对共享内存的数组进行归并。在更新索引的部分中最后一次迭代中 A_s 和 B_s 可能没有 tile_size 个元素，调用 co-rank 可能会得到错误结果。但是，由于 while 循环不会进一步迭代，因此不会使用结果，因此不会造成任何影响。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl">		<span class="cm">/* Part 3: All threads merge their subarrays in prallel */</span>
+</span></span><span class="line"><span class="cl">		<span class="kt">int</span> <span class="n">c_curr</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="n">tile_size</span> <span class="o">/</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// Output index in shared memory
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="kt">int</span> <span class="n">c_next</span> <span class="o">=</span> <span class="n">c_curr</span> <span class="o">+</span> <span class="p">(</span><span class="n">tile_size</span> <span class="o">/</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="n">c_curr</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_curr</span> <span class="o">&lt;=</span> <span class="n">lenC</span> <span class="o">-</span> <span class="n">C_completed</span><span class="p">)</span> <span class="o">?</span> <span class="nl">c_curr</span> <span class="p">:</span> <span class="n">lenC</span> <span class="o">-</span> <span class="n">C_completed</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="n">c_next</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_next</span> <span class="o">&lt;=</span> <span class="n">lenC</span> <span class="o">-</span> <span class="n">C_completed</span><span class="p">)</span> <span class="o">?</span> <span class="nl">c_next</span> <span class="p">:</span> <span class="n">lenC</span> <span class="o">-</span> <span class="n">C_completed</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// find co-rank for c_curr and c_next
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="kt">int</span> <span class="n">a_curr</span> <span class="o">=</span> <span class="n">co_rank</span><span class="p">(</span><span class="n">c_curr</span><span class="p">,</span> <span class="n">A_s</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">tile_size</span><span class="p">,</span> <span class="n">lenA</span> <span class="o">-</span> <span class="n">A_completed</span><span class="p">),</span> 
+</span></span><span class="line"><span class="cl">								<span class="n">B_s</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">tile_size</span><span class="p">,</span> <span class="n">lenB</span> <span class="o">-</span> <span class="n">B_completed</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">		<span class="kt">int</span> <span class="n">b_curr</span> <span class="o">=</span> <span class="n">c_curr</span> <span class="o">-</span> <span class="n">a_curr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="kt">int</span> <span class="n">a_next</span> <span class="o">=</span> <span class="n">co_rank</span><span class="p">(</span><span class="n">c_next</span><span class="p">,</span> <span class="n">A_s</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">tile_size</span><span class="p">,</span> <span class="n">lenA</span> <span class="o">-</span> <span class="n">A_completed</span><span class="p">),</span> 
+</span></span><span class="line"><span class="cl">								<span class="n">B_s</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">tile_size</span><span class="p">,</span> <span class="n">lenB</span> <span class="o">-</span> <span class="n">B_completed</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">		<span class="kt">int</span> <span class="n">b_next</span> <span class="o">=</span> <span class="n">c_next</span> <span class="o">-</span> <span class="n">a_next</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// merge the subarrays
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="n">merge_sequential</span><span class="p">(</span><span class="n">A_s</span> <span class="o">+</span> <span class="n">a_curr</span><span class="p">,</span> <span class="n">B_s</span> <span class="o">+</span> <span class="n">b_curr</span><span class="p">,</span> <span class="n">C</span> <span class="o">+</span> <span class="n">C_curr</span> <span class="o">+</span> <span class="n">C_completed</span> <span class="o">+</span> <span class="n">c_curr</span><span class="p">,</span> <span class="n">a_next</span> <span class="o">-</span> <span class="n">a_curr</span><span class="p">,</span> <span class="n">b_next</span> <span class="o">-</span> <span class="n">b_curr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// Update completed indices
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="n">C_completed</span> <span class="o">+=</span> <span class="n">tile_size</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="n">A_completed</span> <span class="o">+=</span> <span class="n">co_rank</span><span class="p">(</span><span class="n">tile_size</span><span class="p">,</span> <span class="n">A_s</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">,</span> <span class="n">B_s</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">);</span>  <span class="c1">// Idx of A_s to generate tile_size Idx of merged A_s and B_s
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="n">B_completed</span> <span class="o">+=</span> <span class="n">tile_size</span> <span class="o">-</span> <span class="n">A_completed</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="127-a-circular-buffer-merge-kernel">12.7 A Circular Buffer Merge Kernel<a hidden class="anchor" aria-hidden="true" href="#127-a-circular-buffer-merge-kernel">#</a></h2>
+<p>上一节的内核不是那么高效因为下一次迭代 tile 的一部分已经被加载到共享内存中，但是我们每次迭代从全局内存中重新加载整个块，并覆盖掉前一次迭代中的这些元素。下图展示了 merge_circular_buffer_kernel 的主要思想，添加了两个额外的变量 A_S_start 和B_S_start，使得 while 循环的每次迭代动态确定从 A 和 B 的哪个位置开始加载，这样可以利用前一次迭代中剩余的 A_s 和 B_s 元素。修改后每个 for 循环都只加载 A_S_consumed 表示的填充 tile 所需的元素数量。因此，线程在第 i 次 for 循环迭代中加载的A 元素是 <code>A[A_curr+A_S_consumed+i+threadIdx.x]</code>. 取模(%) 操作检查索引值是否大于或等于 tile_size.</p>
+<p>!A Circular Buffer Scheme for Managing the Shared Memory Tiles<a href="https://note.youdao.com/yws/api/personal/file/WEB5fab19bd6ec3f60e15cd82672ed06008?method=download&amp;shareKey=8ad20192216748affc4e2f15a1b01b8d" title="A Circular Buffer Scheme for Managing the Shared Memory Tiles"></a></p>
+<h2 id="128-thread-coarsening-for-merge">12.8 Thread Coarsening for Merge<a hidden class="anchor" aria-hidden="true" href="#128-thread-coarsening-for-merge">#</a></h2>
+<p>多个线程并行执行归并的代价是每个线程必须执行自己的二进制搜索操作来识别其输出索引的 co-rank. 本章中介绍的所有内核都已经应用了线程粗化，因为它们都是为每个线程处理多个元素而设计的。在完全未粗化的内核中，每个线程将负责单个输出元素。</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/pmpp-learning/">PMPP Learning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch13/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>PMPP Learning-Chapter 13 Sorting</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/">
+    <span class="title">Next »</span>
+    <br>
+    <span>PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification on x"
+            href="https://x.com/intent/tweet/?text=PMPP%20Learning-Chapter%2012%20Merge-An%20Introduction%20to%20Dynamic%20Input%20Data%20Identification&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch12%2f&amp;hashtags=PMPPlearning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch12%2f&amp;title=PMPP%20Learning-Chapter%2012%20Merge-An%20Introduction%20to%20Dynamic%20Input%20Data%20Identification&amp;summary=PMPP%20Learning-Chapter%2012%20Merge-An%20Introduction%20to%20Dynamic%20Input%20Data%20Identification&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch12%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch12%2f&title=PMPP%20Learning-Chapter%2012%20Merge-An%20Introduction%20to%20Dynamic%20Input%20Data%20Identification">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch12%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification on telegram"
+            href="https://telegram.me/share/url?text=PMPP%20Learning-Chapter%2012%20Merge-An%20Introduction%20to%20Dynamic%20Input%20Data%20Identification&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch12%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

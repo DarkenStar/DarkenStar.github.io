@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>MLIR-Ch5 Using Traits | WITHER</title>
+<meta name="keywords" content="MLIR">
+<meta name="description" content="Personal MLIR learning notes 5.">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/mlir-ch5-using-traits/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5174c40fbd8eeebc9f52d19235d6eed299a4cb89e5ea01fd9fe54457c7e12a3a.css" integrity="sha256-UXTED72O7ryfUtGSNdbu0pmky4nl6gH9n&#43;VEV8fhKjo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/mlir-ch5-using-traits/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/mlir-ch5-using-traits/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="MLIR-Ch5 Using Traits">
+  <meta property="og:description" content="Personal MLIR learning notes 5.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-11-08T23:06:23+08:00">
+    <meta property="article:modified_time" content="2024-11-08T23:06:23+08:00">
+    <meta property="article:tag" content="Jeremykun MLIR Learning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MLIR-Ch5 Using Traits">
+<meta name="twitter:description" content="Personal MLIR learning notes 5.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "MLIR-Ch5 Using Traits",
+      "item": "http://localhost:1313/blogs/mlir-ch5-using-traits/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "MLIR-Ch5 Using Traits",
+  "name": "MLIR-Ch5 Using Traits",
+  "description": "Personal MLIR learning notes 5.",
+  "keywords": [
+    "MLIR"
+  ],
+  "articleBody": "Traits and Loop Invariant Code Motion 为了提高代码重用性，MLIR 提供了 Traits 和 Interfaces Traits，用于增强 op (Operation) 或类型的功能，提供结构化的约束和功能接口，方便在编译优化和生成过程中进行更强大和灵活的 op 。\nTraits 是一种机制，用于抽象出多个不同属性、 op 或类型之间共同的实现细节和特性。可用于指定对象的特殊属性和约束，例如 op 是否具有副作用，或其输出类型是否与输入类型相同。Traits 将特定的行为或限制抽象出来，使这些行为可以复用在不同的对象上，而不需要在每个对象中重复实现相同的逻辑。\nInterfaces 是一种通用的机制，用于与 IR 进行交互。它们的目标是使转换或分析可以基于这些接口进行，而无需了解具体的 op 或 dialect 的内部实现。通过这种方法，编译器可以在实现转换和分析时不依赖于特定 dialect 或 op ，从而更轻松地扩展编译器的功能。\nLoop Invariant Code Motion 是 MLIR 提供的 General Transform Passes 之一。它会检查循环体中的 op ，如果发现某些 op 在循环内部执行没有必要（即它们的结果在每次循环中保持不变），就会将这些 op 移出循环体。这可以减少循环中的重复计算，提高效率。\n要让某个自定义 op 可以被这种 pass 识别并移出循环体，需要添加两个关键的 Traits 来表明该 op 在循环外执行是安全的：\nNoMemoryEffect: 是 MemoryEffect 的一个 empty 实现，表示该 op 不会产生任何与内存写入相关的副作用。 AlwaysSpeculatable: 是一个包含两个 Traits 的 列表，告诉编译器该 op 可以在不影响程序逻辑的前提下，将其提前计算或移动到其他位置。 在 MLIR 中，Loop Invariant Code Motion (LICM) 会将具有 NoMemoryEffect 和 AlwaysSpeculatable 这两个 Traits 的 op 移动到循环体外部，但前提是该 op 的 operands 在整个循环体中保持不变。这样可以避免循环内部的重复计算，从而优化代码执行效率。MLIR 提供了一个方便的组合 Trait Pure，它包含了 NoMemoryEffect 和 AlwaysSpeculatable 这两个 Traits. 因此，直接添加 Pure Trait 到 op 的定义中就能让编译器自动识别它为可移动到循环外部的 op 。\nTypeOrContainer 是一个用于处理 op 输入和输出类型的机制，它可以匹配单个类型 (如 f32 或 i32) 以及容器类型(如 vector 或 tensor)，使得一个 op 可以被设计为同时支持标量类型和集合类型。\ninclude \"mlir/Interfaces/SideEffectInterfaces.td\"\rdef PolyOrContainer: TypeOrContainer",
+  "wordCount" : "2156",
+  "inLanguage": "en",
+  "datePublished": "2024-11-08T23:06:23+08:00",
+  "dateModified": "2024-11-08T23:06:23+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/mlir-ch5-using-traits/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      MLIR-Ch5 Using Traits
+    </h1>
+    <div class="post-description">
+      Personal MLIR learning notes 5.
+    </div>
+    <div class="post-meta"><span title='2024-11-08 23:06:23 +0800 CST'>Nov-08-2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;2156 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#traits-and-loop-invariant-code-motion" aria-label="Traits and Loop Invariant Code Motion">Traits and Loop Invariant Code Motion</a></li>
+                    <li>
+                        <a href="#passes-already-handled-by-pure" aria-label="Passes Already Handled by Pure">Passes Already Handled by Pure</a></li>
+                    <li>
+                        <a href="#elementwise-mappings" aria-label="Elementwise Mappings">Elementwise Mappings</a>
+                    </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="traits-and-loop-invariant-code-motion">Traits and Loop Invariant Code Motion<a hidden class="anchor" aria-hidden="true" href="#traits-and-loop-invariant-code-motion">#</a></h1>
+<p>为了提高代码重用性，MLIR 提供了 <a href="https://mlir.llvm.org/docs/Traits/">Traits</a> 和 <a href="https://mlir.llvm.org/docs/Interfaces/">Interfaces</a> Traits，用于增强 op  (Operation) 或类型的功能，提供结构化的约束和功能接口，方便在编译优化和生成过程中进行更强大和灵活的 op 。</p>
+<blockquote>
+<p><a href="https://mlir.llvm.org/docs/Traits/">Traits</a> 是一种机制，用于抽象出多个不同属性、 op 或类型之间共同的实现细节和特性。可用于指定对象的特殊属性和约束，例如 op 是否具有副作用，或其输出类型是否与输入类型相同。Traits 将特定的行为或限制抽象出来，使这些行为可以复用在不同的对象上，而不需要在每个对象中重复实现相同的逻辑。</p></blockquote>
+<blockquote>
+<p><a href="https://mlir.llvm.org/docs/Interfaces/">Interfaces</a> 是一种通用的机制，用于与 IR 进行交互。它们的目标是使转换或分析可以基于这些接口进行，而无需了解具体的 op 或 dialect 的内部实现。通过这种方法，编译器可以在实现转换和分析时不依赖于特定 dialect 或 op ，从而更轻松地扩展编译器的功能。</p></blockquote>
+<p>Loop Invariant Code Motion 是 MLIR 提供的 <a href="">General Transform Passes</a> 之一。它会检查循环体中的 op ，如果发现某些 op 在循环内部执行没有必要（即它们的结果在每次循环中保持不变），就会将这些 op 移出循环体。这可以减少循环中的重复计算，提高效率。</p>
+<p>要让某个自定义 op 可以被这种 pass 识别并移出循环体，需要添加两个关键的 Traits 来表明该 op 在循环外执行是安全的：</p>
+<ul>
+<li><a href="https://github.com/llvm/llvm-project/blob/71be020dda2c97c2733e45f4b1003d1c135b3b43/mlir/include/mlir/Interfaces/SideEffectInterfaces.td#L81">NoMemoryEffect</a>: 是 MemoryEffect 的一个 empty 实现，表示该 op 不会产生任何与内存写入相关的副作用。</li>
+<li><a href="https://github.com/llvm/llvm-project/blob/71be020dda2c97c2733e45f4b1003d1c135b3b43/mlir/include/mlir/Interfaces/SideEffectInterfaces.td#L123">AlwaysSpeculatable</a>: 是一个包含两个 Traits 的 列表，告诉编译器该 op 可以在不影响程序逻辑的前提下，将其提前计算或移动到其他位置。</li>
+</ul>
+<p>在 MLIR 中，Loop Invariant Code Motion (LICM) 会将具有 <code>NoMemoryEffect</code> 和 <code>AlwaysSpeculatable</code> 这两个 Traits 的 op 移动到循环体外部，但前提是该 op 的 operands 在整个循环体中保持不变。这样可以避免循环内部的重复计算，从而优化代码执行效率。MLIR 提供了一个方便的组合 Trait <a href="https://github.com/llvm/llvm-project/blob/71be020dda2c97c2733e45f4b1003d1c135b3b43/mlir/include/mlir/Interfaces/SideEffectInterfaces.td#L133">Pure</a>，它包含了 <code>NoMemoryEffect</code> 和 <code>AlwaysSpeculatable</code> 这两个 Traits. 因此，直接添加 <code>Pure</code> Trait 到 op 的定义中就能让编译器自动识别它为可移动到循环外部的 op 。</p>
+<p><code>TypeOrContainer</code> 是一个用于处理 op 输入和输出类型的机制，它可以匹配单个类型 (如 <code>f32</code> 或 <code>i32</code>) 以及容器类型(如 <code>vector&lt;f32&gt;</code> 或 <code>tensor&lt;i32&gt;</code>)，使得一个 op 可以被设计为同时支持标量类型和集合类型。</p>
+<pre tabindex="0"><code>include &#34;mlir/Interfaces/SideEffectInterfaces.td&#34;
+
+def PolyOrContainer: TypeOrContainer&lt;Polynomial, &#34;poly-or-container&#34;&gt;;
+
+class Poly_BinOp&lt;string mnemonic&gt;: Op&lt;Poly_Dialect, mnemonic, [Pure]&gt; {
+    let arguments = (ins PolyOrContainer:$lhs, PolyOrContainer:$rhs);
+    let results = (outs PolyOrContainer:$output);
+    let assemblyFormat = &#34;$lhs `,` $rhs attr-dict `:` `(` type($lhs) `,` type($rhs) `)` `-&gt;` type($output)&#34;;
+}
+</code></pre><p>加入 <code>Pure</code> trait 后生成的 .hpp.inc 中关于 op 的定义继承了新的内容</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">AddOp</span>
+</span></span><span class="line"><span class="cl">    <span class="o">:</span> <span class="k">public</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Op</span><span class="o">&lt;</span> <span class="n">AddOp</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">ZeroRegions</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">OneResult</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">OneTypedResult</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="o">&gt;::</span><span class="n">Impl</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">ZeroSuccessors</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">NOperands</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;::</span><span class="n">Impl</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">OpInvariants</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">ConditionallySpeculatable</span><span class="o">::</span><span class="n">Trait</span><span class="p">,</span>            <span class="c1">// &lt;-- new
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">AlwaysSpeculatableImplTrait</span><span class="p">,</span>   <span class="c1">// &lt;-- new
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">MemoryEffectOpInterface</span><span class="o">::</span><span class="n">Trait</span><span class="o">&gt;</span>          <span class="c1">// &lt;--- new
+</span></span></span></code></pre></div><p><code>NoMemoryEffect</code> interface 则在生成的 .cpp.inc 中添加了一个简单的函数</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">AddOp</span><span class="o">::</span><span class="n">getEffects</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">SmallVectorImpl</span><span class="o">&lt;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">SideEffects</span><span class="o">::</span><span class="n">EffectInstance</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">MemoryEffects</span><span class="o">::</span><span class="n">Effect</span><span class="o">&gt;&gt;&amp;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">effects</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>我们可以写一个 .mlir 来测试 <code>%2</code> 的计算是否能优化到循环外：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="c">// RUN: build/Ch4-UsingTraits/tools/ch4-tutorial-opt %s --loop-invariant-code-motion &gt; %t
+</span></span></span><span class="line"><span class="cl"><span class="c">// RUN: FileCheck %s &lt; %t
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl">module <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c">// CHECK-LABEL: func.func @test_loop_invariant_code_motion
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_loop_invariant_code_motion</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">%0</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> dense<span class="p">&lt;[</span><span class="m">1</span><span class="p">,</span><span class="m">2</span><span class="p">,</span><span class="m">3</span><span class="p">]&gt;</span> <span class="p">:</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">3x</span><span class="k">i32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">%p0</span> <span class="p">=</span> poly<span class="p">.</span>from_tensor <span class="nv">%0</span> <span class="p">:</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">3x</span><span class="k">i32</span><span class="p">&gt;</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="nv">%1</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> dense<span class="p">&lt;[</span><span class="m">9</span><span class="p">,</span><span class="m">8</span><span class="p">,</span><span class="m">16</span><span class="p">]&gt;</span> <span class="p">:</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">3x</span><span class="k">i32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">%p1</span> <span class="p">=</span> poly<span class="p">.</span>from_tensor <span class="nv">%0</span> <span class="p">:</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">3x</span><span class="k">i32</span><span class="p">&gt;</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="c">// CHECK: poly.mul
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>
+</span></span><span class="line"><span class="cl">        <span class="c">// CHECK: affine.for
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>        <span class="nv">%ret_val</span> <span class="p">=</span> affine<span class="p">.</span>for <span class="nv">%i</span> <span class="p">=</span> <span class="m">0</span> to <span class="m">100</span> iter_args<span class="p">(</span><span class="nv">%sum_iter</span> <span class="p">=</span> <span class="nv">%p0</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="c">// The polt.mul should be hoisted out of the loop.
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>            <span class="c">// CHECK-NOT: poly.mul
+</span></span></span><span class="line"><span class="cl"><span class="c"></span>            <span class="nv">%2</span> <span class="p">=</span> poly<span class="p">.</span>mul <span class="nv">%p0</span><span class="p">,</span> <span class="nv">%p1</span> <span class="p">:</span> <span class="p">(!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;,</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;)</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">%sum_next</span> <span class="p">=</span> poly<span class="p">.</span>add <span class="nv">%sum_iter</span><span class="p">,</span> <span class="nv">%2</span> <span class="p">:</span>  <span class="p">(!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;,</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;)</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">            affine<span class="p">.</span>yield <span class="nv">%sum_next</span> <span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kt">return</span> <span class="nv">%ret_val</span><span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h1 id="passes-already-handled-by-pure">Passes Already Handled by Pure<a hidden class="anchor" aria-hidden="true" href="#passes-already-handled-by-pure">#</a></h1>
+<p>给某个 op 加上 <code>Pure</code> Trait 后，下列 Pass 就会自动识别并优化该 op ：</p>
+<ul>
+<li><code>--control-flow-sink</code>: 将只在条件语句的某一个分支中使用的 op 移动到对应的分支中，以减少无效代码的执行。需要 op 无内存副作用 (memory-effect free)，通常可以通过 <code>Pure</code> Trait 来满足。</li>
+<li><code>--cse</code> (Constant Subexpression Elimination): 常量子表达式消除。当某些重复的计算结果已经存在时，消除不必要的重复计算，提高效率。需要 op 没有内存副作用（memory-effect free），因此 <code>Pure</code> Trait 也可以满足这一要求。</li>
+<li><code>--inline</code>: 将函数调用“内联”到调用位置，以减少函数调用的开销。在某些情况下，这可以减少调用栈的深度或优化代码执行的性能。</li>
+<li><code>--mem2reg</code>: 将内存中的存储/加载 op 转换为对实际值的直接使用，从而减少内存访问，提高运行效率。</li>
+<li><code>--remove-dead-values</code>: 移除未使用的函数参数或返回值，以减少不必要的数据传递或内存占用。</li>
+<li><code>--sroa</code> (Scalar Replacement of Aggregates): 将聚合类型（例如数组或结构体）拆分为标量值，通常会对内存布局进行重排，以便更好地利用内存。</li>
+<li><code>--symbol-dce</code> (Symbol Dead Code Elimination): 消除不再使用的私有函数 (死代码)，减少不必要的代码量。</li>
+</ul>
+<h1 id="elementwise-mappings">Elementwise Mappings<a hidden class="anchor" aria-hidden="true" href="#elementwise-mappings">#</a></h1>
+<p>有四种 traits 可以把标量运算扩展到张量运算或者反过来</p>
+<ul>
+<li>
+<p><code>Elemntwise</code>: 标记逐元素的 op ，仅适用于向量或张量，不允许广播。</p>
+<ul>
+<li>如果任何结果是向量或张量，至少有一个 operand 必须是向量或张量。</li>
+<li>如果任何 operand 是向量或张量，至少有一个结果并且所有结果必须是向量或张量。</li>
+<li>所有 operand 和结果的向量或张量类型必须具有相同的形状。形状可以是动态的，但对于不匹配的形状，行为是未定义的。</li>
+<li>该 op 必须在 operand 和结果上逐元素进行，即在单元素向量或张量上应用时，每个元素的结果应相同。</li>
+</ul>
+</li>
+<li>
+<p><code>Scalarizable</code>: 标记和验证某些操作是否可以被系统性地标量化，即将其基于向量或张量的操作转化为基于标量的操作。只要操作是 Elementwise 的，Scalarizable 就可以使用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="nv">%tensor_select</span> <span class="p">=</span> <span class="s">&#34;arith.select&#34;</span><span class="p">(</span><span class="nv">%pred_tensor</span><span class="p">,</span> <span class="nv">%true_val</span><span class="p">,</span> <span class="nv">%false_val</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="p">:</span> <span class="p">(</span><span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">i1</span><span class="p">&gt;,</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;,</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;)</span>
+</span></span><span class="line"><span class="cl">                <span class="p">-&gt;</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c">// Can be scalarized to
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="nv">%scalar_select</span> <span class="p">=</span> <span class="s">&#34;arith.select&#34;</span><span class="p">(</span><span class="nv">%pred</span><span class="p">,</span> <span class="nv">%true_val_scalar</span><span class="p">,</span> <span class="nv">%false_val_scalar</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="p">:</span> <span class="p">(</span><span class="k">i1</span><span class="p">,</span> <span class="k">f32</span><span class="p">,</span> <span class="k">f32</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="k">f32</span>
+</span></span></code></pre></div></li>
+<li>
+<p><code>Vectorizable</code>: 提供了与 <code>Scalarizable</code> 相反的 op 。所有的标量 operand 和结果将被替换为相应的向量类型。即，该 op 表示同时作用于多个元素。允许通过广播将标量提升为向量，再进行向量化操作。</p>
+</li>
+<li>
+<p><code>Tensorizable</code>: 提供了与 <code>Scalarizable</code> 相反的 op ，允许在张量和标量之间进行推理。允许通过广播将标量提升为张量，以便在张量 op 中保持一致的 op 结构。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="nv">%scalar</span> <span class="p">=</span> <span class="s">&#34;arith.addf&#34;</span><span class="p">(</span><span class="nv">%a</span><span class="p">,</span> <span class="nv">%b</span><span class="p">)</span> <span class="p">:</span> <span class="p">(</span><span class="k">f32</span><span class="p">,</span> <span class="k">f32</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="k">f32</span>
+</span></span><span class="line"><span class="cl"><span class="c">// Can be tensorized to
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="nv">%tensor</span> <span class="p">=</span> <span class="s">&#34;arith.addf&#34;</span><span class="p">(</span><span class="nv">%a</span><span class="p">,</span> <span class="nv">%b</span><span class="p">)</span> <span class="p">:</span> <span class="p">(</span><span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;,</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">-&gt;</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c">// Also supports broadcasting
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="nv">%scalar_pred</span> <span class="p">=</span> <span class="s">&#34;arith.select&#34;</span><span class="p">(</span><span class="nv">%pred</span><span class="p">,</span> <span class="nv">%true_val</span><span class="p">,</span> <span class="nv">%false_val</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="p">:</span> <span class="p">(</span><span class="k">i1</span><span class="p">,</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;,</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;)</span> <span class="p">-&gt;</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c">// Can be tensorized to
+</span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="nv">%tensor_pred</span> <span class="p">=</span> <span class="s">&#34;arith.select&#34;</span><span class="p">(</span><span class="nv">%pred</span><span class="p">,</span> <span class="nv">%true_val</span><span class="p">,</span> <span class="nv">%false_val</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="p">:</span> <span class="p">(</span><span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">i1</span><span class="p">&gt;,</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;,</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">-&gt;</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">?x</span><span class="k">f32</span><span class="p">&gt;</span>
+</span></span></code></pre></div></li>
+</ul>
+<p><code>ElementwiseMappable</code> Trait 包含了以上所有的 Traits. 我们可以修改 <code>Poly_BinOp</code> 定义如下：</p>
+<pre tabindex="0"><code>// PolyOps.td
+def PolyOrContainer : TypeOrContainer&lt;Polynomial, &#34;poly-or-container&#34;&gt;;
+
+class Poly_BinOp&lt;string mnemonic&gt; : Op&lt;Poly_Dialect, mnemonic, [Pure, ElementwiseMappable]&gt; {
+  let arguments = (ins PolyOrContainer:$lhs, PolyOrContainer:$rhs);
+  let results = (outs PolyOrContainer:$output);
+  ...
+}
+</code></pre><p>添加这个 Trait 后，生成的 .cpp.inc 文件定义了许多检查 op 数类型的函数，下面是其中一个：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">static</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">LogicalResult</span> <span class="n">__mlir_ods_local_type_constraint_PolyOps1</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Operation</span><span class="o">*</span> <span class="n">op</span><span class="p">,</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">type</span><span class="p">,</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span> <span class="n">valueKind</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="n">valueIndex</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(((</span><span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">isa</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="o">&gt;</span><span class="p">(</span><span class="n">type</span><span class="p">)))</span> <span class="o">||</span>
+</span></span><span class="line"><span class="cl">            <span class="p">(((</span><span class="n">type</span><span class="p">.</span><span class="n">hasTrait</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">ValueSemantics</span><span class="o">&gt;</span><span class="p">()))</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">([](</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">elementType</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="p">(</span><span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">isa</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="o">&gt;</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">elementType</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}(</span><span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">cast</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">ShapedType</span><span class="o">&gt;</span><span class="p">(</span><span class="n">type</span><span class="p">).</span><span class="n">getElementType</span><span class="p">())))))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">op</span><span class="o">-&gt;</span><span class="n">emitOpError</span><span class="p">(</span><span class="n">valueKind</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="o">&lt;&lt;</span> <span class="s">&#34; #&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">valueIndex</span>
+</span></span><span class="line"><span class="cl">                <span class="o">&lt;&lt;</span> <span class="s">&#34; must be poly-or-container, but got &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">type</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">success</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>该函数首先检查 <code>type</code> 是否为 <code>PolynomialType</code>；如果不是，则进一步检查它是否具有 <code>ValueSemantics</code> Trait，并且是一个 <code>ShapedType</code>（即容器类型，如 <code>vector</code> 或 <code>tensor</code>），其中包含的元素类型是 <code>PolynomialType</code>.</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/jeremykun-mlir-learning/">Jeremykun MLIR Learning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/mlir-ch6-folders-and-constant-propagation/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>MLIR-Ch6 Folders and Constant Propagation</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/mlir-ch4-defining-a-new-dialect/">
+    <span class="title">Next »</span>
+    <br>
+    <span>MLIR-Ch4 Defining a New Dialect</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch5 Using Traits on x"
+            href="https://x.com/intent/tweet/?text=MLIR-Ch5%20Using%20Traits&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch5-using-traits%2f&amp;hashtags=jeremykunMLIRlearning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch5 Using Traits on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch5-using-traits%2f&amp;title=MLIR-Ch5%20Using%20Traits&amp;summary=MLIR-Ch5%20Using%20Traits&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch5-using-traits%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch5 Using Traits on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch5-using-traits%2f&title=MLIR-Ch5%20Using%20Traits">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch5 Using Traits on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch5-using-traits%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share MLIR-Ch5 Using Traits on telegram"
+            href="https://telegram.me/share/url?text=MLIR-Ch5%20Using%20Traits&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fmlir-ch5-using-traits%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

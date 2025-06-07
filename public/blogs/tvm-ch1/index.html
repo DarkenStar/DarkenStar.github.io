@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>TVM Learning (1)-Tensor Program Abstraction in Action | WITHER</title>
+<meta name="keywords" content="TVM">
+<meta name="description" content="Personal notebook 1.">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/tvm-ch1/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5174c40fbd8eeebc9f52d19235d6eed299a4cb89e5ea01fd9fe54457c7e12a3a.css" integrity="sha256-UXTED72O7ryfUtGSNdbu0pmky4nl6gH9n&#43;VEV8fhKjo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/tvm-ch1/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/tvm-ch1/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="TVM Learning (1)-Tensor Program Abstraction in Action">
+  <meta property="og:description" content="Personal notebook 1.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-08-15T15:07:12+08:00">
+    <meta property="article:modified_time" content="2024-08-15T15:07:12+08:00">
+    <meta property="article:tag" content="Autotuning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TVM Learning (1)-Tensor Program Abstraction in Action">
+<meta name="twitter:description" content="Personal notebook 1.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "TVM Learning (1)-Tensor Program Abstraction in Action",
+      "item": "http://localhost:1313/blogs/tvm-ch1/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "TVM Learning (1)-Tensor Program Abstraction in Action",
+  "name": "TVM Learning (1)-Tensor Program Abstraction in Action",
+  "description": "Personal notebook 1.",
+  "keywords": [
+    "TVM"
+  ],
+  "articleBody": "My notebook of MLC: https://mlc.ai/summer22-zh\nConstructing Tensor Program by TVMScript 在机器学习编译 (Machine Learning Compilation) 中，Tensor Program 指的是一种表示机器学习模型计算过程的程序，它以张量 (Tensor) 为基本数据单元，并使用张量操作来描述模型的计算步骤。\nVector-Add Example 下面这段代码使用 TVM 的 script 模块定义了一个名为 MyModule 的模块，其中包含一个名为 main 的计算函数。\n该函数实现了简单的向量加法 (vector add) 操作, 两个输入向量 A 和 B 相加，并将结果存储到输出向量 C 中。\nimport tvm from tvm.ir.module import IRModule from tvm.script import tir as T import numpy as np @tvm.script.ir_module class MyModule: @T.prim_func def main(A: T.Buffer[128, \"float32\"], B: T.Buffer[128, \"float32\"], C: T.Buffer[128, \"float32\"]): # extra annotations for the function T.func_attr({\"global_symbol\": \"main\", \"tir.noalias\": True}) for i in range(128): with T.block(\"C\"): # declare a data parallel iterator on spatial domain vi = T.axis.spatial(128, i) C[vi] = A[vi] + B[vi] 1. 模块定义:\n@tvm.script.ir_module class MyModule: # ... @tvm.script.ir_module: 用于将 MyModule 类定义为一个 TVM 的 IRModule 对象。IRModule 是 TVM 中用于表示计算图 (Computation Graph) 的标准数据结构。 class MyModule:: 定义一个名为 MyModule 的类，该类将包含计算函数。 Decorator 在 Python 中，装饰器 (Decorator) 是一种特殊的函数，它可以用来修改其他函数的行为，而无需直接修改被装饰的函数代码。\ndef decorator_function(func): def wrapper(*args, **kwargs): # 在调用被装饰的函数之前执行的操作 result = func(*args, **kwargs) # 在调用被装饰的函数之后执行的操作 return result return wrapper @decorator_function def my_function(x, y): # 被装饰的函数 return x + y decorator_function: 装饰器函数，它接收被装饰的函数作为参数，并返回一个包装函数。 wrapper: 包装函数，它在调用被装饰的函数之前和之后执行一些操作。 @decorator_function: 装饰器语法，将 decorator_function 应用到 my_function 上。 装饰器的工作原理:\n当 Python 遇到 @decorator_function 语法时，它会将 my_function 作为参数传递给 decorator_function。 decorator_function 执行，并返回一个包装函数 wrapper。 wrapper 函数将替换 my_function 的原始定义。 当调用 my_function 时，实际上是在调用 wrapper 函数。 2. 计算函数定义:\n@T.prim_func def main(A: T.Buffer[128, \"float32\"], B: T.Buffer[128, \"float32\"], C: T.Buffer[128, \"float32\"]): # ... @T.prim_func: 这是一个装饰器，用于将 main 函数定义为一个 TVM 的 prim_func 对象。prim_func 是 TVM 中用于表示底层计算函数的标准数据结构。 def main(...): 定义一个名为 main 的函数，该函数接受三个参数： A: 一个长度为 128 的 float32 类型 Buffer，表示第一个输入向量。 B: 一个长度为 128 的 float32 类型 Buffer，表示第二个输入向量。 C: 一个长度为 128 的 float32 类型 Buffer，用于存储计算结果。 3. 函数属性:\nT.func_attr({\"global_symbol\": \"main\", \"tir.noalias\": True}) T.func_attr({\"global_symbol\": \"main\", \"tir.noalias\": True})： 设置函数的属性。 global_symbol: 设置函数的全局符号名称为 main。 tir.noalias: 设置函数的别名属性为 True，表示函数不会修改输入缓冲区。 4. 计算循环:\nfor i inrange(128): with T.block(\"C\"): # ... T.block 将计算图分解成多个独立的计算块，每个块对应一个特定的计算任务，可以包含多个迭代器，这些迭代器共同定义了计算块的计算范围。\nfor i in range(128): 定义一个循环，迭代 128 次，用于处理每个向量元素。 with T.block(\"C\"): 定义一个名为 C 的计算块，该块包含循环的计算逻辑。 5. 迭代器定义:\nvi = T.axis.spatial(128, i) vi = T.axis.spatial(128, i): 定义一个名为 vi 的空间迭代器，它遍历 128 个元素，每个元素的索引由 i 确定。 一般来说，空间迭代器的访问顺序对最后结果不产生影响。\n6. 计算操作:\nC[vi] = A[vi] + B[vi] C[vi] = A[vi] + B[vi]： 将 A 和 B 中对应元素相加，并将结果存储到 C 中。 我们可以通过 MyModule.show() 来显示构建的IRModule.\n@tvm.script.ir_module class Module: @T.prim_func def main(A: T.Buffer[128, \"float32\"], B: T.Buffer[128, \"float32\"], C: T.Buffer[128, \"float32\"]) -\u003e None: # function attr dict T.func_attr({\"global_symbol\": \"main\", \"tir.noalias\": True}) # body # with T.block(\"root\") for i in T.serial(128): with T.block(\"C\"): vi = T.axis.spatial(128, i) T.reads(A[vi], B[vi]) T.writes(C[vi]) C[vi] = A[vi] + B[vi] Build and Run 我们可以通过 tvm.build函数将一个IRModule转变成可以运行的函数，通过定义的函数名可以获取想要的函数。然后我们可以定义三个 NDArray 数组来调用函数。\nrt_mod = tvm.build(MyModule, target=\"llvm\") func = rt_mod[\"main\"] a = tvm.nd.array(np.arange(128, dtype=\"float32\")) b = tvm.nd.array(np.ones(128, dtype=\"float32\")) c = tvm.nd.empty((128,), dtype=\"float32\") func(a, b, c) tvm.build 函数的参数:\nfunc: 要编译的计算图，可以是 tvm.script.ir_module 对象、tvm.relay.Function 对象或其他支持的计算图类型。 target: 目标平台，例如，llvm -mcpu=core-avx2、cuda、opencl 等。 name: 编译后的模块名称。 Transform the Tensor Program 在 TVM 中，tvm.tir.Schedule 是一个用于对计算图进行手动优化的工具。它允许对计算图中的循环、块和操作进行重排序、融合、并行化等操作，以提高计算效率。\n下面这段代码做了以下优化：\n循环切分: 将循环 i 切分成三个循环，可以更好地利用内存局部性，例如，将 i_1 和 i_2 的大小设置为 4，可以将数据加载到缓存中，减少内存访问次数。 循环重排序: 按照 i_0、i_2 和 i_1 这个顺序执行。 并行化: 将 i_0 并行化，可以利用多核 CPU 或 GPU 的计算能力，提高计算速度 sch = tvm.tir.Schedule(MyModule) # Get block by its name block_c = sch.get_block(\"C\") # Get loops surronding the block (i,) = sch.get_loops(block_c) # Tile the loop nesting. i_0, i_1, i_2 = sch.split(i, factors=[None, 4, 4]) # Reorder the loop. sch.reorder(i_0, i_2, i_1) sch.parallel(i_0) sch.mod.show() 优化后的计算图如下\n@tvm.script.ir_module class Module: @T.prim_func def main(A: T.Buffer[128, \"float32\"], B: T.Buffer[128, \"float32\"], C: T.Buffer[128, \"float32\"]) -\u003e None: # function attr dict T.func_attr({\"global_symbol\": \"main\", \"tir.noalias\": True}) # body # with T.block(\"root\") for i_0 in T.parallel(8): for i_2, i_1 in T.grid(4, 4): with T.block(\"C\"): vi = T.axis.spatial(128, i_0 * 16 + i_1 * 4 + i_2) T.reads(A[vi], B[vi]) T.writes(C[vi]) C[vi] = A[vi] + B[vi] Constructing Tensor Program by Tensor Expression Tensor Expression 指的是一种用于描述张量计算的数学表达式。\nConstruct Vector-Add by TE 我们可以通过以下方式来创建和 上一节 一样的IRModule.\n# namespace for tensor expression utility from tvm import te # declare the computation using the expression API A = te.placeholder((128, ), name=\"A\") B = te.placeholder((128, ), name=\"B\") C = te.compute((128,), lambda i: A[i] + B[i], name=\"C\") # create a function with the specified list of arguments. func = te.create_prim_func([A, B, C]) # mark that the function name is main func = func.with_attr(\"global_symbol\", \"main\") ir_mod_from_te = IRModule({\"main\": func}) ir_mod_from_te.show() 定义张量:\nA = te.placeholder((128,), name=\"A\") B = te.placeholder((128,), name=\"B\") 这两行代码定义了两个名为 A 和 B 的张量，它们都是一维张量，大小为 128。te.placeholder 函数用于创建占位符张量，它代表输入数据。\n定义计算:\nC = te.compute((128,), lambda i: A[i] + B[i], name=\"C\") 这行代码定义了一个名为 C 的张量，它表示 A 和 B 的元素相加的结果。te.compute 函数用于定义张量计算，它接受两个参数：\n第一个参数 shape是张量的形状，这里为 (128,)。 第二个参 fcompute数是一个 lambda 函数，它定义了每个元素的计算方式，这里为 A[i] + B[i]，表示 C 的第 i 个元素等于 A 的第 i 个元素加上 B 的第 i 个元素。 创建 PrimFunc:\nfunc = te.create_prim_func([A, B, C]) 这行代码使用 te.create_prim_func 函数创建了一个 PrimFunc 对象，它代表一个 TVM 的基本计算函数。te.create_prim_func 函数接受一个参数，即函数的输入参数列表，这里为 [A, B, C]\n设置函数名称:\nfunc = func.with_attr(\"global_symbol\", \"main\") 这行代码将函数的名称设置为 main，with_attr 函数用于设置函数的属性。\n创建 IRModule:\nir_mod_from_te = IRModule({\"main\": func}) 这行代码创建了一个 IRModule 对象，它包含了 func 函数，并将该函数存储在 IRModule 的 main 字段中。\nTransforming a matrix multiplication program 下面代码展示了两个 $1024 \\times 1024$ 矩阵相乘的IRModule创建流程。\nM = 1024 K = 1024 N = 1024 # The default tensor type in tvm dtype = \"float32\" target = \"llvm\" dev = tvm.device(target, 0) # Algorithm k = te.reduce_axis((0, K), \"k\") A = te.placeholder((M, K), name=\"A\") B = te.placeholder((K, N), name=\"B\") C = te.compute((M, N), lambda m, n: te.sum(A[m, k] * B[k, n], axis=k), name=\"C\") # Default schedule func = te.create_prim_func([A, B, C]) func = func.with_attr(\"global_symbol\", \"main\") ir_module = IRModule({\"main\": func}) ir_module.show() func = tvm.build(ir_module, target=\"llvm\") # The module for CPU backends. a = tvm.nd.array(np.random.rand(M, K).astype(dtype), dev) b = tvm.nd.array(np.random.rand(K, N).astype(dtype), dev) c = tvm.nd.array(np.zeros((M, N), dtype=dtype), dev) func(a, b, c) # Create evaluation function evaluator = func.time_evaluator(func.entry_name, dev, number=1) print(\"Baseline: %f\" % evaluator(a, b, c).mean) time_evaluator 是 IRModule 用于评估计算图执行时间的方法。它可以帮助测量不同硬件平台上不同计算图的性能，并进行优化。\ntime evaluator IRModule.time_evaluator(func, args, number=1, repeat=1, min_repeat_ms=0, f_type=0) 参数解释:\nfunc: 要评估的计算图函数。 args: 计算图函数的输入参数，可以是张量或其他数据结构。 number: 每次运行计算图的次数，默认值为 1。 repeat: 重复运行计算图的次数，默认值为 1。 min_repeat_ms: 最小运行时间，单位为毫秒。如果计算图运行时间小于 min_repeat_ms，则会继续运行直到达到 min_repeat_ms。默认值为 0。 f_type: 运行模式，可以是 0（默认值）、1 或 2。 0：正常运行模式。 1：仅执行编译，不运行计算图。 2：仅执行运行，不编译计算图。 func.time_evaluator 的返回值:\nfunc.time_evaluator 返回一个函数，该函数可以用来执行评估并返回一个包含性能指标的字典。\n性能指标:\nmean: 平均运行时间，单位为毫秒。 median: 中位数运行时间，单位为毫秒。 min: 最小运行时间，单位为毫秒。 max: 最大运行时间，单位为毫秒。 std: 标准差，单位为毫秒。 代码的大部分流程相同，我们来看计算部分。\n定义约简轴 (Reduce axis):\nk = te.reduce_axis((0, K), \"k\") 这行代码定义了一个名为 k 的约简轴，表示在矩阵乘法操作中进行求和的维度，范围为 (0, K)\n定义输入矩阵 (Placeholders):\nA = te.placeholder((M, K), name=\"A\")\rB = te.placeholder((K, N), name=\"B\") 这两行代码定义了两个名为 A 和 B 的输入矩阵，它们分别代表矩阵乘法的两个输入矩阵。A 的形状为 (M, K)，B 的形状为 (K, N)\n定义输出矩阵 (Compute):\nC = te.compute((M, N), lambda m, n: te.sum(A[m, k] * B[k, n], axis=k), name=\"C\") 这行代码定义了一个名为 C 的输出矩阵，它表示矩阵乘法的结果。C 的形状为 (M, N)，采用 te.sum计算结果。\nte.sum te.sum(expr, axis=None, keepdims=False, where=None) 参数解释:\nexpr: 要进行求和的表达式，可以是张量、标量或其他表达式。 axis: 要进行求和的轴，可以是整数、元组或列表。如果 axis 为 None，则对所有轴进行求和。 keepdims: 布尔值，表示是否保留求和后的维度。如果为 True，则保留求和后的维度，并将其大小设置为 1。如果为 False，则删除求和后的维度。 where: 布尔值张量，表示要进行求和的元素。如果 where 为 None，则对所有元素进行求和。 创建的IRModule如下所示。\n@tvm.script.ir_module class Module: @T.prim_func def main(A: T.Buffer[(1024, 1024), \"float32\"], B: T.Buffer[(1024, 1024), \"float32\"], C: T.Buffer[(1024, 1024), \"float32\"]) -\u003e None: # function attr dict T.func_attr({\"global_symbol\": \"main\", \"tir.noalias\": True}) # body # with T.block(\"root\") for i0, i1, i2 in T.grid(1024, 1024, 1024): with T.block(\"C\"): m, n, k = T.axis.remap(\"SSR\", [i0, i1, i2]) T.reads(A[m, k], B[k, n]) T.writes(C[m, n]) with T.init(): C[m, n] = T.float32(0) C[m, n] = C[m, n] + A[m, k] * B[k, n] 我们可以将循环拆分成外层循环和内层循环可以提高数据局部性。内层循环访问的数据更接近，可以有效利用缓存。下面代码的 block_size 参数控制了内层循环的大小，选择合适的块大小可以最大程度地利用缓存。\nsch = tvm.tir.Schedule(ir_module) block_c = sch.get_block(\"C\") # Get loops surronding the block (y, x, k) = sch.get_loops(block_c) block_size = 32 yo, yi = sch.split(y, [None, block_size]) xo, xi = sch.split(x, [None, block_size]) sch.reorder(yo, xo, k, yi, xi) sch.mod.show() func = tvm.build(sch.mod, target=\"llvm\") # The module for CPU backends. c = tvm.nd.array(np.zeros((M, N), dtype=dtype), dev) func(a, b, c) evaluator = func.time_evaluator(func.entry_name, dev, number=1) print(\"after transformation: %f\" % evaluator(a, b, c).mean) 创建的IRModule如下所示。实际中我们会测试很多不同 block_size对应的执行时间来选择最合适的。\n@tvm.script.ir_module class Module: @T.prim_func def main(A: T.Buffer[(1024, 1024), \"float32\"], B: T.Buffer[(1024, 1024), \"float32\"], C: T.Buffer[(1024, 1024), \"float32\"]) -\u003e None: # function attr dict T.func_attr({\"global_symbol\": \"main\", \"tir.noalias\": True}) # body # with T.block(\"root\") for i0_0, i1_0, i2, i0_1, i1_1 in T.grid(32, 32, 1024, 32, 32): with T.block(\"C\"): m = T.axis.spatial(1024, i0_0 * 32 + i0_1) n = T.axis.spatial(1024, i1_0 * 32 + i1_1) k = T.axis.reduce(1024, i2) T.reads(A[m, k], B[k, n]) T.writes(C[m, n]) with T.init(): C[m, n] = T.float32(0) C[m, n] = C[m, n] + A[m, k] * B[k, n] ",
+  "wordCount" : "3578",
+  "inLanguage": "en",
+  "datePublished": "2024-08-15T15:07:12+08:00",
+  "dateModified": "2024-08-15T15:07:12+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/tvm-ch1/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      TVM Learning (1)-Tensor Program Abstraction in Action
+    </h1>
+    <div class="post-description">
+      Personal notebook 1.
+    </div>
+    <div class="post-meta"><span title='2024-08-15 15:07:12 +0800 CST'>Aug-15-2024</span>&nbsp;·&nbsp;8 min&nbsp;·&nbsp;3578 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#constructing-tensor-program-by-tvmscript" aria-label="Constructing Tensor Program by TVMScript">Constructing Tensor Program by TVMScript</a><ul>
+                            
+                    <li>
+                        <a href="#vector-add-example" aria-label="Vector-Add Example">Vector-Add Example</a></li>
+                    <li>
+                        <a href="#build-and-run" aria-label="Build and Run">Build and Run</a></li>
+                    <li>
+                        <a href="#transform-the-tensor-program" aria-label="Transform the Tensor Program">Transform the Tensor Program</a></li></ul>
+                    </li>
+                    <li>
+                        <a href="#constructing-tensor-program-by-tensor-expression" aria-label="Constructing Tensor Program by Tensor Expression">Constructing Tensor Program by Tensor Expression</a><ul>
+                            
+                    <li>
+                        <a href="#construct-vector-add-by-te" aria-label="Construct Vector-Add by TE">Construct Vector-Add by TE</a></li>
+                    <li>
+                        <a href="#transforming-a-matrix-multiplication-program" aria-label="Transforming a matrix multiplication program">Transforming a matrix multiplication program</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><p>My notebook of MLC: <a href="https://mlc.ai/summer22-zh">https://mlc.ai/summer22-zh</a></p>
+<h1 id="constructing-tensor-program-by-tvmscript">Constructing Tensor Program by TVMScript<a hidden class="anchor" aria-hidden="true" href="#constructing-tensor-program-by-tvmscript">#</a></h1>
+<p>在机器学习编译 (Machine Learning Compilation) 中，<strong>Tensor Program</strong> 指的是一种表示机器学习模型计算过程的程序，它以张量 (Tensor) 为基本数据单元，并使用张量操作来描述模型的计算步骤。</p>
+<h2 id="vector-add-example">Vector-Add Example<a hidden class="anchor" aria-hidden="true" href="#vector-add-example">#</a></h2>
+<p>下面这段代码使用 TVM 的 <code>script</code> 模块定义了一个名为 <code>MyModule</code> 的模块，其中包含一个名为 <code>main</code> 的计算函数。</p>
+<p>该函数实现了简单的向量加法 (vector add) 操作, 两个输入向量 <code>A</code> 和 <code>B</code> 相加，并将结果存储到输出向量 <code>C</code> 中。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">tvm</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">tvm.ir.module</span> <span class="kn">import</span> <span class="n">IRModule</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">tvm.script</span> <span class="kn">import</span> <span class="n">tir</span> <span class="k">as</span> <span class="n">T</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MyModule</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> 
+</span></span><span class="line"><span class="cl">             <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> 
+</span></span><span class="line"><span class="cl">             <span class="n">C</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># extra annotations for the function</span>
+</span></span><span class="line"><span class="cl">        <span class="n">T</span><span class="o">.</span><span class="n">func_attr</span><span class="p">({</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">:</span> <span class="s2">&#34;main&#34;</span><span class="p">,</span> <span class="s2">&#34;tir.noalias&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># declare a data parallel iterator on spatial domain</span>
+</span></span><span class="line"><span class="cl">                <span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">+</span> <span class="n">B</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span>
+</span></span></code></pre></div><p><strong>1. 模块定义:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MyModule</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ...</span>
+</span></span></code></pre></div><ul>
+<li><code>@tvm.script.ir_module</code>: 用于将 <code>MyModule</code> 类定义为一个 TVM 的 <code>IRModule</code> 对象。<code>IRModule</code> 是 TVM 中用于表示计算图 (Computation Graph) 的标准数据结构。</li>
+<li><code>class MyModule:</code>: 定义一个名为 <code>MyModule</code> 的类，该类将包含计算函数。</li>
+</ul>
+<p><details class="custom-details">
+    <summary class="custom-summary">Decorator</summary>
+    <div><p>在 Python 中，装饰器 (Decorator) 是一种特殊的函数，它可以用来修改其他函数的行为，而无需直接修改被装饰的函数代码。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">decorator_function</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 在调用被装饰的函数之前执行的操作</span>
+</span></span><span class="line"><span class="cl">        <span class="n">result</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 在调用被装饰的函数之后执行的操作</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">result</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">wrapper</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nd">@decorator_function</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">my_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 被装饰的函数</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>
+</span></span></code></pre></div><ul>
+<li><code>decorator_function</code>: 装饰器函数，它接收被装饰的函数作为参数，并返回一个包装函数。</li>
+<li><code>wrapper</code>: 包装函数，它在调用被装饰的函数之前和之后执行一些操作。</li>
+<li><code>@decorator_function</code>: 装饰器语法，将 <code>decorator_function</code> 应用到 <code>my_function</code> 上。</li>
+</ul>
+<p><strong>装饰器的工作原理:</strong></p>
+<ol>
+<li>当 Python 遇到 <code>@decorator_function</code> 语法时，它会将 <code>my_function</code> 作为参数传递给 <code>decorator_function</code>。</li>
+<li><code>decorator_function</code> 执行，并返回一个包装函数 <code>wrapper</code>。</li>
+<li><code>wrapper</code> 函数将替换 <code>my_function</code> 的原始定义。</li>
+<li>当调用 <code>my_function</code> 时，实际上是在调用 <code>wrapper</code> 函数。</li>
+</ol>
+</div>
+</details><br>
+<strong>2. 计算函数定义:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> 
+</span></span><span class="line"><span class="cl">            <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> 
+</span></span><span class="line"><span class="cl">            <span class="n">C</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ...</span>
+</span></span></code></pre></div><ul>
+<li><code>@T.prim_func</code>: 这是一个装饰器，用于将 <code>main</code> 函数定义为一个 TVM 的 <code>prim_func</code> 对象。<code>prim_func</code> 是 TVM 中用于表示底层计算函数的标准数据结构。</li>
+<li><code>def main(...)</code>: 定义一个名为 <code>main</code> 的函数，该函数接受三个参数：
+<ul>
+<li><code>A</code>: 一个长度为 128 的 <code>float32</code> 类型 Buffer，表示第一个输入向量。</li>
+<li><code>B</code>: 一个长度为 128 的 <code>float32</code> 类型 Buffer，表示第二个输入向量。</li>
+<li><code>C</code>: 一个长度为 128 的 <code>float32</code> 类型 Buffer，用于存储计算结果。</li>
+</ul>
+</li>
+</ul>
+<p><strong>3. 函数属性:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl">        <span class="n">T</span><span class="o">.</span><span class="n">func_attr</span><span class="p">({</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">:</span> <span class="s2">&#34;main&#34;</span><span class="p">,</span> <span class="s2">&#34;tir.noalias&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</span></span></code></pre></div><ul>
+<li><code>T.func_attr({&quot;global_symbol&quot;: &quot;main&quot;, &quot;tir.noalias&quot;: True})</code>： 设置函数的属性。
+<ul>
+<li><code>global_symbol</code>: 设置函数的全局符号名称为 <code>main</code>。</li>
+<li><code>tir.noalias</code>: 设置函数的别名属性为 <code>True</code>，表示函数不会修改输入缓冲区。</li>
+</ul>
+</li>
+</ul>
+<p><strong>4. 计算循环:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">for</span> <span class="n">i</span> <span class="n">inrange</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># ...</span>
+</span></span></code></pre></div><p><code>T.block</code> 将计算图分解成多个独立的计算块，每个块对应一个特定的计算任务，可以包含多个迭代器，这些迭代器共同定义了计算块的计算范围。</p>
+<ul>
+<li><code>for i in range(128)</code>: 定义一个循环，迭代 128 次，用于处理每个向量元素。</li>
+<li><code>with T.block(&quot;C&quot;)</code>: 定义一个名为 <code>C</code> 的计算块，该块包含循环的计算逻辑。</li>
+</ul>
+<p><strong>5. 迭代器定义:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span></code></pre></div><ul>
+<li><code>vi = T.axis.spatial(128, i)</code>: 定义一个名为 <code>vi</code> 的空间迭代器，它遍历 128 个元素，每个元素的索引由 <code>i</code> 确定。</li>
+</ul>
+<p>一般来说，空间迭代器的访问顺序对最后结果不产生影响。</p>
+<p><strong>6. 计算操作:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">+</span> <span class="n">B</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span>
+</span></span></code></pre></div><ul>
+<li><code>C[vi] = A[vi] + B[vi]</code>： 将 <code>A</code> 和 <code>B</code> 中对应元素相加，并将结果存储到 <code>C</code> 中。</li>
+</ul>
+<p>我们可以通过 <code>MyModule.show()</code> 来显示构建的IRModule.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Module</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">C</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># function attr dict</span>
+</span></span><span class="line"><span class="cl">        <span class="n">T</span><span class="o">.</span><span class="n">func_attr</span><span class="p">({</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">:</span> <span class="s2">&#34;main&#34;</span><span class="p">,</span> <span class="s2">&#34;tir.noalias&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># body</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># with T.block(&#34;root&#34;)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">serial</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">T</span><span class="o">.</span><span class="n">reads</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">vi</span><span class="p">],</span> <span class="n">B</span><span class="p">[</span><span class="n">vi</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">T</span><span class="o">.</span><span class="n">writes</span><span class="p">(</span><span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">+</span> <span class="n">B</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span>
+</span></span></code></pre></div><h2 id="build-and-run">Build and Run<a hidden class="anchor" aria-hidden="true" href="#build-and-run">#</a></h2>
+<p>我们可以通过 <code>tvm.build</code>函数将一个IRModule转变成可以运行的函数，通过定义的函数名可以获取想要的函数。然后我们可以定义三个 <code>NDArray</code> 数组来调用函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">rt_mod</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">MyModule</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&#34;llvm&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">func</span> <span class="o">=</span> <span class="n">rt_mod</span><span class="p">[</span><span class="s2">&#34;main&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">a</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">nd</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="n">b</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">nd</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">))</span> 
+</span></span><span class="line"><span class="cl"><span class="n">c</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">nd</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">128</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span> 
+</span></span><span class="line"><span class="cl"><span class="n">func</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+</span></span></code></pre></div><p><strong><code>tvm.build</code> 函数的参数:</strong></p>
+<ul>
+<li><code>func</code>: 要编译的计算图，可以是 <code>tvm.script.ir_module</code> 对象、<code>tvm.relay.Function</code> 对象或其他支持的计算图类型。</li>
+<li><code>target</code>: 目标平台，例如，<code>llvm -mcpu=core-avx2</code>、<code>cuda</code>、<code>opencl</code> 等。</li>
+<li><code>name</code>: 编译后的模块名称。</li>
+</ul>
+<h2 id="transform-the-tensor-program">Transform the Tensor Program<a hidden class="anchor" aria-hidden="true" href="#transform-the-tensor-program">#</a></h2>
+<p>在 TVM 中，<code>tvm.tir.Schedule</code> 是一个用于对计算图进行手动优化的工具。它允许对计算图中的循环、块和操作进行重排序、融合、并行化等操作，以提高计算效率。</p>
+<p>下面这段代码做了以下优化：</p>
+<ul>
+<li><strong>循环切分:</strong> 将循环 <code>i</code> 切分成三个循环，可以更好地利用内存局部性，例如，将 <code>i_1</code> 和 <code>i_2</code> 的大小设置为 4，可以将数据加载到缓存中，减少内存访问次数。</li>
+<li><strong>循环重排序:</strong> 按照 <code>i_0</code>、<code>i_2</code> 和 <code>i_1</code> 这个顺序执行。</li>
+<li><strong>并行化:</strong> 将 <code>i_0</code> 并行化，可以利用多核 CPU 或 GPU 的计算能力，提高计算速度</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">sch</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">tir</span><span class="o">.</span><span class="n">Schedule</span><span class="p">(</span><span class="n">MyModule</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Get block by its name</span>
+</span></span><span class="line"><span class="cl"><span class="n">block_c</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Get loops surronding the block</span>
+</span></span><span class="line"><span class="cl"><span class="p">(</span><span class="n">i</span><span class="p">,)</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_loops</span><span class="p">(</span><span class="n">block_c</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Tile the loop nesting.</span>
+</span></span><span class="line"><span class="cl"><span class="n">i_0</span><span class="p">,</span> <span class="n">i_1</span><span class="p">,</span> <span class="n">i_2</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Reorder the loop.</span>
+</span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">reorder</span><span class="p">(</span><span class="n">i_0</span><span class="p">,</span> <span class="n">i_2</span><span class="p">,</span> <span class="n">i_1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">parallel</span><span class="p">(</span><span class="n">i_0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">mod</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></span></code></pre></div><p>优化后的计算图如下</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Module</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">C</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="s2">&#34;float32&#34;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># function attr dict</span>
+</span></span><span class="line"><span class="cl">        <span class="n">T</span><span class="o">.</span><span class="n">func_attr</span><span class="p">({</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">:</span> <span class="s2">&#34;main&#34;</span><span class="p">,</span> <span class="s2">&#34;tir.noalias&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># body</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># with T.block(&#34;root&#34;)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i_0</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">parallel</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i_2</span><span class="p">,</span> <span class="n">i_1</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i_0</span> <span class="o">*</span> <span class="mi">16</span> <span class="o">+</span> <span class="n">i_1</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">i_2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">reads</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">vi</span><span class="p">],</span> <span class="n">B</span><span class="p">[</span><span class="n">vi</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">writes</span><span class="p">(</span><span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">+</span> <span class="n">B</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span>
+</span></span></code></pre></div><h1 id="constructing-tensor-program-by-tensor-expression">Constructing Tensor Program by Tensor Expression<a hidden class="anchor" aria-hidden="true" href="#constructing-tensor-program-by-tensor-expression">#</a></h1>
+<p>Tensor Expression 指的是一种用于描述张量计算的数学表达式。</p>
+<h2 id="construct-vector-add-by-te">Construct Vector-Add by TE<a hidden class="anchor" aria-hidden="true" href="#construct-vector-add-by-te">#</a></h2>
+<p>我们可以通过以下方式来创建和 <a href="/blogs/tvm-ch1/#Vector-Add-Example">上一节</a> 一样的IRModule.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># namespace for tensor expression utility</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">tvm</span> <span class="kn">import</span> <span class="n">te</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># declare the computation using the expression API</span>
+</span></span><span class="line"><span class="cl"><span class="n">A</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;A&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">B</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;B&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">C</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">((</span><span class="mi">128</span><span class="p">,),</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">B</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;C&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># create a function with the specified list of arguments. </span>
+</span></span><span class="line"><span class="cl"><span class="n">func</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">create_prim_func</span><span class="p">([</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># mark that the function name is main</span>
+</span></span><span class="line"><span class="cl"><span class="n">func</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">with_attr</span><span class="p">(</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">,</span> <span class="s2">&#34;main&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">ir_mod_from_te</span> <span class="o">=</span> <span class="n">IRModule</span><span class="p">({</span><span class="s2">&#34;main&#34;</span><span class="p">:</span> <span class="n">func</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">ir_mod_from_te</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></span></code></pre></div><ol>
+<li>
+<p><strong>定义张量:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">A</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="mi">128</span><span class="p">,),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;A&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">B</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="mi">128</span><span class="p">,),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;B&#34;</span><span class="p">)</span>
+</span></span></code></pre></div><p>这两行代码定义了两个名为 <code>A</code> 和 <code>B</code> 的张量，它们都是一维张量，大小为 128。<code>te.placeholder</code> 函数用于创建占位符张量，它代表输入数据。</p>
+</li>
+<li>
+<p><strong>定义计算:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">C</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">((</span><span class="mi">128</span><span class="p">,),</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">B</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;C&#34;</span><span class="p">)</span>
+</span></span></code></pre></div><p>这行代码定义了一个名为 <code>C</code> 的张量，它表示 <code>A</code> 和 <code>B</code> 的元素相加的结果。<code>te.compute</code> 函数用于定义张量计算，它接受两个参数：</p>
+<ul>
+<li>第一个参数 <code>shape</code>是张量的形状，这里为 <code>(128,)</code>。</li>
+<li>第二个参 <code>fcompute</code>数是一个 lambda 函数，它定义了每个元素的计算方式，这里为 <code>A[i] + B[i]</code>，表示 <code>C</code> 的第 <code>i</code> 个元素等于 <code>A</code> 的第 <code>i</code> 个元素加上 <code>B</code> 的第 <code>i</code> 个元素。</li>
+</ul>
+</li>
+<li>
+<p><strong>创建 PrimFunc:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">func</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">create_prim_func</span><span class="p">([</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">])</span>
+</span></span></code></pre></div><p>这行代码使用 <code>te.create_prim_func</code> 函数创建了一个 PrimFunc 对象，它代表一个 TVM 的基本计算函数。<code>te.create_prim_func</code> 函数接受一个参数，即函数的输入参数列表，这里为 <code>[A, B, C]</code></p>
+</li>
+<li>
+<p><strong>设置函数名称:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">func</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">with_attr</span><span class="p">(</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">,</span> <span class="s2">&#34;main&#34;</span><span class="p">)</span>
+</span></span></code></pre></div><p>这行代码将函数的名称设置为 <code>main</code>，<code>with_attr</code> 函数用于设置函数的属性。</p>
+</li>
+<li>
+<p><strong>创建 IRModule:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">ir_mod_from_te</span> <span class="o">=</span> <span class="n">IRModule</span><span class="p">({</span><span class="s2">&#34;main&#34;</span><span class="p">:</span> <span class="n">func</span><span class="p">})</span>
+</span></span></code></pre></div><p>这行代码创建了一个 IRModule 对象，它包含了 <code>func</code> 函数，并将该函数存储在 IRModule 的 <code>main</code> 字段中。</p>
+</li>
+</ol>
+<h2 id="transforming-a-matrix-multiplication-program">Transforming a matrix multiplication program<a hidden class="anchor" aria-hidden="true" href="#transforming-a-matrix-multiplication-program">#</a></h2>
+<p>下面代码展示了两个 $1024 \times 1024$ 矩阵相乘的IRModule创建流程。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">M</span> <span class="o">=</span> <span class="mi">1024</span>
+</span></span><span class="line"><span class="cl"><span class="n">K</span> <span class="o">=</span> <span class="mi">1024</span>
+</span></span><span class="line"><span class="cl"><span class="n">N</span> <span class="o">=</span> <span class="mi">1024</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># The default tensor type in tvm</span>
+</span></span><span class="line"><span class="cl"><span class="n">dtype</span> <span class="o">=</span> <span class="s2">&#34;float32&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">target</span> <span class="o">=</span> <span class="s2">&#34;llvm&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">dev</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Algorithm</span>
+</span></span><span class="line"><span class="cl"><span class="n">k</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">reduce_axis</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">K</span><span class="p">),</span> <span class="s2">&#34;k&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">A</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">K</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;A&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">B</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="n">K</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;B&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">C</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="n">te</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="n">k</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;C&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Default schedule</span>
+</span></span><span class="line"><span class="cl"><span class="n">func</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">create_prim_func</span><span class="p">([</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="n">func</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">with_attr</span><span class="p">(</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">,</span> <span class="s2">&#34;main&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">ir_module</span> <span class="o">=</span> <span class="n">IRModule</span><span class="p">({</span><span class="s2">&#34;main&#34;</span><span class="p">:</span> <span class="n">func</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl"><span class="n">ir_module</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">func</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">ir_module</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&#34;llvm&#34;</span><span class="p">)</span>  <span class="c1"># The module for CPU backends.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">a</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">nd</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">),</span> <span class="n">dev</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">b</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">nd</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">),</span> <span class="n">dev</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">c</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">nd</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">dev</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">func</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create evaluation function</span>
+</span></span><span class="line"><span class="cl"><span class="n">evaluator</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">time_evaluator</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">entry_name</span><span class="p">,</span> <span class="n">dev</span><span class="p">,</span> <span class="n">number</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;Baseline: </span><span class="si">%f</span><span class="s2">&#34;</span> <span class="o">%</span> <span class="n">evaluator</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">)</span>
+</span></span></code></pre></div><p><code>time_evaluator</code> 是 IRModule 用于评估计算图执行时间的方法。它可以帮助测量不同硬件平台上不同计算图的性能，并进行优化。</p>
+<details class="custom-details">
+    <summary class="custom-summary">time evaluator</summary>
+    <div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">IRModule</span><span class="o">.</span><span class="n">time_evaluator</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">number</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">min_repeat_ms</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f_type</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span></code></pre></div><p><strong>参数解释:</strong></p>
+<ul>
+<li><code>func</code>: 要评估的计算图函数。</li>
+<li><code>args</code>: 计算图函数的输入参数，可以是张量或其他数据结构。</li>
+<li><code>number</code>: 每次运行计算图的次数，默认值为 1。</li>
+<li><code>repeat</code>: 重复运行计算图的次数，默认值为 1。</li>
+<li><code>min_repeat_ms</code>: 最小运行时间，单位为毫秒。如果计算图运行时间小于 <code>min_repeat_ms</code>，则会继续运行直到达到 <code>min_repeat_ms</code>。默认值为 0。</li>
+<li><code>f_type</code>: 运行模式，可以是 0（默认值）、1 或 2。
+<ul>
+<li>0：正常运行模式。</li>
+<li>1：仅执行编译，不运行计算图。</li>
+<li>2：仅执行运行，不编译计算图。</li>
+</ul>
+</li>
+</ul>
+<p><strong><code>func.time_evaluator</code> 的返回值:</strong></p>
+<p><code>func.time_evaluator</code> 返回一个函数，该函数可以用来执行评估并返回一个包含性能指标的字典。</p>
+<p><strong>性能指标:</strong></p>
+<ul>
+<li><code>mean</code>: 平均运行时间，单位为毫秒。</li>
+<li><code>median</code>: 中位数运行时间，单位为毫秒。</li>
+<li><code>min</code>: 最小运行时间，单位为毫秒。</li>
+<li><code>max</code>: 最大运行时间，单位为毫秒。</li>
+<li><code>std</code>: 标准差，单位为毫秒。</li>
+</ul>
+</div>
+</details><br>
+<p>代码的大部分流程相同，我们来看计算部分。</p>
+<ol>
+<li>
+<p><strong>定义约简轴 (Reduce axis):</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">k</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">reduce_axis</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">K</span><span class="p">),</span> <span class="s2">&#34;k&#34;</span><span class="p">)</span>
+</span></span></code></pre></div><p>这行代码定义了一个名为 <code>k</code> 的约简轴，表示在矩阵乘法操作中进行求和的维度，范围为 <code>(0, K)</code></p>
+</li>
+<li>
+<p><strong>定义输入矩阵 (Placeholders):</strong></p>
+<pre tabindex="0"><code>A = te.placeholder((M, K), name=&#34;A&#34;)
+B = te.placeholder((K, N), name=&#34;B&#34;)
+</code></pre><p>这两行代码定义了两个名为 <code>A</code> 和 <code>B</code> 的输入矩阵，它们分别代表矩阵乘法的两个输入矩阵。<code>A</code> 的形状为 <code>(M, K)</code>，<code>B</code> 的形状为 <code>(K, N)</code></p>
+</li>
+<li>
+<p><strong>定义输出矩阵 (Compute):</strong></p>
+<pre tabindex="0"><code>C = te.compute((M, N), lambda m, n: te.sum(A[m, k] * B[k, n], axis=k), name=&#34;C&#34;)
+</code></pre><p>这行代码定义了一个名为 <code>C</code> 的输出矩阵，它表示矩阵乘法的结果。<code>C</code> 的形状为 <code>(M, N)</code>，采用 <code>te.sum</code>计算结果。</p>
+</li>
+</ol>
+<details class="custom-details">
+    <summary class="custom-summary">te.sum</summary>
+    <div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">te</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</span></span></code></pre></div><p><strong>参数解释:</strong></p>
+<ul>
+<li><code>expr</code>: 要进行求和的表达式，可以是张量、标量或其他表达式。</li>
+<li><code>axis</code>: 要进行求和的轴，可以是整数、元组或列表。如果 <code>axis</code> 为 <code>None</code>，则对所有轴进行求和。</li>
+<li><code>keepdims</code>: 布尔值，表示是否保留求和后的维度。如果为 <code>True</code>，则保留求和后的维度，并将其大小设置为 1。如果为 <code>False</code>，则删除求和后的维度。</li>
+<li><code>where</code>: 布尔值张量，表示要进行求和的元素。如果 <code>where</code> 为 <code>None</code>，则对所有元素进行求和。</li>
+</ul></div>
+</details><br>
+<p>创建的IRModule如下所示。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Module</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">C</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># function attr dict</span>
+</span></span><span class="line"><span class="cl">        <span class="n">T</span><span class="o">.</span><span class="n">func_attr</span><span class="p">({</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">:</span> <span class="s2">&#34;main&#34;</span><span class="p">,</span> <span class="s2">&#34;tir.noalias&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># body</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># with T.block(&#34;root&#34;)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">i2</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">remap</span><span class="p">(</span><span class="s2">&#34;SSR&#34;</span><span class="p">,</span> <span class="p">[</span><span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">i2</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">T</span><span class="o">.</span><span class="n">reads</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">B</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">T</span><span class="o">.</span><span class="n">writes</span><span class="p">(</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">init</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="n">A</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span>
+</span></span></code></pre></div><p>我们可以将循环拆分成外层循环和内层循环可以提高数据局部性。内层循环访问的数据更接近，可以有效利用缓存。下面代码的 <code>block_size</code> 参数控制了内层循环的大小，选择合适的块大小可以最大程度地利用缓存。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">sch</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">tir</span><span class="o">.</span><span class="n">Schedule</span><span class="p">(</span><span class="n">ir_module</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">block_c</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Get loops surronding the block</span>
+</span></span><span class="line"><span class="cl"><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_loops</span><span class="p">(</span><span class="n">block_c</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">block_size</span> <span class="o">=</span> <span class="mi">32</span>
+</span></span><span class="line"><span class="cl"><span class="n">yo</span><span class="p">,</span> <span class="n">yi</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">block_size</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="n">xo</span><span class="p">,</span> <span class="n">xi</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">block_size</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">reorder</span><span class="p">(</span><span class="n">yo</span><span class="p">,</span> <span class="n">xo</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">yi</span><span class="p">,</span> <span class="n">xi</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">mod</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">func</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">sch</span><span class="o">.</span><span class="n">mod</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&#34;llvm&#34;</span><span class="p">)</span>  <span class="c1"># The module for CPU backends.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">c</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">nd</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">dev</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">func</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">evaluator</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">time_evaluator</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">entry_name</span><span class="p">,</span> <span class="n">dev</span><span class="p">,</span> <span class="n">number</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;after transformation: </span><span class="si">%f</span><span class="s2">&#34;</span> <span class="o">%</span> <span class="n">evaluator</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">)</span>
+</span></span></code></pre></div><p>创建的IRModule如下所示。实际中我们会测试很多不同 <code>block_size</code>对应的执行时间来选择最合适的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Module</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">C</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># function attr dict</span>
+</span></span><span class="line"><span class="cl">        <span class="n">T</span><span class="o">.</span><span class="n">func_attr</span><span class="p">({</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">:</span> <span class="s2">&#34;main&#34;</span><span class="p">,</span> <span class="s2">&#34;tir.noalias&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># body</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># with T.block(&#34;root&#34;)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i0_0</span><span class="p">,</span> <span class="n">i1_0</span><span class="p">,</span> <span class="n">i2</span><span class="p">,</span> <span class="n">i0_1</span><span class="p">,</span> <span class="n">i1_1</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">m</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="n">i0_0</span> <span class="o">*</span> <span class="mi">32</span> <span class="o">+</span> <span class="n">i0_1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">n</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="n">i1_0</span> <span class="o">*</span> <span class="mi">32</span> <span class="o">+</span> <span class="n">i1_1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">k</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="n">i2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">T</span><span class="o">.</span><span class="n">reads</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">B</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">T</span><span class="o">.</span><span class="n">writes</span><span class="p">(</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">init</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="n">A</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span>
+</span></span></code></pre></div>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/autotuning/">Autotuning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/tvm-ch2/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>TVM Learning (2)-Tensor Program Abstraction Case</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/tvm-ch9/">
+    <span class="title">Next »</span>
+    <br>
+    <span>TVM Learning (11)-Add Model Architeture in MLC LLM</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (1)-Tensor Program Abstraction in Action on x"
+            href="https://x.com/intent/tweet/?text=TVM%20Learning%20%281%29-Tensor%20Program%20Abstraction%20in%20Action&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch1%2f&amp;hashtags=Autotuning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (1)-Tensor Program Abstraction in Action on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch1%2f&amp;title=TVM%20Learning%20%281%29-Tensor%20Program%20Abstraction%20in%20Action&amp;summary=TVM%20Learning%20%281%29-Tensor%20Program%20Abstraction%20in%20Action&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch1%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (1)-Tensor Program Abstraction in Action on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch1%2f&title=TVM%20Learning%20%281%29-Tensor%20Program%20Abstraction%20in%20Action">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (1)-Tensor Program Abstraction in Action on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch1%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (1)-Tensor Program Abstraction in Action on telegram"
+            href="https://telegram.me/share/url?text=TVM%20Learning%20%281%29-Tensor%20Program%20Abstraction%20in%20Action&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch1%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

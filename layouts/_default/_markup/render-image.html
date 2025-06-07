@@ -1,0 +1,13 @@
+{{/*
+    layouts/_default/_markup/render-image.html
+    此文件会覆盖 Hugo 默认的图片渲染方式
+*/}}
+<figure class="post-figure">
+    <a href="{{ .Destination | safeURL }}" target="_blank" rel="noopener">
+        <img loading="lazy" src="{{ .Destination | safeURL }}" alt="{{ .Text }}">
+    </a>
+    {{- /* 如果图片在 Markdown 中定义了 title 则将其作为 figcaption 显示 */ -}}
+    {{- with .Title -}}
+        <figcaption>{{ . }}</figcaption>
+    {{- end -}}
+</figure>

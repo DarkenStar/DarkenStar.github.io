@@ -1,0 +1,16 @@
+.custom-details {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.custom-summary {
+    padding: 5px 10px 5px 10px;
+    background: #99999930;
+    cursor: pointer;
+    user-select: none;
+}
+
+.custom-details div {
+    padding: 5px 10px 5px 10px;
+    background: #aaaaaa10;
+}

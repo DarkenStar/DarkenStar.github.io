@@ -1,0 +1,161 @@
+{{- define "main" }}
+
+{{- if (and site.Params.profileMode.enabled .IsHome) }}
+{{- partial "index_profile.html" . }}
+{{- else }} {{/* if not profileMode */}}
+
+{{- if not .IsHome | and .Title }}
+<header class="page-header">
+    {{- partial "breadcrumbs.html" . }}
+    <h1>
+        {{ .Title }}
+        {{- if and (or (eq .Kind `term`) (eq .Kind `section`)) (.Param "ShowRssButtonInSectionTermList") }}
+        {{- with .OutputFormats.Get "rss" }}
+        <a href="{{ .RelPermalink }}" title="RSS" aria-label="RSS">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" height="23">
+                <path d="M4 11a9 9 0 0 1 9 9" />
+                <path d="M4 4a16 16 0 0 1 16 16" />
+                <circle cx="5" cy="19" r="1" />
+            </svg>
+        </a>
+        {{- end }}
+        {{- end }}
+    </h1>
+    {{- if .Description }}
+    <div class="post-description">
+        {{ .Description | markdownify }}
+    </div>
+    {{- end }}
+</header>
+{{- end }}
+
+{{- if .Content }}
+<div class="post-content">
+    {{- if not (.Param "disableAnchoredHeadings") }}
+    {{- partial "anchored_headings.html" .Content -}}
+    {{- else }}{{ .Content }}{{ end }}
+</div>
+{{- end }}
+
+
+{{- /* 1. 在 if-else 外部声明 $pages 变量，以确保其作用域覆盖全局 */ -}}
+{{- $pages := "" -}}
+
+{{- if not .IsHome -}}
+    {{- /* 如果是列表页 (非首页)，执行嵌套分类逻辑 */ -}}
+
+    {{- /* 1a. 抓取并展示所有子分区 (Sub-sections) */ -}}
+    {{- $sections := .Sections -}}
+    {{- if $sections -}}
+    <div class="archive-year">
+        <h2 class="archive-year-header">
+            <span>{{ i18n "sections" | default "" }}</span>
+        </h2>
+        {{- range $sections.ByTitle -}}
+        <article class="post-entry">
+            <header class="entry-header">
+                <h2 class="entry-hint-parent">
+                    {{ .Title }}
+                    <span class="entry-hint" title="Pages count">
+                        &nbsp;({{ len .Pages }})
+                    </span>
+                </h2>
+            </header>
+            <a class="entry-link" aria-label="link to {{ .Title | plainify }}" href="{{ .Permalink }}"></a>
+        </article>
+        {{- end -}}
+    </div>
+    {{- end -}}
+
+    {{- /* 1b. 抓取直属文章用于分页，并添加标题 */ -}}
+    {{- $pages = .RegularPages -}} {{- /* 注意：这里使用 = 赋值，而不是 := */ -}}
+    {{- if $pages -}}
+    <div class="archive-year">
+        <h2 class="archive-year-header">
+            <span>{{ i18n "posts" | default "Articles" }}</span>
+        </h2>
+    </div>
+    {{- end -}}
+
+{{- else -}}
+    {{- /* 如果是首页，则使用主题默认的文章抓取逻辑 */ -}}
+    {{- $pages = where site.RegularPages "Type" "in" site.Params.mainSections -}} {{- /* 注意：这里使用 = 赋值 */ -}}
+    {{- $pages = where $pages "Params.hiddenInHomeList" "!=" "true" -}}
+{{- end -}}
+
+{{- /* 现在 $pages 变量是正确定义的，可以安全地用于分页器 */ -}}
+{{- $paginator := .Paginate $pages -}}
+
+{{- if and .IsHome site.Params.homeInfoParams (eq $paginator.PageNumber 1) -}}
+{{- partial "home_info.html" . -}}
+{{- end -}}
+
+{{- $term := .Data.Term -}}
+{{- range $index, $page := $paginator.Pages -}}
+
+{{- /* 主题自带的文章渲染逻辑，保持不变 */ -}}
+{{- $class := "post-entry" -}}
+{{- $user_preferred := or site.Params.disableSpecial1stPost site.Params.homeInfoParams -}}
+{{- if (and $.IsHome (eq $paginator.PageNumber 1) (eq $index 0) (not $user_preferred)) -}}
+{{- $class = "first-entry" -}}
+{{- else if $term -}}
+{{- $class = "post-entry tag-entry" -}}
+{{- end -}}
+
+<article class="{{ $class }}">
+    {{- $isHidden := (.Param "cover.hiddenInList") | default (.Param "cover.hidden") | default false -}}
+    {{- partial "cover.html" (dict "cxt" . "IsSingle" false "isHidden" $isHidden) -}}
+    <header class="entry-header">
+        <h2 class="entry-hint-parent">
+            {{- .Title -}}
+            {{- if .Draft -}}
+            <span class="entry-hint" title="Draft">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" fill="currentColor">
+                    <path
+                        d="M160-410v-60h300v60H160Zm0-165v-60h470v60H160Zm0-165v-60h470v60H160Zm360 580v-123l221-220q9-9 20-13t22-4q12 0 23 4.5t20 13.5l37 37q9 9 13 20t4 22q0 11-4.5 22.5T862.09-380L643-160H520Zm300-263-37-37 37 37ZM580-220h38l121-122-18-19-19-18-122 121v38Zm141-141-19-18 37 37-18-19Z" />
+                </svg>
+            </span>
+            {{- end -}}
+        </h2>
+    </header>
+    {{- if (ne (.Param "hideSummary") true) -}}
+    <div class="entry-content">
+        <p>{{ .Summary | plainify | htmlUnescape }}{{ if .Truncated }}...{{ end }}</p>
+    </div>
+    {{- end -}}
+    {{- if not (.Param "hideMeta") -}}
+    <footer class="entry-footer">
+        {{- partial "post_meta.html" . -}}
+    </footer>
+    {{- end -}}
+    <a class="entry-link" aria-label="post link to {{ .Title | plainify }}" href="{{ .Permalink }}"></a>
+</article>
+{{- end -}}
+
+
+{{- if gt $paginator.TotalPages 1 -}}
+<footer class="page-footer">
+    <nav class="pagination">
+        {{- if $paginator.HasPrev -}}
+        <a class="prev" href="{{ $paginator.Prev.URL | absURL }}">
+            «&nbsp;{{ i18n "prev_page" }}&nbsp;
+            {{- if (.Param "ShowPageNums") -}}
+            {{- sub $paginator.PageNumber 1 }}/{{ $paginator.TotalPages -}}
+            {{- end -}}
+        </a>
+        {{- end -}}
+        {{- if $paginator.HasNext -}}
+        <a class="next" href="{{ $paginator.Next.URL | absURL }}">
+            {{- i18n "next_page" }}&nbsp;
+            {{- if (.Param "ShowPageNums") -}}
+            {{- add 1 $paginator.PageNumber }}/{{ $paginator.TotalPages -}}
+            {{- end -}}&nbsp;»
+        </a>
+        {{- end -}}
+    </nav>
+</footer>
+{{- end -}}
+
+{{- end -}}{{/* end profileMode */}}
+{{- end -}}{{- /* end main */ -}}

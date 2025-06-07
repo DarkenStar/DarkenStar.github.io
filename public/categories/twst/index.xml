@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Twst on WITHER</title>
+    <link>http://localhost:1313/categories/twst/</link>
+    <description>Recent content in Twst on WITHER</description>
+    <generator>Hugo -- 0.147.7</generator>
+    <language>en</language>
+    <copyright>2024-2025 WITHER</copyright>
+    <lastBuildDate>Sat, 07 Jun 2025 16:05:12 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/categories/twst/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Functional Test of Hugo</title>
+      <link>http://localhost:1313/blogs/functiontest/</link>
+      <pubDate>Sat, 07 Jun 2025 16:05:12 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/functiontest/</guid>
+      <description>Personal notebook 15 of Programming Massively Parallel</description>
+      <content:encoded><![CDATA[<p>这是一段正常的文本，我们正在讨论一个非常重要的概念。<span class="sidenote-number"><small class="sidenote">这就是<a href="https://www.bilibili.com/">bilibili</a>对那个重要概念的解释和补充说明。你甚至可以在这里使用 <strong>Markdown</strong> 语法！</small></span>
+ 这个概念源于古希腊，对后世影响深远。</p>
+<p>继续你的文章&hellip; 另一处需要注解的地方。<span class="sidenote-number"><small class="sidenote">这是第二个旁注，它会自动对齐，不会和第一个重叠。</small></span>
+</p>
+]]></content:encoded>
+    </item>
+  </channel>
+</rss>

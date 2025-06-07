@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>TVM Learning (2)-Tensor Program Abstraction Case | WITHER</title>
+<meta name="keywords" content="TVM">
+<meta name="description" content="Personal notebook 2.">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/tvm-ch2/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5174c40fbd8eeebc9f52d19235d6eed299a4cb89e5ea01fd9fe54457c7e12a3a.css" integrity="sha256-UXTED72O7ryfUtGSNdbu0pmky4nl6gH9n&#43;VEV8fhKjo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/tvm-ch2/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/tvm-ch2/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="TVM Learning (2)-Tensor Program Abstraction Case">
+  <meta property="og:description" content="Personal notebook 2.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-08-15T23:07:12+08:00">
+    <meta property="article:modified_time" content="2024-08-15T23:07:12+08:00">
+    <meta property="article:tag" content="Autotuning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TVM Learning (2)-Tensor Program Abstraction Case">
+<meta name="twitter:description" content="Personal notebook 2.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "TVM Learning (2)-Tensor Program Abstraction Case",
+      "item": "http://localhost:1313/blogs/tvm-ch2/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "TVM Learning (2)-Tensor Program Abstraction Case",
+  "name": "TVM Learning (2)-Tensor Program Abstraction Case",
+  "description": "Personal notebook 2.",
+  "keywords": [
+    "TVM"
+  ],
+  "articleBody": "Primitive Tensor Function 机器学习编译的过程可以被看作张量函数之间的变换。一个典型的机器学习模型的执行包含许多步将输入张量之间转化为最终预测的计算步骤，其中的每一步都被称为元张量函数 (Primitive Tensor Function) 通常来说，一个典型的元张量函数实现的抽象包含了以下成分：存储数据的多维数组，驱动张量计算的循环嵌套以及计算部分本身的语句。下图以上一篇中的向量加法为例子进行了分解。 我们称这类抽象为张量程序抽象(Tensor Program Abstraction). 张量程序抽象的一个重要性质是，他们能够被一系列有效的程序变换所改变。例如，我们能够通过一组变换操作（如循环拆分、并行和向量化）将下图左侧的一个初始循环程序变换为右侧的程序。 Learning one Tensor Program Abstraction – TensorIR 我们对于神经网络的一个基本的 Linear+ReLU 层可以用以下的数学公式表示\n$Y_{ij} = \\sum_k A_{ik} B_{kj}$ $C_{ij} = \\mathbb{ReLU}(Y_{ij}) = \\mathbb{max}(Y_{ij}, 0)$ 其Numpy实现如下，下面的代码直接调用了Numpy的高级API，看起来非常简洁。\ndtype = \"float32\" a_np = np.random.rand(128, 128).astype(dtype) b_np = np.random.rand(128, 128).astype(dtype) # a @ b is equivalent to np.matmul(a, b) c_mm_relu = np.maximum(a_np @ b_np, 0) 我们可以将上述程序改写成Low-level Numpy，意味着对于复杂的计算我们使用循环进行表示，并且写出开辟数组空间的过程。\ndef lnumpy_mm_relu(A: np.ndarray, B: np.ndarray, C: np.ndarray): Y = np.empty((128, 128), dtype=\"float32\") for i in range(128): for j in range(128): for k in range(128): if k == 0: Y[i, j] = 0 Y[i, j] = Y[i, j] + A[i, k] * B[k, j] for i in range(128): for j in range(128): C[i, j] = max(Y[i, j], 0) 该函数执行以下操作：\n矩阵乘法： 将两个矩阵 A 和 B 相乘，并将结果存储在 Y 中。 ReLU 激活： 将 ReLU 激活函数应用于 Y 的元素，并将结果存储在 C 中。 可以用以下代码来检查上述实现的正确性：\nc_np = np.empty((128, 128), dtype=dtype) lnumpy_mm_relu(a_np, b_np, c_np) np.testing.assert_allclose(c_mm_relu, c_np, rtol=1e-5) 示例 numpy 代码包含了实际过程中实现这些计算时可能会用到的所有元素，用Numpy函数内部工作机制 (Under the Hood) 实现了MM-ReLU。\n开辟多维数组空间。 循环遍历数组的维度。 计算在循环内执行。 我们也可以用上一节的TensorIR来实现，TVMScript 是嵌入在 Python AST 中的领域特定语言的 Dialect, 它本质上是 Python 的一个子集，但添加了一些特定于 TVM 的扩展，例如用于描述计算图的特殊语法和语义。\nDialect 通常指一种语言的变体或子集，它与原始语言共享大部分语法和语义，但也有一些独特的特征。 抽象语法树 (AST) 是源代码的树状表示形式。它将代码的结构以一种层次化的方式呈现，每个节点代表代码中的一个语法元素，例如变量、运算符、函数调用等。\n@tvm.script.ir_module class MyModule: @T.prim_func def mm_relu(A: T.Buffer[(128, 128), \"float32\"], B: T.Buffer[(128, 128), \"float32\"], C: T.Buffer[(128, 128), \"float32\"]): T.func_attr({\"global_symbol\": \"mm_relu\", \"tir.noalias\": True}) Y = T.alloc_buffer((128, 128), dtype=\"float32\") for i, j, k in T.grid(128, 128, 128): with T.block(\"Y\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j) vk = T.axis.reduce(128, k) with T.init(): Y[vi, vj] = T.float32(0) Y[vi, vj] = Y[vi, vj] + A[vi, vk] * B[vk, vj] for i, j in T.grid(128, 128): with T.block(\"C\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j) C[vi, vj] = T.max(Y[vi, vj], T.float32(0)) 上述 TensorIR 程序的一个示例实例涵盖了大部分内容，包括\n参数和中间临时内存中的缓冲区声明。 For 循环迭代。 Block 和 Block Axis属性。 Transformation TVM 的 tvm.tir.Schedule 提供了一系列用于调度和优化计算图的变换函数。这些函数允许用户灵活地调整计算顺序、内存访问模式和并行化策略，以提高模型的性能。\n我们可以用以下函数获得计算块和其对应的循环\nblock_Y = sch.get_block(\"Y\", func_name=\"mm_relu\") i, j, k = sch.get_loops(block_Y) 我们可以使用 split函数将一个循环拆成多个循环，用 reorder函数交换循环的顺序，用 reverse_compute_at 函数移动计算块所在的循环，用 decompose_reduction函数将初始化和归约操作分开。\nj0, j1 = sch.split(j, factors=[None, 4]) sch.reorder(j0, k, j1) block_C = sch.get_block(\"C\", \"mm_relu\") sch.reverse_compute_at(block_C, j0) block_Y = sch.get_block(\"Y\", \"mm_relu\") sch.decompose_reduction(block_Y, k) sch.mod.show() # Output @tvm.script.ir_module class Module: @T.prim_func def mm_relu(A: T.Buffer[(128, 128), \"float32\"], B: T.Buffer[(128, 128), \"float32\"], C: T.Buffer[(128, 128), \"float32\"]) -\u003e None: # function attr dict T.func_attr({\"global_symbol\": \"mm_relu\", \"tir.noalias\": True}) # body # with T.block(\"root\") Y = T.alloc_buffer([128, 128], dtype=\"float32\") for i, j_0 in T.grid(128, 32): for j_1_init in T.serial(4): with T.block(\"Y_init\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j_0 * 4 + j_1_init) T.reads() T.writes(Y[vi, vj]) Y[vi, vj] = T.float32(0) for k, j_1 in T.grid(128, 4): with T.block(\"Y_update\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j_0 * 4 + j_1) vk = T.axis.reduce(128, k) T.reads(Y[vi, vj], A[vi, vk], B[vk, vj]) T.writes(Y[vi, vj]) Y[vi, vj] = Y[vi, vj] + A[vi, vk] * B[vk, vj] for ax0 in T.serial(4): with T.block(\"C\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j_0 * 4 + ax0) T.reads(Y[vi, vj]) T.writes(C[vi, vj]) C[vi, vj] = T.max(Y[vi, vj], T.float32(0)) 对应的 Low-level Numpy 函数如下\ndef lnumpy_mm_relu_v3(A: np.ndarray, B: np.ndarray, C: np.ndarray): Y = np.empty((128, 128), dtype=\"float32\") for i in range(128): for j0 in range(32): # Y_init for j1 in range(4): j = j0 * 4 + j1 Y[i, j] = 0 # Y_update for k in range(128): for j1 in range(4): j = j0 * 4 + j1 Y[i, j] = Y[i, j] + A[i, k] * B[k, j] # C for j1 in range(4): j = j0 * 4 + j1 C[i, j] = max(Y[i, j], 0) Why Do Loop Influence the Exec Time CPU 带有多级缓存，需要先将数据提取到缓存中，然后 CPU 才能访问它。而且访问已经在缓存中的数据要快得多。CPU 采用的一种策略是获取彼此更接近的数据。 当我们读取内存中的一个元素时，它会尝试将附近的元素（Cache Line）获取到缓存中，当读取下一个元素时它已经在缓存中。 因此，具有连续内存访问的代码通常比随机访问内存不同部分的代码更快。\nj1 这一迭代产生了对 B 元素的连续访问。具体来说，它意味着在 j1=0 和 j1=1 时我们读取的值彼此相邻。这可以让我们拥有更好的缓存访问行为。此外，我们使 C 的计算更接近 Y，从而实现更好的缓存行为。\nWays to Create and Interact with TensorIR Create TensorIR via TVMScript 创建 TensorIR 函数的第一种方法是直接在 TVMScript 中编写函数，它也是一种在变换过程中检查张量函数的有用方法。我们可以打印出 TVMScript，进行一些手动编辑，然后将其反馈给 MLC 流程以调试和尝试可能的（手动）变换，然后将变换后的程序重新应用到 MLC 流程中。\nGenerate TensorIR code using Tensor Expression 张量表达式 (TE) 是一种特定领域的语言，它通过 API 之类的表达式描述一系列计算。MM-ReLU 可以通过以下程序完成\nfrom tvm import te A = te.placeholder((128, 128), \"float32\", name=\"A\") B = te.placeholder((128, 128), \"float32\", name=\"B\") k = te.reduce_axis((0, 128), \"k\") Y = te.compute((128, 128), lambda i, j: te.sum(A[i, k] * B[k, j], axis=k), name=\"Y\") C = te.compute((128, 128), lambda i, j: te.max(Y[i, j], 0), name=\"C\") ",
+  "wordCount" : "1967",
+  "inLanguage": "en",
+  "datePublished": "2024-08-15T23:07:12+08:00",
+  "dateModified": "2024-08-15T23:07:12+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/tvm-ch2/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      TVM Learning (2)-Tensor Program Abstraction Case
+    </h1>
+    <div class="post-description">
+      Personal notebook 2.
+    </div>
+    <div class="post-meta"><span title='2024-08-15 23:07:12 +0800 CST'>Aug-15-2024</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;1967 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#primitive-tensor-function" aria-label="Primitive Tensor Function">Primitive Tensor Function</a></li>
+                    <li>
+                        <a href="#learning-one-tensor-program-abstraction--tensorir" aria-label="Learning one Tensor Program Abstraction &ndash; TensorIR">Learning one Tensor Program Abstraction &ndash; TensorIR</a></li>
+                    <li>
+                        <a href="#transformation" aria-label="Transformation">Transformation</a></li>
+                    <li>
+                        <a href="#why-do-loop-influence-the-exec-time" aria-label="Why Do Loop Influence the Exec Time">Why Do Loop Influence the Exec Time</a></li>
+                    <li>
+                        <a href="#ways-to-create-and-interact-with-tensorir" aria-label="Ways to Create and Interact with TensorIR">Ways to Create and Interact with TensorIR</a><ul>
+                            
+                    <li>
+                        <a href="#create-tensorir-via-tvmscript" aria-label="Create TensorIR via TVMScript">Create TensorIR via TVMScript</a></li>
+                    <li>
+                        <a href="#generate-tensorir-code-using-tensor-expression" aria-label="Generate TensorIR code using Tensor Expression">Generate TensorIR code using Tensor Expression</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="primitive-tensor-function">Primitive Tensor Function<a hidden class="anchor" aria-hidden="true" href="#primitive-tensor-function">#</a></h1>
+<p>机器学习编译的过程可以被看作张量函数之间的变换。一个典型的机器学习模型的执行包含许多步将输入张量之间转化为最终预测的计算步骤，其中的每一步都被称为元张量函数 (Primitive Tensor Function)
+<img alt="Primitive Tensor Function" loading="lazy" src="https://mlc.ai/zh/_images/primitive_tensor_func.png" title="Primitive Tensor Function"></p>
+<p>通常来说，一个典型的元张量函数实现的抽象包含了以下成分：存储数据的多维数组，驱动张量计算的循环嵌套以及计算部分本身的语句。下图以<a href="https://darkenstar.github.io/2024/08/15/chapter1/#Vector-Add-Example">上一篇</a>中的向量加法为例子进行了分解。
+<img alt="Tensor Function Elements" loading="lazy" src="https://mlc.ai/zh/_images/tensor_func_elements.png" title="Tensor Function Elements"></p>
+<p>我们称这类抽象为<strong>张量程序抽象</strong>(Tensor Program Abstraction). 张量程序抽象的一个重要性质是，他们能够被一系列有效的程序变换所改变。例如，我们能够通过一组变换操作（如循环拆分、并行和向量化）将下图左侧的一个初始循环程序变换为右侧的程序。
+<img alt="Tensor Function Transforms" loading="lazy" src="https://mlc.ai/zh/_images/tensor_func_seq_transform.png" title="Tensor Function Transforms"></p>
+<h1 id="learning-one-tensor-program-abstraction--tensorir">Learning one Tensor Program Abstraction &ndash; TensorIR<a hidden class="anchor" aria-hidden="true" href="#learning-one-tensor-program-abstraction--tensorir">#</a></h1>
+<p>我们对于神经网络的一个基本的 Linear+ReLU 层可以用以下的数学公式表示</p>
+<ul>
+<li>$Y_{ij} = \sum_k A_{ik} B_{kj}$</li>
+<li>$C_{ij} = \mathbb{ReLU}(Y_{ij}) = \mathbb{max}(Y_{ij}, 0)$</li>
+</ul>
+<p>其Numpy实现如下，下面的代码直接调用了Numpy的高级API，看起来非常简洁。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">dtype</span> <span class="o">=</span> <span class="s2">&#34;float32&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">a_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">b_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># a @ b is equivalent to np.matmul(a, b)</span>
+</span></span><span class="line"><span class="cl"><span class="n">c_mm_relu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">a_np</span> <span class="o">@</span> <span class="n">b_np</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span></span></code></pre></div><p>我们可以将上述程序改写成Low-level Numpy，意味着对于复杂的计算我们使用循环进行表示，并且写出开辟数组空间的过程。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lnumpy_mm_relu</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">                <span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+</span></span></code></pre></div><p>该函数执行以下操作：</p>
+<ol>
+<li><strong>矩阵乘法：</strong> 将两个矩阵 <code>A</code> 和 <code>B</code> 相乘，并将结果存储在 <code>Y</code> 中。</li>
+<li><strong>ReLU 激活：</strong> 将 ReLU 激活函数应用于 <code>Y</code> 的元素，并将结果存储在 <code>C</code> 中。</li>
+</ol>
+<p>可以用以下代码来检查上述实现的正确性：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">c_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">lnumpy_mm_relu</span><span class="p">(</span><span class="n">a_np</span><span class="p">,</span> <span class="n">b_np</span><span class="p">,</span> <span class="n">c_np</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">c_mm_relu</span><span class="p">,</span> <span class="n">c_np</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
+</span></span></code></pre></div><p>示例 numpy 代码包含了实际过程中实现这些计算时可能会用到的所有元素，用Numpy函数内部工作机制 (Under the Hood) 实现了MM-ReLU。</p>
+<ul>
+<li>开辟多维数组空间。</li>
+<li>循环遍历数组的维度。</li>
+<li>计算在循环内执行。</li>
+</ul>
+<p>我们也可以用上一节的TensorIR来实现，TVMScript 是嵌入在 Python AST 中的领域特定语言的 Dialect, 它本质上是 Python 的一个子集，但添加了一些特定于 TVM 的扩展，例如用于描述计算图的特殊语法和语义。</p>
+<blockquote>
+<p>Dialect 通常指一种语言的变体或子集，它与原始语言共享大部分语法和语义，但也有一些独特的特征。
+抽象语法树 (AST) 是源代码的树状表示形式。它将代码的结构以一种层次化的方式呈现，每个节点代表代码中的一个语法元素，例如变量、运算符、函数调用等。</p></blockquote>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MyModule</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">mm_relu</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> 
+</span></span><span class="line"><span class="cl">                <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> 
+</span></span><span class="line"><span class="cl">                <span class="n">C</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">T</span><span class="o">.</span><span class="n">func_attr</span><span class="p">({</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">:</span> <span class="s2">&#34;mm_relu&#34;</span><span class="p">,</span> <span class="s2">&#34;tir.noalias&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Y</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">alloc_buffer</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;Y&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">vj</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">vk</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">init</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">+</span> <span class="n">A</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vk</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">vk</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">vj</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>   
+</span></span><span class="line"><span class="cl">                <span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">],</span> <span class="n">T</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+</span></span></code></pre></div><p>上述 TensorIR 程序的一个示例实例涵盖了大部分内容，包括</p>
+<ul>
+<li>参数和中间临时内存中的缓冲区声明。</li>
+<li>For 循环迭代。</li>
+<li><strong>Block</strong> 和 Block Axis属性。</li>
+</ul>
+<h1 id="transformation">Transformation<a hidden class="anchor" aria-hidden="true" href="#transformation">#</a></h1>
+<p><code>TVM</code> 的 <code>tvm.tir.Schedule</code> 提供了一系列用于调度和优化计算图的变换函数。这些函数允许用户灵活地调整计算顺序、内存访问模式和并行化策略，以提高模型的性能。</p>
+<p>我们可以用以下函数获得计算块和其对应的循环</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">block_Y</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span><span class="s2">&#34;Y&#34;</span><span class="p">,</span> <span class="n">func_name</span><span class="o">=</span><span class="s2">&#34;mm_relu&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_loops</span><span class="p">(</span><span class="n">block_Y</span><span class="p">)</span>
+</span></span></code></pre></div><p>我们可以使用 <code>split</code>函数将一个循环拆成多个循环，用 <code>reorder</code>函数交换循环的顺序，用 <code>reverse_compute_at</code> 函数移动计算块所在的循环，用 <code>decompose_reduction</code>函数将初始化和归约操作分开。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">j0</span><span class="p">,</span> <span class="n">j1</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">reorder</span><span class="p">(</span><span class="n">j0</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">j1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">block_C</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">,</span> <span class="s2">&#34;mm_relu&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">reverse_compute_at</span><span class="p">(</span><span class="n">block_C</span><span class="p">,</span> <span class="n">j0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">block_Y</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span><span class="s2">&#34;Y&#34;</span><span class="p">,</span> <span class="s2">&#34;mm_relu&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">decompose_reduction</span><span class="p">(</span><span class="n">block_Y</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">mod</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Output</span>
+</span></span><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Module</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">mm_relu</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> <span class="n">C</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># function attr dict</span>
+</span></span><span class="line"><span class="cl">        <span class="n">T</span><span class="o">.</span><span class="n">func_attr</span><span class="p">({</span><span class="s2">&#34;global_symbol&#34;</span><span class="p">:</span> <span class="s2">&#34;mm_relu&#34;</span><span class="p">,</span> <span class="s2">&#34;tir.noalias&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># body</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># with T.block(&#34;root&#34;)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Y</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">alloc_buffer</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j_0</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">32</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j_1_init</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">serial</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;Y_init&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">vj</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">j_0</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">j_1_init</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">reads</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">writes</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">j_1</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;Y_update&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">vj</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">j_0</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">j_1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">vk</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">reads</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">],</span> <span class="n">A</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vk</span><span class="p">],</span> <span class="n">B</span><span class="p">[</span><span class="n">vk</span><span class="p">,</span> <span class="n">vj</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">writes</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">+</span> <span class="n">A</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vk</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">vk</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">ax0</span> <span class="ow">in</span> <span class="n">T</span><span class="o">.</span><span class="n">serial</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">with</span> <span class="n">T</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">vj</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">j_0</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">ax0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">reads</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">writes</span><span class="p">(</span><span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">],</span> <span class="n">T</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+</span></span></code></pre></div><p>对应的 Low-level Numpy 函数如下</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lnumpy_mm_relu_v3</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Y_init</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">j</span> <span class="o">=</span> <span class="n">j0</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">j1</span> 
+</span></span><span class="line"><span class="cl">                <span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Y_update</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">for</span> <span class="n">j1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">j</span> <span class="o">=</span> <span class="n">j0</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">j1</span> 
+</span></span><span class="line"><span class="cl">                    <span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># C</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">j</span> <span class="o">=</span> <span class="n">j0</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">j1</span> 
+</span></span><span class="line"><span class="cl">                <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+</span></span></code></pre></div><h1 id="why-do-loop-influence-the-exec-time">Why Do Loop Influence the Exec Time<a hidden class="anchor" aria-hidden="true" href="#why-do-loop-influence-the-exec-time">#</a></h1>
+<p><img alt="CPU Architecture" loading="lazy" src="https://mlc.ai/zh/_images/cpu_arch.png" title="CPU Architecture">
+CPU 带有多级缓存，需要先将数据提取到缓存中，然后 CPU 才能访问它。而且访问已经在缓存中的数据要快得多。CPU 采用的一种策略是获取彼此更接近的数据。 当我们读取内存中的一个元素时，它会尝试将附近的元素（Cache Line）获取到缓存中，当读取下一个元素时它已经在缓存中。 因此，具有连续内存访问的代码通常比随机访问内存不同部分的代码更快。</p>
+<p><img alt="Loop Order" loading="lazy" src="https://mlc.ai/zh/_images/tensor_func_loop_order.png" title="Loop Order">
+<code>j1</code> 这一迭代产生了对 <code>B</code> 元素的连续访问。具体来说，它意味着在 <code>j1=0</code> 和 <code>j1=1</code> 时我们读取的值彼此相邻。这可以让我们拥有更好的缓存访问行为。此外，我们使 C 的计算更接近 Y，从而实现更好的缓存行为。</p>
+<h1 id="ways-to-create-and-interact-with-tensorir">Ways to Create and Interact with TensorIR<a hidden class="anchor" aria-hidden="true" href="#ways-to-create-and-interact-with-tensorir">#</a></h1>
+<h2 id="create-tensorir-via-tvmscript">Create TensorIR via TVMScript<a hidden class="anchor" aria-hidden="true" href="#create-tensorir-via-tvmscript">#</a></h2>
+<p>创建 TensorIR 函数的第一种方法是直接在 TVMScript 中编写函数，它也是一种在变换过程中检查张量函数的有用方法。我们可以打印出 TVMScript，进行一些手动编辑，然后将其反馈给 MLC 流程以调试和尝试可能的（手动）变换，然后将变换后的程序重新应用到 MLC 流程中。</p>
+<h2 id="generate-tensorir-code-using-tensor-expression">Generate TensorIR code using Tensor Expression<a hidden class="anchor" aria-hidden="true" href="#generate-tensorir-code-using-tensor-expression">#</a></h2>
+<p>张量表达式 (TE) 是一种特定领域的语言，它通过 API 之类的表达式描述一系列计算。MM-ReLU 可以通过以下程序完成</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">tvm</span> <span class="kn">import</span> <span class="n">te</span>
+</span></span><span class="line"><span class="cl"><span class="n">A</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;A&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">B</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;B&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">k</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">reduce_axis</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;k&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">Y</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="n">te</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="n">k</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;Y&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">C</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="n">te</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="mi">0</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;C&#34;</span><span class="p">)</span>
+</span></span></code></pre></div>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/autotuning/">Autotuning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/tvm-ch3/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>TVM Learning (4)-End to End Model Execution</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/tvm-ch1/">
+    <span class="title">Next »</span>
+    <br>
+    <span>TVM Learning (1)-Tensor Program Abstraction in Action</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (2)-Tensor Program Abstraction Case on x"
+            href="https://x.com/intent/tweet/?text=TVM%20Learning%20%282%29-Tensor%20Program%20Abstraction%20Case&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch2%2f&amp;hashtags=Autotuning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (2)-Tensor Program Abstraction Case on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch2%2f&amp;title=TVM%20Learning%20%282%29-Tensor%20Program%20Abstraction%20Case&amp;summary=TVM%20Learning%20%282%29-Tensor%20Program%20Abstraction%20Case&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch2%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (2)-Tensor Program Abstraction Case on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch2%2f&title=TVM%20Learning%20%282%29-Tensor%20Program%20Abstraction%20Case">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (2)-Tensor Program Abstraction Case on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch2%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share TVM Learning (2)-Tensor Program Abstraction Case on telegram"
+            href="https://telegram.me/share/url?text=TVM%20Learning%20%282%29-Tensor%20Program%20Abstraction%20Case&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2ftvm-ch2%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

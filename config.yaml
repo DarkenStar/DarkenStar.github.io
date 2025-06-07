@@ -1,0 +1,161 @@
+baseURL: "https://www.autumnrivulet.com"
+title: "WITHER"
+copyright: "© 2024-2025 WITHER"
+theme: ["hugo-notice", "PaperMod"]
+
+languageCode: "en-us" 
+DefaultContentLanguage: "en"
+hasCJKLanguage: true
+pagination.pagerSize: 6 
+pagination.path: "page"
+permalinks:  
+  post: /:slug/
+  page: /:contentbasename/
+enableInlineShortcodes: true
+enableRobotsTXT: true
+buildDrafts: true
+buildFuture: false
+buildExpired: false
+enableEmoji: true
+enableGitInfo: true
+pygmentsUseClasses: true
+
+outputs:
+  home:
+    - HTML
+    - JSON
+    - RSS 
+
+languages:
+  en:
+    languageName: 'English'
+    weight: 1
+    
+  zh:
+    languageName: '简体中文'
+    weight: 2
+
+params:
+  comments: true 
+  defaultTheme: auto
+  disableScrollToTop: false
+  disableThemeToggle: false
+  disableLangToggle: true
+  displayFullLangName: true
+  DateFormat: "Jan-02-2006"
+  env: production
+  hideFooter: false
+  hidemeta: false
+  math: true
+  mermaid: true
+  showToc: true
+  showbreadcrumbs: true
+  ShareButtons: ['telegram', 'twitter', 'reddit', 'linkedin', 'facebook']
+  ShowAllPagesInArchive: true
+  ShowCodeCopyButtons: true
+  ShowFullTextinRSS: true 
+  ShowWordCount: true
+  ShowPageNums: true
+  ShowPostNavLinks: true
+  ShowReadingTime: true
+  ShowShareButtons: true
+  ShowUpdateTime: true
+  TocOpen: true
+  visitCount: true
+  profileMode:
+    enabled: true
+    title: "MY LIFE WILL FIND ITS WAY, I SAY"
+    subtitle: "IT'S NOT TRUE"
+    imageUrl: "images/people/wither.jpg"
+    imageTitle: "WITHER"
+    imageWidth: 150 # custom size
+    imageHeight: 150 # custom size
+    buttons:
+      - name: "Blogs"
+        url: "/blogs/"
+      - name: "Categories"
+        url: "/categories/"
+      - name: "Tags"
+        url: "/tags/"
+      - name: Archive
+        url: "/archive"
+  socialIcons:
+    - name: 'github'
+      url: https://www.github.com/DarkenStar
+    - name: 'twitter'
+      url: https://twitter.com/jamesnulliu
+    - name: 'telegram'
+      url: https://t.me/jamesnulliu
+    - name: 'email'
+      url: "mailto:sac1772598943@gmail.com"
+  fuseOpts:
+    isCaseSensitive: false
+    shouldSort: true
+    location: 0
+    distance: 1000
+    threshold: 0.4
+    minMatchCharLength: 0
+    # limit: 10 # refer: https://www.fusejs.io/api/methods.html#search
+    keys: ["title", "permalink", "summary", "content"]
+
+menu:
+  main:
+    - identifier: home
+      name: 🏠 Home
+      url: /
+      weight: 1
+    - identifier: about_me
+      name: 🙋🏻‍♂️ Me
+      url: /about_me/
+      weight: 2
+    - identifier: blogs
+      name: 📚 Blogs
+      url: /blogs/
+      weight: 3 
+    - identifier: categories
+      name: 🧩 Categories
+      url: /categories/
+      weight: 4 
+    - identifier: tags
+      name: 🔖 Tags
+      url: /tags/
+      weight: 5 
+    - name: ⏱ Archive
+      url: archives/
+      weight: 6
+    - identifier: search
+      name: 🔍 Search
+      url: /search/
+      weight: 7
+    - identifier: friends
+      name: 🤝 Friends
+      url: /friends/
+      weight: 8
+
+markup:
+  highlight:
+    lineNumbersInTable: true
+    noClasses: false
+    codeFences: true
+    guessSyntax: false
+    lineNos: true
+    style: "dracula"
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true 
+    extensions:
+      passthrough:
+        delimiters:
+          block:
+          - - \[
+            - \]
+          - - $$
+            - $$
+          inline:
+          - - \(
+            - \)
+          - - $
+            - $
+        enable: true

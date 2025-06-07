@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms | WITHER</title>
+<meta name="keywords" content="CUDA">
+<meta name="description" content="Personal notebook 11 of Programming Massively Parallel">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.a3afc927e13c8d8d72138af4254aadf37b5653f96e325fea8d50c85abdca381a.css" integrity="sha256-o6/JJ&#43;E8jY1yE4r0JUqt83tWU/luMl/qjVDIWr3KOBo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms">
+  <meta property="og:description" content="Personal notebook 11 of Programming Massively Parallel">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-09-11T23:03:03+08:00">
+    <meta property="article:modified_time" content="2024-09-11T23:03:03+08:00">
+    <meta property="article:tag" content="PMPP Learning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms">
+<meta name="twitter:description" content="Personal notebook 11 of Programming Massively Parallel">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Course Learning",
+      "item": "http://localhost:1313/blogs/courselearning/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "Programming Massive Parallel",
+      "item": "http://localhost:1313/blogs/courselearning/pmpp/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  4 ,
+      "name": "PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms",
+      "item": "http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms",
+  "name": "PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms",
+  "description": "Personal notebook 11 of Programming Massively Parallel",
+  "keywords": [
+    "CUDA"
+  ],
+  "articleBody": "11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms 一般来说，如果计算本质上可以被描述为数学递归，即序列中的每一项都是根据前一项定义的，那么它可能被并行化为并行扫描 (parallel scan) 运算。\n11.1 Background 包含扫描 (inclusive scan) 操作接收一个二元可交换运算符 $\\oplus$ 和一个包含 n 个元素的输入数组 $[x_0,x_1,\\ldots,x_{n-1}]$，输出数组 $[x_0,(x_0\\oplus x_1),\\ldots,(x_0\\oplus x_1\\oplus\\ldots\\oplus x_{n-1})]$ . 包含扫描的名称体现在输出数组每个位置的结果都有对应输入元素参与。考虑包含扫描的一种直观方式是，接收一组所需香肠的长度的订单，并一次性得出所有所有订单对应的切割点。 排除扫描操作类似于包含扫描操作，只是输出数组的排列略有不同: $[i,x_0,(x_0\\oplus x_1),\\ldots,(x_0\\oplus x_1\\oplus\\ldots\\oplus x_{n-2})]$ . 每个输出元素的计算都与相应输入元素无关。 用包含扫描函数计算排除扫描的结果时，只需将所有元素向右移动，并为第 0 个元素填充恒等值。反之，只需要将所有元素向左移动，并用排除扫描结果的最后一个元素 $\\oplus$ 最后一个输入元素来填充最后一个元素。\n11.2 Parallel Scan with the Kogge-Stone Algorithm 计算位置 i 的输出元素 需要进行 i 次加法运算，因此除非找到一种方法来共享不同输出元素的归约树的部分和，否则这种方法计算复杂度为 $O(N^2)$. Kogge-Stone 算法最初是为了设计快速加法器电路而发明的，如下图所示，它是一种就地扫描算法，它对最初包含输入元素的数组 XY 进行操作。经过 k 次迭代后，XY[i] 将包含在该位置及之前的最多 2^k 个输入元素的和。\nA Parallel Inclusive Scan Algorithm Based on Kogge-Stone Adder Design\n对应的内核函数如下，假设输入最初位于全局内存数组 X 中。让每个线程计算其全局数据索引，即其负责计算输出数组的位置。每个个活动线程首先将其位置的部分和存储到一个临时变量中(在寄存器中)。当步幅值大于 threadIdx.x 时，意味着线程分配的 XY 位置已经累加了所有所需的输入值，退出活动状态。需要额外的 temp 和 __syncthreads() 因为更新中存在读后写数据依赖竞争关系。\n#define SECTION_SIZE 32 __global__ void Kogge_Stone_Scan_Kernel(int* X, int* Y, unsigned int N) { __shared__ float XY[SECTION_SIZE]; unsigned int i = blockIdx.x * blockDim.x + threadIdx.x; /* Exclusive kernel initilization if (i \u003c N \u0026\u0026 threadIdx.x != 0) { XY[threadIdx.x] = X[i]; } else { XY[threadIdx.x] = 0.0f; } */ if (i \u003c N) { XY[threadIdx.x] = X[i]; } else { XY[threadIdx.x] = 0.0f; } for (unsigned stride = 1; stride \u003c blockDim.x; stride *= 2) { __syncthreads(); float temp; if (threadIdx.x \u003e= stride) { temp = XY[threadIdx.x] + XY[threadIdx.x - stride]; } __syncthreads(); // write-after-read dependence if (threadIdx.x \u003e= stride) { // Only N - stride threads are active XY[threadIdx.x] = temp; } } if (i \u003c N) { Y[i] = XY[threadIdx.x]; } } Kogge-Stone 算法重用了横跨归约树的部分和来降低计算复杂度。在上一章的归约内核中，活动线程在迭代中写入的元素不会在同一迭代中被任何其他活动线程读取，因此不存在读后写竞争条件。如果希望避免在每次迭代中都有 barrier 同步，那么克服竞争条件的另一种方法是为输入和输出使用单独的数组。这种方法需要两个共享内存缓冲区。交替变化不能输入/输出缓冲区的角色，直到迭代完成。这种优化称为双缓冲 (double buffering).\n#define SECTION_SIZE 32 __global__ void DF_Kogge_Stone_Scan_Kernel(int* X, int* Y, unsigned int N) { __shared__ float XY_in[SECTION_SIZE]; __shared__ float XY_out[SECTION_SIZE]; unsigned int i = blockIdx.x * blockDim.x + threadIdx.x; // Initialization if (i \u003c N) { XY_in[threadIdx.x] = X[i]; } else { XY_in[threadIdx.x] = 0.0f; } bool read_in = true; // Alternating ther role of XY_in and XY_out for (unsigned stride = 1; stride \u003c blockDim.x; stride *= 2) { if (read_in) { if (threadIdx.x \u003e= stride) { XY_out[threadIdx.x] = XY_in[threadIdx.x] + XY_in[threadIdx.x - stride]; } else { XY_out[threadIdx.x] = XY_in[threadIdx.x]; } } else { if (threadIdx.x \u003e= stride) { XY_in[threadIdx.x] = XY_out[threadIdx.x] + XY_out[threadIdx.x - stride]; } else { XY_in[threadIdx.x] = XY_out[threadIdx.x]; } } read_in = !read_in; // 切换数组 } // 将结果写回全局内存 if (i \u003c N) { if (read_in) { Y[i] = XY_in[threadIdx.x]; } else { Y[i] = XY_out[threadIdx.x]; } } } 11.3 Speed and Work Efficiency Consideration 算法的工作效率（work efficiency）是指算法所完成的工作接近于计算所需的最小工作量的程度。在每次迭代中，非活动线程的数量等于步长。因此我们可以计算出工作量为\n$$\r\\sum_{stride}(N-\\mathrm{stride}), \\text{for strides} 1, 2, 4, \\ldots N/2(\\mathrm{log}_2N \\text{terms}) = N\\log_2N - (N-1)\r$$因此，Kogge-Stone 算法的计算复杂度为 $O(N\\log_2N)$.\n使用计算步数 (compute steps) 的概念作为比较扫描算法的近似指标。顺序扫描用 N-1 步来处理 N 个输入元素；若 CUDA 设备有 P 个执行单元，Kogge-Stone 内核执行需要步数为 $O(N\\log_2N)/P$. Kogge-Stone 内核相比串行代码所做的额外工作有两个问题。首先，使用硬件执行并行内核的效率要低得多。第二，所有额外的工作消耗额外的能量，不利于移动应用等场景。Kogge-Stone 内核的强大之处在于，当有足够的硬件资源时，它可以达到非常好的执行速度。\n11.4 Parallel Scan with the Brent-Kung Algorithm 对一组值进行求和最快的方法是使用归约树，如果有足够的执行单元，就可以在 $O(N\\log_2N)$ 时间内计算 N 个值的求和结果。该树还可以生成几个子序列的和，它们可用于计算某些扫描输出值。 下图展示了基于 Brent-Kung 加法器设计的并行包含扫描算法的步骤。图中上半部分，花 4 步计算所有 16 个元素的和。下半部分是使用反向树将部分和分配到可以使用部分和的位置，以计算这些位置的结果。约简树中的求和总是在对一个连续的范围内的输入元素进行。因此，求和累积到 XY 的每个位置的值总是可以表示为输入元素的一个 xi…xj 的范围，其中 xi 是开始位置， xj 是结束位置 (包括)。\nA Parallel Inclusive Scan Algorithm Based on the Brent–Kung Adder Design\n下图展示了反向树中每个位置 (列) 的状态，包括已经累积到该位置的值以及在反向树的每级 (行) 上需要的额外输入元素值 (浅灰色表示 2，深灰色表示 1，黑色表示 0).\nProgression of Values in XY After Each Level of Additions in the Reverse Tree.\n上半部分归约树的内核代码如下，和第十章不同的是\n我们把求和结果写到最大索引的位置。 我们将线程索引组织成 $2^n-1$ 的形式 (n 为树的高度)。 for (unsigned int stride = 1; stride \u003c blockDim.x; stride *= 2) { __syncthreads(); if ((threadIdx.x + 1) % (2 * stride) == 0) { XY[threadIdx.x] += XY[threadIdx.x - stride]; } } 这种归约方式的一个缺点是存在控制发散问题。因此需要将线程的连续部分映射到索引为 $k*2^n-1$ 形式的 XY 位置。\n// Mapping a continous section of threads to the XY positions for (unsigned int stride = 1; stride \u003c= blockDim.x; stride *= 2) { __syncthreads(); unsigned int index = (threadIdx.x + 1) * 2 * stride - 1; // index of the left child if (index \u003c SECTION_SIZE) { XY[index] += XY[index - stride]; } } 反向树的实现要复杂一些。步长从 SECTION_SIZE/4 减小到 1. 在每次迭代中，我们需要将 XY 元素索引值从步长减去 1 后的两倍的位置向右推到距离其一个步长的位置。\n// Reverse tree stride value decreases from SECTION_SIZE / 4 to 1 for (unsigned int stride = SECTION_SIZE / 4; stride \u003e 0; stride /= 2) { __syncthreads(); unsigned int index = (threadIdx.x + 1) * 2 * stride - 1; // index of the left child if (index + stride \u003c SECTION_SIZE) { XY[index + stride] += XY[index]; } } 我们可以看到 Brent-Kung 算法无论在归约阶段还是分发阶段，都不需要超过 SECTION_SIZE/2 的线程。并行扫描中的运算总数，包括归约树 (N-1 次) 和反向树 ( $N-1-log_2N$ 次) 阶段，总共 $2N-2-log_2N$ 次。当输入长度变大时，Brent-Kung 算法执行的操作数量永远不会超过顺序算法执行的操作数量的 2 倍。\nBrent-Kung 算法的活动线程的数量通过归约树比 Kogge-Stone 算法下降得快得多。然而，一些非活动线程可能仍然会消耗 CUDA 设备中的执行资源，因为它们通过 SIMD 绑定到其他活动线程。这使得在 CUDA 设备上前者工作效率上的优势不那么明显。在有充足执行资源的情况下，由于需要额外的步骤来执行反向树阶段，Brent-Kung 的时间是 Kogge-Stone 的两倍。\n11.5 Coarsening for Even More Work Efficiency 如下图所示，粗化扫描分为三个阶段。在第一阶段，我们让每个线程对其相邻的子线程执行串行扫描。需要注意如果每个线程通过访问全局内存的输入直接执行扫描，则它们的访问不会合并。所以我们以合并的方式在共享内存和全局内存之间传输数据，并在共享内存中执行不是那么好的内存访问模式。在第二阶段，每个块中的所有线程协作并对由每个部分的最后一个元素组成的逻辑数组执行扫描操作。在第三阶段，每个线程将其前一个部分的最后一个元素的新值与自身部分除最后一个的所有元素相加。对应的内核代码如下。\nA Three-phase Parallel Scan for Higher Work Efficiency\n#define CORASE_FACTOR 4 #define SUBSECTION_SIZE (SECTION_SIZE / CORASE_FACTOR) __global__ void Corasened_Scan_Kernel(int* X, int* Y, unsigned int N) { // Partition X into blockDim.x subsections // Load X into shared memory in coalesced fashion __shared__ float XY[SECTION_SIZE]; __shared__ float subXY[SUBSECTION_SIZE]; for (int i = 0; i \u003c SECTION_SIZE; i+= blockDim.x) { XY[threadIdx.x + i] = X[threadIdx.x + i]; } __syncthreads(); // Part 1: Compute prefix sum of each subsection in sequenial for (int i = 1; i \u003c SUBSECTION_SIZE; i++) { XY[threadIdx.x * SUBSECTION_SIZE + i] += XY[threadIdx.x * SUBSECTION_SIZE + i - 1]; } __syncthreads(); // Part 2: Compute prefix sum of the last element of each subsection in parallel unsigned int lastElemId = (blockIdx.x + 1) * blockDim.x * CORASE_FACTOR - 1; subXY[threadIdx.x] = XY[(threadIdx.x + 1) * SUBSECTION_SIZE - 1]; float temp = 0.0f; for (int stride = 1; stride \u003c SUBSECTION_SIZE; stride *= 2) { __syncthreads(); if (threadIdx.x \u003e= stride) { temp = subXY[threadIdx.x] + subXY[threadIdx.x - stride]; } __syncthreads(); if (threadIdx.x \u003e= stride) { subXY[threadIdx.x] = temp; } } __syncthreads(); // Part 3: Add the reduction sum of the previous subsection to the current subsection (except the last element) for (int i = 1; i \u003c SUBSECTION_SIZE - 1; i++) { XY[threadIdx.x * SUBSECTION_SIZE + i] += subXY[threadIdx.x]; } __syncthreads(); // Store back to Y for (int i = 0; i \u003c SECTION_SIZE; i+= blockDim.x) { Y[threadIdx.x + i] = XY[threadIdx.x + i]; } } 11.6 Segmented Parallel Scan for Arbitrary-length Inputs 对于长度很大的输入数据，我们首先将其划分为多个部分，以便每个部分都可以放入流多处理器的共享内存中，并由单个块进行处理。如下图所示，第一步在每个块内部先进行扫描，完成后每个扫描块的最后一个输出元素为该扫描块的所有输入元素的和。第二步将每个扫描块的最后一个结果元素收集到一个数组中，并对这些输出元素执行扫描。第三步将第二步扫描输出值与其对应扫描块的值相加。\nA Hierarchical Scan for Arbitrary Length Inputs\n我们可以用三个内核实现分段扫描。第一个内核与 11.5 节的内核基本相同，第二个内核只是单个线程块的并行扫描内核，第三个内核将 S 数组和 Y 数组作为输入，并将其输出写回 Y.\n11.7 Single-pass Scan for Memory Access Efficiency ",
+  "wordCount" : "3201",
+  "inLanguage": "en",
+  "datePublished": "2024-09-11T23:03:03+08:00",
+  "dateModified": "2024-09-11T23:03:03+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/">Course Learning</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/courselearning/pmpp/">Programming Massive Parallel</a></div>
+    <h1 class="post-title entry-hint-parent">
+      PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms
+    </h1>
+    <div class="post-description">
+      Personal notebook 11 of Programming Massively Parallel
+    </div>
+    <div class="post-meta"><span title='2024-09-11 23:03:03 +0800 CST'>Sep-11-2024</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;3201 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#11-prefix-sum-scan-an-introduction-to-work-efficiency-in-parallel-algorithms" aria-label="11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms">11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms</a><ul>
+                            
+                    <li>
+                        <a href="#111-background" aria-label="11.1 Background">11.1 Background</a></li>
+                    <li>
+                        <a href="#112-parallel-scan-with-the-kogge-stone-algorithm" aria-label="11.2 Parallel Scan with the Kogge-Stone Algorithm">11.2 Parallel Scan with the Kogge-Stone Algorithm</a></li>
+                    <li>
+                        <a href="#113-speed-and-work-efficiency-consideration" aria-label="11.3 Speed and Work Efficiency Consideration">11.3 Speed and Work Efficiency Consideration</a></li>
+                    <li>
+                        <a href="#114-parallel-scan-with-the-brent-kung-algorithm" aria-label="11.4 Parallel Scan with the Brent-Kung Algorithm">11.4 Parallel Scan with the Brent-Kung Algorithm</a></li>
+                    <li>
+                        <a href="#115-coarsening-for-even-more-work-efficiency" aria-label="11.5 Coarsening for Even More Work Efficiency">11.5 Coarsening for Even More Work Efficiency</a></li>
+                    <li>
+                        <a href="#116-segmented-parallel-scan-for-arbitrary-length-inputs" aria-label="11.6 Segmented Parallel Scan for Arbitrary-length Inputs">11.6 Segmented Parallel Scan for Arbitrary-length Inputs</a></li>
+                    <li>
+                        <a href="#117-single-pass-scan-for-memory-access-efficiency" aria-label="11.7 Single-pass Scan for Memory Access Efficiency">11.7 Single-pass Scan for Memory Access Efficiency</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="11-prefix-sum-scan-an-introduction-to-work-efficiency-in-parallel-algorithms">11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms<a hidden class="anchor" aria-hidden="true" href="#11-prefix-sum-scan-an-introduction-to-work-efficiency-in-parallel-algorithms">#</a></h1>
+<p>一般来说，如果计算本质上可以被描述为数学递归，即序列中的每一项都是根据前一项定义的，那么它可能被并行化为并行扫描 (<em>parallel scan</em>) 运算。</p>
+<h2 id="111-background">11.1 Background<a hidden class="anchor" aria-hidden="true" href="#111-background">#</a></h2>
+<p>包含扫描 (<em>inclusive scan</em>) 操作接收一个二元可交换运算符 $\oplus$ 和一个包含 n 个元素的输入数组  $[x_0,x_1,\ldots,x_{n-1}]$，输出数组 $[x_0,(x_0\oplus x_1),\ldots,(x_0\oplus x_1\oplus\ldots\oplus x_{n-1})]$ . 包含扫描的名称体现在输出数组每个位置的结果都有对应输入元素参与。考虑包含扫描的一种直观方式是，接收一组所需香肠的长度的订单，并一次性得出所有所有订单对应的切割点。
+排除扫描操作类似于包含扫描操作，只是输出数组的排列略有不同: $[i,x_0,(x_0\oplus x_1),\ldots,(x_0\oplus x_1\oplus\ldots\oplus x_{n-2})]$ . 每个输出元素的计算都与相应输入元素无关。
+用包含扫描函数计算排除扫描的结果时，只需将所有元素向右移动，并为第 0 个元素填充恒等值。反之，只需要将所有元素向左移动，并用排除扫描结果的最后一个元素 $\oplus$ 最后一个输入元素来填充最后一个元素。</p>
+<h2 id="112-parallel-scan-with-the-kogge-stone-algorithm">11.2 Parallel Scan with the Kogge-Stone Algorithm<a hidden class="anchor" aria-hidden="true" href="#112-parallel-scan-with-the-kogge-stone-algorithm">#</a></h2>
+<p>计算位置 i 的输出元素 需要进行 i 次加法运算，因此除非找到一种方法来共享不同输出元素的归约树的部分和，否则这种方法计算复杂度为 $O(N^2)$.
+Kogge-Stone 算法最初是为了设计快速加法器电路而发明的，如下图所示，它是一种就地扫描算法，它对最初包含输入元素的数组 XY 进行操作。经过 k 次迭代后，<code>XY[i]</code> 将包含在该位置及之前的最多 <code>2^k</code> 个输入元素的和。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBabaa1819ea6455c00659abbdd350e12e?method=download&amp;shareKey=804e364d2be685b4e8a02798a814eb2a" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBabaa1819ea6455c00659abbdd350e12e?method=download&amp;shareKey=804e364d2be685b4e8a02798a814eb2a" alt="A Parallel Inclusive Scan Algorithm Based on Kogge-Stone Adder Design">
+    </a><figcaption>A Parallel Inclusive Scan Algorithm Based on Kogge-Stone Adder Design</figcaption></figure></p>
+<p>对应的内核函数如下，假设输入最初位于全局内存数组 X 中。让每个线程计算其全局数据索引，即其负责计算输出数组的位置。每个个活动线程首先将其位置的部分和存储到一个临时变量中(在寄存器中)。当步幅值大于 threadIdx.x 时，意味着线程分配的 XY 位置已经累加了所有所需的输入值，退出活动状态。需要额外的 <code>temp</code> 和 <code>__syncthreads()</code> 因为更新中存在读后写数据依赖竞争关系。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#define SECTION_SIZE 32
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="n">__global__</span> 
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">Kogge_Stone_Scan_Kernel</span><span class="p">(</span><span class="kt">int</span><span class="o">*</span> <span class="n">X</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">Y</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">XY</span><span class="p">[</span><span class="n">SECTION_SIZE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="cm">/* Exclusive kernel initilization
+</span></span></span><span class="line"><span class="cl"><span class="cm">	if (i &lt; N &amp;&amp; threadIdx.x != 0) {
+</span></span></span><span class="line"><span class="cl"><span class="cm">		XY[threadIdx.x] = X[i];
+</span></span></span><span class="line"><span class="cl"><span class="cm">	} else {
+</span></span></span><span class="line"><span class="cl"><span class="cm">		XY[threadIdx.x] = 0.0f;
+</span></span></span><span class="line"><span class="cl"><span class="cm">	}
+</span></span></span><span class="line"><span class="cl"><span class="cm">	*/</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0f</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="n">stride</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&lt;</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">;</span> <span class="n">stride</span> <span class="o">*=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">		<span class="kt">float</span> <span class="n">temp</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">temp</span> <span class="o">=</span> <span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">+</span> <span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">stride</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span> <span class="c1">// write-after-read dependence
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Only N - stride threads are active
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Kogge-Stone 算法重用了横跨归约树的部分和来降低计算复杂度。在上一章的归约内核中，活动线程在迭代中写入的元素不会在同一迭代中被任何其他活动线程读取，因此不存在读后写竞争条件。如果希望避免在每次迭代中都有 barrier 同步，那么克服竞争条件的另一种方法是为输入和输出使用单独的数组。这种方法需要两个共享内存缓冲区。交替变化不能输入/输出缓冲区的角色，直到迭代完成。这种优化称为双缓冲 (<em>double buffering</em>).</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#define SECTION_SIZE 32
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">DF_Kogge_Stone_Scan_Kernel</span><span class="p">(</span><span class="kt">int</span><span class="o">*</span> <span class="n">X</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">Y</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">XY_in</span><span class="p">[</span><span class="n">SECTION_SIZE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">XY_out</span><span class="p">[</span><span class="n">SECTION_SIZE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Initialization
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY_in</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY_in</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0f</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="kt">bool</span> <span class="n">read_in</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>  <span class="c1">// Alternating ther role of XY_in and XY_out
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="n">stride</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&lt;</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">;</span> <span class="n">stride</span> <span class="o">*=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">read_in</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">XY_out</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">XY_in</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">+</span> <span class="n">XY_in</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">stride</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">XY_out</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">XY_in</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">XY_in</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">XY_out</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">+</span> <span class="n">XY_out</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">stride</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">XY_in</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">XY_out</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">read_in</span> <span class="o">=</span> <span class="o">!</span><span class="n">read_in</span><span class="p">;</span>  <span class="c1">// 切换数组
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// 将结果写回全局内存
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">read_in</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">XY_in</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">XY_out</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="113-speed-and-work-efficiency-consideration">11.3 Speed and Work Efficiency Consideration<a hidden class="anchor" aria-hidden="true" href="#113-speed-and-work-efficiency-consideration">#</a></h2>
+<p>算法的工作效率（<em>work efficiency</em>）是指算法所完成的工作接近于计算所需的最小工作量的程度。在每次迭代中，非活动线程的数量等于步长。因此我们可以计算出工作量为</p>
+$$
+\sum_{stride}(N-\mathrm{stride}), \text{for strides} 1, 2, 4, \ldots N/2(\mathrm{log}_2N \text{terms}) = N\log_2N - (N-1)
+$$<p>因此，Kogge-Stone 算法的计算复杂度为 $O(N\log_2N)$.</p>
+<p>使用计算步数 (compute steps) 的概念作为比较扫描算法的近似指标。顺序扫描用 N-1 步来处理 N 个输入元素；若 CUDA 设备有 P 个执行单元，Kogge-Stone 内核执行需要步数为 $O(N\log_2N)/P$. Kogge-Stone 内核相比串行代码所做的额外工作有两个问题。首先，使用硬件执行并行内核的效率要低得多。第二，所有额外的工作消耗额外的能量，不利于移动应用等场景。Kogge-Stone 内核的强大之处在于，当有足够的硬件资源时，它可以达到非常好的执行速度。</p>
+<h2 id="114-parallel-scan-with-the-brent-kung-algorithm">11.4 Parallel Scan with the Brent-Kung Algorithm<a hidden class="anchor" aria-hidden="true" href="#114-parallel-scan-with-the-brent-kung-algorithm">#</a></h2>
+<p>对一组值进行求和最快的方法是使用归约树，如果有足够的执行单元，就可以在 $O(N\log_2N)$  时间内计算 N 个值的求和结果。该树还可以生成几个子序列的和，它们可用于计算某些扫描输出值。
+下图展示了基于 Brent-Kung 加法器设计的并行包含扫描算法的步骤。图中上半部分，花 4 步计算所有 16 个元素的和。下半部分是使用反向树将部分和分配到可以使用部分和的位置，以计算这些位置的结果。约简树中的求和总是在对一个连续的范围内的输入元素进行。因此，求和累积到 XY 的每个位置的值总是可以表示为输入元素的一个 xi…xj 的范围，其中 xi 是开始位置， xj 是结束位置 (包括)。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBda8f1aa90d4fcd75e9b2a976aec9f4c3?method=download&amp;shareKey=3887f9dfcd0ffaacbd1a9ce6a0554d38" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBda8f1aa90d4fcd75e9b2a976aec9f4c3?method=download&amp;shareKey=3887f9dfcd0ffaacbd1a9ce6a0554d38" alt="A Parallel Inclusive Scan Algorithm Based on the Brent–Kung Adder Design">
+    </a><figcaption>A Parallel Inclusive Scan Algorithm Based on the Brent–Kung Adder Design</figcaption></figure></p>
+<p>下图展示了反向树中每个位置 (列) 的状态，包括已经累积到该位置的值以及在反向树的每级 (行) 上需要的额外输入元素值 (浅灰色表示 2，深灰色表示 1，黑色表示 0).</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBff0a3e454e8d276a662e5c76b155939b?method=download&amp;shareKey=70741f95168876e0d97cae8bd475d933" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBff0a3e454e8d276a662e5c76b155939b?method=download&amp;shareKey=70741f95168876e0d97cae8bd475d933" alt="Progression of Values in XY After Each Level of Additions in the Reverse Tree.">
+    </a><figcaption>Progression of Values in XY After Each Level of Additions in the Reverse Tree.</figcaption></figure></p>
+<p>上半部分归约树的内核代码如下，和第十章不同的是</p>
+<ol>
+<li>我们把求和结果写到最大索引的位置。</li>
+<li>我们将线程索引组织成 $2^n-1$ 的形式 (n 为树的高度)。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">stride</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&lt;</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">;</span> <span class="n">stride</span> <span class="o">*=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">((</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">stride</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">+=</span> <span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">stride</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>这种归约方式的一个缺点是存在控制发散问题。因此需要将线程的连续部分映射到索引为 $k*2^n-1$ 形式的 XY 位置。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// Mapping a continous section of threads to the XY positions
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">stride</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&lt;=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">;</span> <span class="n">stride</span> <span class="o">*=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">stride</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// index of the left child
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span><span class="n">index</span> <span class="o">&lt;</span> <span class="n">SECTION_SIZE</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">+=</span> <span class="n">XY</span><span class="p">[</span><span class="n">index</span> <span class="o">-</span> <span class="n">stride</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>反向树的实现要复杂一些。步长从 <code>SECTION_SIZE/4</code> 减小到 1. 在每次迭代中，我们需要将 XY 元素索引值从步长减去 1 后的两倍的位置向右推到距离其一个步长的位置。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// Reverse tree stride value decreases from SECTION_SIZE / 4 to 1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">SECTION_SIZE</span> <span class="o">/</span> <span class="mi">4</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span> <span class="n">stride</span> <span class="o">/=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">stride</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// index of the left child
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span><span class="n">index</span> <span class="o">+</span> <span class="n">stride</span> <span class="o">&lt;</span> <span class="n">SECTION_SIZE</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY</span><span class="p">[</span><span class="n">index</span> <span class="o">+</span> <span class="n">stride</span><span class="p">]</span> <span class="o">+=</span> <span class="n">XY</span><span class="p">[</span><span class="n">index</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>我们可以看到 Brent-Kung 算法无论在归约阶段还是分发阶段，都不需要超过 <code>SECTION_SIZE/2</code> 的线程。并行扫描中的运算总数，包括归约树 (N-1 次) 和反向树 ( $N-1-log_2N$ 次) 阶段，总共 $2N-2-log_2N$ 次。当输入长度变大时，Brent-Kung 算法执行的操作数量永远不会超过顺序算法执行的操作数量的 2 倍。</p>
+<p>Brent-Kung 算法的活动线程的数量通过归约树比 Kogge-Stone 算法下降得快得多。然而，一些非活动线程可能仍然会消耗 CUDA 设备中的执行资源，因为它们通过 SIMD 绑定到其他活动线程。这使得在 CUDA 设备上前者工作效率上的优势不那么明显。在有充足执行资源的情况下，由于需要额外的步骤来执行反向树阶段，Brent-Kung 的时间是 Kogge-Stone 的两倍。</p>
+<h2 id="115-coarsening-for-even-more-work-efficiency">11.5 Coarsening for Even More Work Efficiency<a hidden class="anchor" aria-hidden="true" href="#115-coarsening-for-even-more-work-efficiency">#</a></h2>
+<p>如下图所示，粗化扫描分为三个阶段。在第一阶段，我们让每个线程对其相邻的子线程执行串行扫描。需要注意如果每个线程通过访问全局内存的输入直接执行扫描，则它们的访问不会合并。所以我们以合并的方式在共享内存和全局内存之间传输数据，并在共享内存中执行不是那么好的内存访问模式。在第二阶段，每个块中的所有线程协作并对由每个部分的最后一个元素组成的逻辑数组执行扫描操作。在第三阶段，每个线程将其前一个部分的最后一个元素的新值与自身部分除最后一个的所有元素相加。对应的内核代码如下。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB169e018f54e6c49c493de068d8a5f3f6?method=download&amp;shareKey=a54b5ab82631a6c403d2709f702f48c0" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB169e018f54e6c49c493de068d8a5f3f6?method=download&amp;shareKey=a54b5ab82631a6c403d2709f702f48c0" alt="A Three-phase Parallel Scan for Higher Work Efficiency">
+    </a><figcaption>A Three-phase Parallel Scan for Higher Work Efficiency</figcaption></figure></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="cp">#define CORASE_FACTOR 4
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define SUBSECTION_SIZE (SECTION_SIZE / CORASE_FACTOR)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="n">__global__</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">Corasened_Scan_Kernel</span><span class="p">(</span><span class="kt">int</span><span class="o">*</span> <span class="n">X</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">Y</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// Partition X into blockDim.x subsections
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Load X into shared memory in coalesced fashion
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">XY</span><span class="p">[</span><span class="n">SECTION_SIZE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__shared__</span> <span class="kt">float</span> <span class="n">subXY</span><span class="p">[</span><span class="n">SUBSECTION_SIZE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">SECTION_SIZE</span><span class="p">;</span> <span class="n">i</span><span class="o">+=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Part 1: Compute prefix sum of each subsection in sequenial 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">SUBSECTION_SIZE</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">SUBSECTION_SIZE</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">SUBSECTION_SIZE</span> <span class="o">+</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Part 2: Compute prefix sum of the last element of each subsection in parallel
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">lastElemId</span> <span class="o">=</span> <span class="p">(</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">CORASE_FACTOR</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">subXY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">XY</span><span class="p">[(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">SUBSECTION_SIZE</span> <span class="o">-</span> <span class="mi">1</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">float</span> <span class="n">temp</span> <span class="o">=</span> <span class="mf">0.0f</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">stride</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">stride</span> <span class="o">&lt;</span> <span class="n">SUBSECTION_SIZE</span><span class="p">;</span> <span class="n">stride</span> <span class="o">*=</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">temp</span> <span class="o">=</span> <span class="n">subXY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">+</span> <span class="n">subXY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">stride</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">stride</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">subXY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Part 3: Add the reduction sum of the previous subsection to the current subsection (except the last element)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">SUBSECTION_SIZE</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">SUBSECTION_SIZE</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">subXY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="n">__syncthreads</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Store back to Y
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">SECTION_SIZE</span><span class="p">;</span> <span class="n">i</span><span class="o">+=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">Y</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">XY</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="116-segmented-parallel-scan-for-arbitrary-length-inputs">11.6 Segmented Parallel Scan for Arbitrary-length Inputs<a hidden class="anchor" aria-hidden="true" href="#116-segmented-parallel-scan-for-arbitrary-length-inputs">#</a></h2>
+<p>对于长度很大的输入数据，我们首先将其划分为多个部分，以便每个部分都可以放入流多处理器的共享内存中，并由单个块进行处理。如下图所示，第一步在每个块内部先进行扫描，完成后每个扫描块的最后一个输出元素为该扫描块的所有输入元素的和。第二步将每个扫描块的最后一个结果元素收集到一个数组中，并对这些输出元素执行扫描。第三步将第二步扫描输出值与其对应扫描块的值相加。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB22da8ba64a41795b1047cae1caf6f6d3?method=download&amp;shareKey=99c2a7dcbbdeaf1be80feb644be643c0" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB22da8ba64a41795b1047cae1caf6f6d3?method=download&amp;shareKey=99c2a7dcbbdeaf1be80feb644be643c0" alt="A Hierarchical Scan for Arbitrary Length Inputs">
+    </a><figcaption>A Hierarchical Scan for Arbitrary Length Inputs</figcaption></figure></p>
+<p>我们可以用三个内核实现分段扫描。第一个内核与 11.5 节的内核基本相同，第二个内核只是单个线程块的并行扫描内核，第三个内核将 S 数组和 Y 数组作为输入，并将其输出写回 Y.</p>
+<h2 id="117-single-pass-scan-for-memory-access-efficiency">11.7 Single-pass Scan for Memory Access Efficiency<a hidden class="anchor" aria-hidden="true" href="#117-single-pass-scan-for-memory-access-efficiency">#</a></h2>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/pmpp-learning/">PMPP Learning</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch10/">
+    <span class="title">Next »</span>
+    <br>
+    <span>PMPP Learning-Chapter 10 Reduction and Minimizing Divergence</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms on x"
+            href="https://x.com/intent/tweet/?text=PMPP%20Learning-Chapter%2011%20Prefix%20sum%20%28scan%29-An%20Introduction%20to%20Work%20Efficiency%20in%20Parallel%20Algorithms&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch11%2f&amp;hashtags=PMPPlearning">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch11%2f&amp;title=PMPP%20Learning-Chapter%2011%20Prefix%20sum%20%28scan%29-An%20Introduction%20to%20Work%20Efficiency%20in%20Parallel%20Algorithms&amp;summary=PMPP%20Learning-Chapter%2011%20Prefix%20sum%20%28scan%29-An%20Introduction%20to%20Work%20Efficiency%20in%20Parallel%20Algorithms&amp;source=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch11%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms on reddit"
+            href="https://reddit.com/submit?url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch11%2f&title=PMPP%20Learning-Chapter%2011%20Prefix%20sum%20%28scan%29-An%20Introduction%20to%20Work%20Efficiency%20in%20Parallel%20Algorithms">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch11%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms on telegram"
+            href="https://telegram.me/share/url?text=PMPP%20Learning-Chapter%2011%20Prefix%20sum%20%28scan%29-An%20Introduction%20to%20Work%20Efficiency%20in%20Parallel%20Algorithms&amp;url=http%3a%2f%2flocalhost%3a1313%2fblogs%2fcourselearning%2fpmpp%2fpmpp-ch11%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
