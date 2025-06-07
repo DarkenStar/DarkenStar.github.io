@@ -50,7 +50,7 @@ $$P_{y,x}=\sum_{j=-r_y}^{r_y}\sum_{k=-r_x}^{r_x}f_{y+j,x+k}\times N_{y,x}$$
 
 ![Parallelization and Thread Organization for 2D Convolution](https://note.youdao.com/yws/api/personal/file/WEBb705cd006867704636e9e5261467570f?method=download&shareKey=d5710b7dee0a3c91d67011d92b623557 "Parallelization and Thread Organization for 2D Convolution")
 
-```cpp
+```cpp {linenos=true}
 __global__
 void convolution_2D_basic_kernel (float *N, float *F, float *P, 
 									int r, int width, int height) 
@@ -92,7 +92,7 @@ CUDA runtime 知道常量内存变量在内核执行期间不会被修改，因�
 ![Input Tile vs. Output Tile in 2D Convolution](https://note.youdao.com/yws/api/personal/file/WEBda4dfd50e011362c0cc68caaf130a16d?method=download&shareKey=b534279430a6d88b51d9523c3cdf486b "Input Tile vs. Output Tile in 2D Convolution")
 
 第一种线程组织方式的内核如下。现在每个块中的线程共同执行 `OUT_TILE_DIM^2*(2*FILTER_RADIUS+1)` 次浮点运算。分配给输入 tile 元素的每个线程加载一个4字节的输入值。因此每个block加载 `IN_TILE_DIM^2*4=(OUT_TILE_DIM+2*FILTER_RADIUS)^2*4`
-```cpp
+```cpp {linenos=true}
 #define IN_TILE_DIM 32
 #define FILTER_RADIUS 5
 #define OUT_TILE_DIM (IN_TILE_DIM - 2*(FILTER_RADIUS))
@@ -134,7 +134,7 @@ void convolution_tiled_2D_constant_mem_kernel_1(
 ```
 
 第二种线程组织方式的内核如下，每个线程现在可能需要加载多个输入 tile 的元素。
-```cpp
+```cpp {linenos=true}
 __global__
 void convolution_tiled_2D_constant_mem_kernel_2(  // OUT_TILE_DIM^2 threads per block
 	float* N, float* P, int width, int height) {
@@ -176,7 +176,7 @@ void convolution_tiled_2D_constant_mem_kernel_2(  // OUT_TILE_DIM^2 threads per 
 
 当一个块需要它的 halo cell 时，由于相邻块的访问，它们已经在二级缓存中了。因此，对这些  halo cell 的内存访问可以从 L2 缓存提供，而不会造成额外的 DRAM 流量。我们可以对原来的 N 进行这些 halo cell 的访问，而不是将它们加载到 `N_ds` 中。代码如下，加载 N_s 变得更简单，因为每个线程可以简单地加载与其分配的输出元素具有相同坐标的输入元素。然而，计算P个元素的循环体变得更加复杂。它需要添加条件来检查 helo cell 和 ghost cell.
 
-```cpp
+```cpp {linenos=true}
 __global__
 void convolution_tiled_cached_2D_shared_mem_kernel(  // OUT_TILE_DIM^2 threads per block
     float* N, float* P, int width, int height) {

@@ -35,7 +35,7 @@ cover:
 
 归并操作可以用如下一个简单的顺序算法来实现。顺序归并函数访问 A 和 B 的每个输入元素一次，并向 C 中每个位置写入一次。其算法复杂度为 O(m+n).
 
-```cpp
+```cpp {linenos=true}
 void merge_sequential(int* A, int* B, int* C, int m, int n) {
 	int i = 0, j = 0, k = 0;  // Indices for A, B, and C
 	while (i < m && j < n) {
@@ -81,7 +81,7 @@ void merge_sequential(int* A, int* B, int* C, int m, int n) {
 - 如果 `B[j-1] > A[i]`，说明 `B[j]` 太大，需要减少 j，并增加 i。
 每次调整时，i 和 j 都按照二分方式调整，即调整的步长是 delta / 2. i 和 i_low 确定了当前正在搜索的数组 A 的范围。
 
-```cpp
+```cpp {linenos=true}
 int co_rank(int k, int* A, int m, int* B, int n) {  // C[k] comes from A[i] of B[j]
 	// k = i + j
 	int i = k < m ? k : m;  // max starting search value for A, i.e. A[k-1] < B[0]
@@ -114,7 +114,7 @@ int co_rank(int k, int* A, int m, int* B, int n) {  // C[k] comes from A[i] of B
 在剩下的小节里，我们假设输入数组 A 和 B 存储在全局内存中，一个内核被启动用来合并两个输入数组，输出一个同样位于全局内存中的数组 C.
 下面内核是并行归并的直接实现。它首先通过计算当前线程 (`k_curr`) 和下一个线程 (`k_next`) 产生的输出子数组的起点来确定负责输出的范围。然后分别调用自己和后一个线程的 co_rank 函数来确定对应的 A 和 B 输入子数组的范围。最后调用顺序合并函数来合并两个输入子数组，并将结果写入输出子数组。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void mergre_basic_kernel(int* A, int* B, int* C, int m, int n) {  // Each thread handles a section of C
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -150,7 +150,7 @@ void mergre_basic_kernel(int* A, int* B, int* C, int m, int n) {  // Each thread
 
 下面是分段合并内核的实现的第一部分。本质上是线程级基本合并内核的块级版本的代码。每个块的第一个线程负责计算当前块和下一个块的开始输出索引的位置以及他们的 co-rank. 结果被放入共享内存中，以便块中的所有线程都可以看到。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void merge_tiled_kernel(int* A, int* B, int* C, int m, int n, int tile_size) {
 	/* Part 1: Identify block-level output & input subarrays */
@@ -175,7 +175,7 @@ void merge_tiled_kernel(int* A, int* B, int* C, int m, int n, int tile_size) {
 
 第二部分线程使用它们的 `threadIdx.x` 的值来确定要加载的元素，因此连续的线程加载连续的元素，内存访问是合并的。每次迭代从 A 和 B 数组中加载当前tile的起始点取决于块的所有线程在之前的迭代中消耗的 A 和 B 元素的总数。下图说明了 while 循环第二次迭代的索引计算。每个块在第一次迭代中消耗的 A 元素部分 为 A 子数组开头的白色小部分 (用竖条标记)。if 语句确保线程只加载 A 子数组剩余部分中的元素。
 
-```cpp
+```cpp {linenos=true}
 /* Part 2: Loading A & B elements into the shared memory */
 	int counter = 0;
 	int lenC = C_next - C_curr;
@@ -201,7 +201,7 @@ void merge_tiled_kernel(int* A, int* B, int* C, int m, int n, int tile_size) {
 
 第三部分则是每个块的线程对共享内存的数组进行归并。在更新索引的部分中最后一次迭代中 A_s 和 B_s 可能没有 tile_size 个元素，调用 co-rank 可能会得到错误结果。但是，由于 while 循环不会进一步迭代，因此不会使用结果，因此不会造成任何影响。
 
-```cpp
+```cpp {linenos=true}
 		/* Part 3: All threads merge their subarrays in prallel */
 		int c_curr = threadIdx.x * (tile_size / blockDim.x);  // Output index in shared memory
 		int c_next = c_curr + (tile_size / blockDim.x);

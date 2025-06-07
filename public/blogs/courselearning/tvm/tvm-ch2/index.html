@@ -10,7 +10,7 @@
 <meta name="description" content="Personal notebook 2.">
 <meta name="author" content="WITHER">
 <link rel="canonical" href="http://localhost:1313/blogs/courselearning/tvm/tvm-ch2/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.a3afc927e13c8d8d72138af4254aadf37b5653f96e325fea8d50c85abdca381a.css" integrity="sha256-o6/JJ&#43;E8jY1yE4r0JUqt83tWU/luMl/qjVDIWr3KOBo=" rel="preload stylesheet" as="style">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
@@ -66,9 +66,8 @@
   };
 </script>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/courselearning/tvm/tvm-ch2/">
+
+<meta property="og:url" content="http://localhost:1313/blogs/courselearning/tvm/tvm-ch2/">
   <meta property="og:site_name" content="WITHER">
   <meta property="og:title" content="TVM Learning (2)-Tensor Program Abstraction Case">
   <meta property="og:description" content="Personal notebook 2.">
@@ -76,7 +75,7 @@
   <meta property="og:type" content="article">
     <meta property="article:section" content="blogs">
     <meta property="article:published_time" content="2024-08-15T23:07:12+08:00">
-    <meta property="article:modified_time" content="2024-08-15T23:07:12+08:00">
+    <meta property="article:modified_time" content="2025-06-07T16:41:56+08:00">
     <meta property="article:tag" content="Autotuning">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TVM Learning (2)-Tensor Program Abstraction Case">
@@ -125,11 +124,11 @@
   "keywords": [
     "TVM"
   ],
-  "articleBody": "Primitive Tensor Function 机器学习编译的过程可以被看作张量函数之间的变换。一个典型的机器学习模型的执行包含许多步将输入张量之间转化为最终预测的计算步骤，其中的每一步都被称为元张量函数 (Primitive Tensor Function) Primitive Tensor Function\n通常来说，一个典型的元张量函数实现的抽象包含了以下成分：存储数据的多维数组，驱动张量计算的循环嵌套以及计算部分本身的语句。下图以上一篇中的向量加法为例子进行了分解。 Tensor Function Elements\n我们称这类抽象为张量程序抽象(Tensor Program Abstraction). 张量程序抽象的一个重要性质是，他们能够被一系列有效的程序变换所改变。例如，我们能够通过一组变换操作（如循环拆分、并行和向量化）将下图左侧的一个初始循环程序变换为右侧的程序。 Tensor Function Transforms\nLearning one Tensor Program Abstraction – TensorIR 我们对于神经网络的一个基本的 Linear+ReLU 层可以用以下的数学公式表示\n$Y_{ij} = \\sum_k A_{ik} B_{kj}$ $C_{ij} = \\mathbb{ReLU}(Y_{ij}) = \\mathbb{max}(Y_{ij}, 0)$ 其Numpy实现如下，下面的代码直接调用了Numpy的高级API，看起来非常简洁。\ndtype = \"float32\" a_np = np.random.rand(128, 128).astype(dtype) b_np = np.random.rand(128, 128).astype(dtype) # a @ b is equivalent to np.matmul(a, b) c_mm_relu = np.maximum(a_np @ b_np, 0) 我们可以将上述程序改写成Low-level Numpy，意味着对于复杂的计算我们使用循环进行表示，并且写出开辟数组空间的过程。\ndef lnumpy_mm_relu(A: np.ndarray, B: np.ndarray, C: np.ndarray): Y = np.empty((128, 128), dtype=\"float32\") for i in range(128): for j in range(128): for k in range(128): if k == 0: Y[i, j] = 0 Y[i, j] = Y[i, j] + A[i, k] * B[k, j] for i in range(128): for j in range(128): C[i, j] = max(Y[i, j], 0) 该函数执行以下操作：\n矩阵乘法： 将两个矩阵 A 和 B 相乘，并将结果存储在 Y 中。 ReLU 激活： 将 ReLU 激活函数应用于 Y 的元素，并将结果存储在 C 中。 可以用以下代码来检查上述实现的正确性：\nc_np = np.empty((128, 128), dtype=dtype) lnumpy_mm_relu(a_np, b_np, c_np) np.testing.assert_allclose(c_mm_relu, c_np, rtol=1e-5) 示例 numpy 代码包含了实际过程中实现这些计算时可能会用到的所有元素，用Numpy函数内部工作机制 (Under the Hood) 实现了MM-ReLU。\n开辟多维数组空间。 循环遍历数组的维度。 计算在循环内执行。 我们也可以用上一节的TensorIR来实现，TVMScript 是嵌入在 Python AST 中的领域特定语言的 Dialect, 它本质上是 Python 的一个子集，但添加了一些特定于 TVM 的扩展，例如用于描述计算图的特殊语法和语义。\nDialect 通常指一种语言的变体或子集，它与原始语言共享大部分语法和语义，但也有一些独特的特征。 抽象语法树 (AST) 是源代码的树状表示形式。它将代码的结构以一种层次化的方式呈现，每个节点代表代码中的一个语法元素，例如变量、运算符、函数调用等。\n@tvm.script.ir_module class MyModule: @T.prim_func def mm_relu(A: T.Buffer[(128, 128), \"float32\"], B: T.Buffer[(128, 128), \"float32\"], C: T.Buffer[(128, 128), \"float32\"]): T.func_attr({\"global_symbol\": \"mm_relu\", \"tir.noalias\": True}) Y = T.alloc_buffer((128, 128), dtype=\"float32\") for i, j, k in T.grid(128, 128, 128): with T.block(\"Y\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j) vk = T.axis.reduce(128, k) with T.init(): Y[vi, vj] = T.float32(0) Y[vi, vj] = Y[vi, vj] + A[vi, vk] * B[vk, vj] for i, j in T.grid(128, 128): with T.block(\"C\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j) C[vi, vj] = T.max(Y[vi, vj], T.float32(0)) 上述 TensorIR 程序的一个示例实例涵盖了大部分内容，包括\n参数和中间临时内存中的缓冲区声明。 For 循环迭代。 Block 和 Block Axis属性。 Transformation TVM 的 tvm.tir.Schedule 提供了一系列用于调度和优化计算图的变换函数。这些函数允许用户灵活地调整计算顺序、内存访问模式和并行化策略，以提高模型的性能。\n我们可以用以下函数获得计算块和其对应的循环\nblock_Y = sch.get_block(\"Y\", func_name=\"mm_relu\") i, j, k = sch.get_loops(block_Y) 我们可以使用 split函数将一个循环拆成多个循环，用 reorder函数交换循环的顺序，用 reverse_compute_at 函数移动计算块所在的循环，用 decompose_reduction函数将初始化和归约操作分开。\nj0, j1 = sch.split(j, factors=[None, 4]) sch.reorder(j0, k, j1) block_C = sch.get_block(\"C\", \"mm_relu\") sch.reverse_compute_at(block_C, j0) block_Y = sch.get_block(\"Y\", \"mm_relu\") sch.decompose_reduction(block_Y, k) sch.mod.show() # Output @tvm.script.ir_module class Module: @T.prim_func def mm_relu(A: T.Buffer[(128, 128), \"float32\"], B: T.Buffer[(128, 128), \"float32\"], C: T.Buffer[(128, 128), \"float32\"]) -\u003e None: # function attr dict T.func_attr({\"global_symbol\": \"mm_relu\", \"tir.noalias\": True}) # body # with T.block(\"root\") Y = T.alloc_buffer([128, 128], dtype=\"float32\") for i, j_0 in T.grid(128, 32): for j_1_init in T.serial(4): with T.block(\"Y_init\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j_0 * 4 + j_1_init) T.reads() T.writes(Y[vi, vj]) Y[vi, vj] = T.float32(0) for k, j_1 in T.grid(128, 4): with T.block(\"Y_update\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j_0 * 4 + j_1) vk = T.axis.reduce(128, k) T.reads(Y[vi, vj], A[vi, vk], B[vk, vj]) T.writes(Y[vi, vj]) Y[vi, vj] = Y[vi, vj] + A[vi, vk] * B[vk, vj] for ax0 in T.serial(4): with T.block(\"C\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j_0 * 4 + ax0) T.reads(Y[vi, vj]) T.writes(C[vi, vj]) C[vi, vj] = T.max(Y[vi, vj], T.float32(0)) 对应的 Low-level Numpy 函数如下\ndef lnumpy_mm_relu_v3(A: np.ndarray, B: np.ndarray, C: np.ndarray): Y = np.empty((128, 128), dtype=\"float32\") for i in range(128): for j0 in range(32): # Y_init for j1 in range(4): j = j0 * 4 + j1 Y[i, j] = 0 # Y_update for k in range(128): for j1 in range(4): j = j0 * 4 + j1 Y[i, j] = Y[i, j] + A[i, k] * B[k, j] # C for j1 in range(4): j = j0 * 4 + j1 C[i, j] = max(Y[i, j], 0) Why Do Loop Influence the Exec Time CPU Architecture CPU 带有多级缓存，需要先将数据提取到缓存中，然后 CPU 才能访问它。而且访问已经在缓存中的数据要快得多。CPU 采用的一种策略是获取彼此更接近的数据。 当我们读取内存中的一个元素时，它会尝试将附近的元素（Cache Line）获取到缓存中，当读取下一个元素时它已经在缓存中。 因此，具有连续内存访问的代码通常比随机访问内存不同部分的代码更快。\nLoop Order j1 这一迭代产生了对 B 元素的连续访问。具体来说，它意味着在 j1=0 和 j1=1 时我们读取的值彼此相邻。这可以让我们拥有更好的缓存访问行为。此外，我们使 C 的计算更接近 Y，从而实现更好的缓存行为。\nWays to Create and Interact with TensorIR Create TensorIR via TVMScript 创建 TensorIR 函数的第一种方法是直接在 TVMScript 中编写函数，它也是一种在变换过程中检查张量函数的有用方法。我们可以打印出 TVMScript，进行一些手动编辑，然后将其反馈给 MLC 流程以调试和尝试可能的（手动）变换，然后将变换后的程序重新应用到 MLC 流程中。\nGenerate TensorIR code using Tensor Expression 张量表达式 (TE) 是一种特定领域的语言，它通过 API 之类的表达式描述一系列计算。MM-ReLU 可以通过以下程序完成\nfrom tvm import te A = te.placeholder((128, 128), \"float32\", name=\"A\") B = te.placeholder((128, 128), \"float32\", name=\"B\") k = te.reduce_axis((0, 128), \"k\") Y = te.compute((128, 128), lambda i, j: te.sum(A[i, k] * B[k, j], axis=k), name=\"Y\") C = te.compute((128, 128), lambda i, j: te.max(Y[i, j], 0), name=\"C\") ",
-  "wordCount" : "1980",
+  "articleBody": "Primitive Tensor Function 机器学习编译的过程可以被看作张量函数之间的变换。一个典型的机器学习模型的执行包含许多步将输入张量之间转化为最终预测的计算步骤，其中的每一步都被称为元张量函数 (Primitive Tensor Function) Primitive Tensor Function\n通常来说，一个典型的元张量函数实现的抽象包含了以下成分：存储数据的多维数组，驱动张量计算的循环嵌套以及计算部分本身的语句。下图以上一篇中的向量加法为例子进行了分解。 Tensor Function Elements\n我们称这类抽象为张量程序抽象(Tensor Program Abstraction). 张量程序抽象的一个重要性质是，他们能够被一系列有效的程序变换所改变。例如，我们能够通过一组变换操作（如循环拆分、并行和向量化）将下图左侧的一个初始循环程序变换为右侧的程序。 Tensor Function Transforms\nLearning one Tensor Program Abstraction – TensorIR 我们对于神经网络的一个基本的 Linear+ReLU 层可以用以下的数学公式表示\n$Y_{ij} = \\sum_k A_{ik} B_{kj}$ $C_{ij} = \\mathbb{ReLU}(Y_{ij}) = \\mathbb{max}(Y_{ij}, 0)$ 其Numpy实现如下，下面的代码直接调用了Numpy的高级API，看起来非常简洁。\n1 2 3 4 5 dtype = \"float32\" a_np = np.random.rand(128, 128).astype(dtype) b_np = np.random.rand(128, 128).astype(dtype) # a @ b is equivalent to np.matmul(a, b) c_mm_relu = np.maximum(a_np @ b_np, 0) 我们可以将上述程序改写成Low-level Numpy，意味着对于复杂的计算我们使用循环进行表示，并且写出开辟数组空间的过程。\n1 2 3 4 5 6 7 8 9 10 11 def lnumpy_mm_relu(A: np.ndarray, B: np.ndarray, C: np.ndarray): Y = np.empty((128, 128), dtype=\"float32\") for i in range(128): for j in range(128): for k in range(128): if k == 0: Y[i, j] = 0 Y[i, j] = Y[i, j] + A[i, k] * B[k, j] for i in range(128): for j in range(128): C[i, j] = max(Y[i, j], 0) 该函数执行以下操作：\n矩阵乘法： 将两个矩阵 A 和 B 相乘，并将结果存储在 Y 中。 ReLU 激活： 将 ReLU 激活函数应用于 Y 的元素，并将结果存储在 C 中。 可以用以下代码来检查上述实现的正确性：\n1 2 3 c_np = np.empty((128, 128), dtype=dtype) lnumpy_mm_relu(a_np, b_np, c_np) np.testing.assert_allclose(c_mm_relu, c_np, rtol=1e-5) 示例 numpy 代码包含了实际过程中实现这些计算时可能会用到的所有元素，用Numpy函数内部工作机制 (Under the Hood) 实现了MM-ReLU。\n开辟多维数组空间。 循环遍历数组的维度。 计算在循环内执行。 我们也可以用上一节的TensorIR来实现，TVMScript 是嵌入在 Python AST 中的领域特定语言的 Dialect, 它本质上是 Python 的一个子集，但添加了一些特定于 TVM 的扩展，例如用于描述计算图的特殊语法和语义。\nDialect 通常指一种语言的变体或子集，它与原始语言共享大部分语法和语义，但也有一些独特的特征。 抽象语法树 (AST) 是源代码的树状表示形式。它将代码的结构以一种层次化的方式呈现，每个节点代表代码中的一个语法元素，例如变量、运算符、函数调用等。\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 @tvm.script.ir_module class MyModule: @T.prim_func def mm_relu(A: T.Buffer[(128, 128), \"float32\"], B: T.Buffer[(128, 128), \"float32\"], C: T.Buffer[(128, 128), \"float32\"]): T.func_attr({\"global_symbol\": \"mm_relu\", \"tir.noalias\": True}) Y = T.alloc_buffer((128, 128), dtype=\"float32\") for i, j, k in T.grid(128, 128, 128): with T.block(\"Y\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j) vk = T.axis.reduce(128, k) with T.init(): Y[vi, vj] = T.float32(0) Y[vi, vj] = Y[vi, vj] + A[vi, vk] * B[vk, vj] for i, j in T.grid(128, 128): with T.block(\"C\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j) C[vi, vj] = T.max(Y[vi, vj], T.float32(0)) 上述 TensorIR 程序的一个示例实例涵盖了大部分内容，包括\n参数和中间临时内存中的缓冲区声明。 For 循环迭代。 Block 和 Block Axis属性。 Transformation TVM 的 tvm.tir.Schedule 提供了一系列用于调度和优化计算图的变换函数。这些函数允许用户灵活地调整计算顺序、内存访问模式和并行化策略，以提高模型的性能。\n我们可以用以下函数获得计算块和其对应的循环\n1 2 block_Y = sch.get_block(\"Y\", func_name=\"mm_relu\") i, j, k = sch.get_loops(block_Y) 我们可以使用 split函数将一个循环拆成多个循环，用 reorder函数交换循环的顺序，用 reverse_compute_at 函数移动计算块所在的循环，用 decompose_reduction函数将初始化和归约操作分开。\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 j0, j1 = sch.split(j, factors=[None, 4]) sch.reorder(j0, k, j1) block_C = sch.get_block(\"C\", \"mm_relu\") sch.reverse_compute_at(block_C, j0) block_Y = sch.get_block(\"Y\", \"mm_relu\") sch.decompose_reduction(block_Y, k) sch.mod.show() # Output @tvm.script.ir_module class Module: @T.prim_func def mm_relu(A: T.Buffer[(128, 128), \"float32\"], B: T.Buffer[(128, 128), \"float32\"], C: T.Buffer[(128, 128), \"float32\"]) -\u003e None: # function attr dict T.func_attr({\"global_symbol\": \"mm_relu\", \"tir.noalias\": True}) # body # with T.block(\"root\") Y = T.alloc_buffer([128, 128], dtype=\"float32\") for i, j_0 in T.grid(128, 32): for j_1_init in T.serial(4): with T.block(\"Y_init\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j_0 * 4 + j_1_init) T.reads() T.writes(Y[vi, vj]) Y[vi, vj] = T.float32(0) for k, j_1 in T.grid(128, 4): with T.block(\"Y_update\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j_0 * 4 + j_1) vk = T.axis.reduce(128, k) T.reads(Y[vi, vj], A[vi, vk], B[vk, vj]) T.writes(Y[vi, vj]) Y[vi, vj] = Y[vi, vj] + A[vi, vk] * B[vk, vj] for ax0 in T.serial(4): with T.block(\"C\"): vi = T.axis.spatial(128, i) vj = T.axis.spatial(128, j_0 * 4 + ax0) T.reads(Y[vi, vj]) T.writes(C[vi, vj]) C[vi, vj] = T.max(Y[vi, vj], T.float32(0)) 对应的 Low-level Numpy 函数如下\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 def lnumpy_mm_relu_v3(A: np.ndarray, B: np.ndarray, C: np.ndarray): Y = np.empty((128, 128), dtype=\"float32\") for i in range(128): for j0 in range(32): # Y_init for j1 in range(4): j = j0 * 4 + j1 Y[i, j] = 0 # Y_update for k in range(128): for j1 in range(4): j = j0 * 4 + j1 Y[i, j] = Y[i, j] + A[i, k] * B[k, j] # C for j1 in range(4): j = j0 * 4 + j1 C[i, j] = max(Y[i, j], 0) Why Do Loop Influence the Exec Time CPU Architecture CPU 带有多级缓存，需要先将数据提取到缓存中，然后 CPU 才能访问它。而且访问已经在缓存中的数据要快得多。CPU 采用的一种策略是获取彼此更接近的数据。 当我们读取内存中的一个元素时，它会尝试将附近的元素（Cache Line）获取到缓存中，当读取下一个元素时它已经在缓存中。 因此，具有连续内存访问的代码通常比随机访问内存不同部分的代码更快。\nLoop Order j1 这一迭代产生了对 B 元素的连续访问。具体来说，它意味着在 j1=0 和 j1=1 时我们读取的值彼此相邻。这可以让我们拥有更好的缓存访问行为。此外，我们使 C 的计算更接近 Y，从而实现更好的缓存行为。\nWays to Create and Interact with TensorIR Create TensorIR via TVMScript 创建 TensorIR 函数的第一种方法是直接在 TVMScript 中编写函数，它也是一种在变换过程中检查张量函数的有用方法。我们可以打印出 TVMScript，进行一些手动编辑，然后将其反馈给 MLC 流程以调试和尝试可能的（手动）变换，然后将变换后的程序重新应用到 MLC 流程中。\nGenerate TensorIR code using Tensor Expression 张量表达式 (TE) 是一种特定领域的语言，它通过 API 之类的表达式描述一系列计算。MM-ReLU 可以通过以下程序完成\n1 2 3 4 5 6 from tvm import te A = te.placeholder((128, 128), \"float32\", name=\"A\") B = te.placeholder((128, 128), \"float32\", name=\"B\") k = te.reduce_axis((0, 128), \"k\") Y = te.compute((128, 128), lambda i, j: te.sum(A[i, k] * B[k, j], axis=k), name=\"Y\") C = te.compute((128, 128), lambda i, j: te.max(Y[i, j], 0), name=\"C\") ",
+  "wordCount" : "2085",
   "inLanguage": "en",
   "datePublished": "2024-08-15T23:07:12+08:00",
-  "dateModified": "2024-08-15T23:07:12+08:00",
+  "dateModified": "2025-06-07T16:41:56+08:00",
   "author":[{
     "@type": "Person",
     "name": "WITHER"
@@ -250,7 +249,7 @@
     <div class="post-description">
       Personal notebook 2.
     </div>
-    <div class="post-meta"><span title='2024-08-15 23:07:12 +0800 CST'>Aug-15-2024</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;1980 words&nbsp;·&nbsp;WITHER
+    <div class="post-meta"><span title='2024-08-15 23:07:12 +0800 CST'>Aug-15-2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;2085 words&nbsp;·&nbsp;WITHER
 
 </div>
   </header> <aside id="toc-container" class="toc-container wide">
@@ -369,13 +368,39 @@
 <li>$C_{ij} = \mathbb{ReLU}(Y_{ij}) = \mathbb{max}(Y_{ij}, 0)$</li>
 </ul>
 <p>其Numpy实现如下，下面的代码直接调用了Numpy的高级API，看起来非常简洁。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">dtype</span> <span class="o">=</span> <span class="s2">&#34;float32&#34;</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">dtype</span> <span class="o">=</span> <span class="s2">&#34;float32&#34;</span>
 </span></span><span class="line"><span class="cl"><span class="n">a_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">b_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="c1"># a @ b is equivalent to np.matmul(a, b)</span>
 </span></span><span class="line"><span class="cl"><span class="n">c_mm_relu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">a_np</span> <span class="o">@</span> <span class="n">b_np</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-</span></span></code></pre></div><p>我们可以将上述程序改写成Low-level Numpy，意味着对于复杂的计算我们使用循环进行表示，并且写出开辟数组空间的过程。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lnumpy_mm_relu</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>我们可以将上述程序改写成Low-level Numpy，意味着对于复杂的计算我们使用循环进行表示，并且写出开辟数组空间的过程。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lnumpy_mm_relu</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
@@ -386,16 +411,27 @@
 </span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">            <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
-</span></span></code></pre></div><p>该函数执行以下操作：</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>该函数执行以下操作：</p>
 <ol>
 <li><strong>矩阵乘法：</strong> 将两个矩阵 <code>A</code> 和 <code>B</code> 相乘，并将结果存储在 <code>Y</code> 中。</li>
 <li><strong>ReLU 激活：</strong> 将 ReLU 激活函数应用于 <code>Y</code> 的元素，并将结果存储在 <code>C</code> 中。</li>
 </ol>
 <p>可以用以下代码来检查上述实现的正确性：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">c_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">c_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">lnumpy_mm_relu</span><span class="p">(</span><span class="n">a_np</span><span class="p">,</span> <span class="n">b_np</span><span class="p">,</span> <span class="n">c_np</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">c_mm_relu</span><span class="p">,</span> <span class="n">c_np</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
-</span></span></code></pre></div><p>示例 numpy 代码包含了实际过程中实现这些计算时可能会用到的所有元素，用Numpy函数内部工作机制 (Under the Hood) 实现了MM-ReLU。</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>示例 numpy 代码包含了实际过程中实现这些计算时可能会用到的所有元素，用Numpy函数内部工作机制 (Under the Hood) 实现了MM-ReLU。</p>
 <ul>
 <li>开辟多维数组空间。</li>
 <li>循环遍历数组的维度。</li>
@@ -405,7 +441,32 @@
 <blockquote>
 <p>Dialect 通常指一种语言的变体或子集，它与原始语言共享大部分语法和语义，但也有一些独特的特征。
 抽象语法树 (AST) 是源代码的树状表示形式。它将代码的结构以一种层次化的方式呈现，每个节点代表代码中的一个语法元素，例如变量、运算符、函数调用等。</p></blockquote>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@tvm.script.ir_module</span>
 </span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MyModule</span><span class="p">:</span>
 </span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span>
 </span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">mm_relu</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">[(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">],</span> 
@@ -426,7 +487,9 @@
 </span></span><span class="line"><span class="cl">                <span class="n">vi</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">                <span class="n">vj</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">spatial</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>   
 </span></span><span class="line"><span class="cl">                <span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">],</span> <span class="n">T</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-</span></span></code></pre></div><p>上述 TensorIR 程序的一个示例实例涵盖了大部分内容，包括</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>上述 TensorIR 程序的一个示例实例涵盖了大部分内容，包括</p>
 <ul>
 <li>参数和中间临时内存中的缓冲区声明。</li>
 <li>For 循环迭代。</li>
@@ -435,10 +498,62 @@
 <h1 id="transformation">Transformation<a hidden class="anchor" aria-hidden="true" href="#transformation">#</a></h1>
 <p><code>TVM</code> 的 <code>tvm.tir.Schedule</code> 提供了一系列用于调度和优化计算图的变换函数。这些函数允许用户灵活地调整计算顺序、内存访问模式和并行化策略，以提高模型的性能。</p>
 <p>我们可以用以下函数获得计算块和其对应的循环</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">block_Y</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span><span class="s2">&#34;Y&#34;</span><span class="p">,</span> <span class="n">func_name</span><span class="o">=</span><span class="s2">&#34;mm_relu&#34;</span><span class="p">)</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">block_Y</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span><span class="s2">&#34;Y&#34;</span><span class="p">,</span> <span class="n">func_name</span><span class="o">=</span><span class="s2">&#34;mm_relu&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_loops</span><span class="p">(</span><span class="n">block_Y</span><span class="p">)</span>
-</span></span></code></pre></div><p>我们可以使用 <code>split</code>函数将一个循环拆成多个循环，用 <code>reorder</code>函数交换循环的顺序，用 <code>reverse_compute_at</code> 函数移动计算块所在的循环，用 <code>decompose_reduction</code>函数将初始化和归约操作分开。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">j0</span><span class="p">,</span> <span class="n">j1</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>我们可以使用 <code>split</code>函数将一个循环拆成多个循环，用 <code>reorder</code>函数交换循环的顺序，用 <code>reverse_compute_at</code> 函数移动计算块所在的循环，用 <code>decompose_reduction</code>函数将初始化和归约操作分开。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">j0</span><span class="p">,</span> <span class="n">j1</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
 </span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">reorder</span><span class="p">(</span><span class="n">j0</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">j1</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">block_C</span> <span class="o">=</span> <span class="n">sch</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span><span class="s2">&#34;C&#34;</span><span class="p">,</span> <span class="s2">&#34;mm_relu&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">sch</span><span class="o">.</span><span class="n">reverse_compute_at</span><span class="p">(</span><span class="n">block_C</span><span class="p">,</span> <span class="n">j0</span><span class="p">)</span>
@@ -478,8 +593,31 @@
 </span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">reads</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">])</span>
 </span></span><span class="line"><span class="cl">                    <span class="n">T</span><span class="o">.</span><span class="n">writes</span><span class="p">(</span><span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">])</span>
 </span></span><span class="line"><span class="cl">                    <span class="n">C</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">vi</span><span class="p">,</span> <span class="n">vj</span><span class="p">],</span> <span class="n">T</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-</span></span></code></pre></div><p>对应的 Low-level Numpy 函数如下</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lnumpy_mm_relu_v3</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>对应的 Low-level Numpy 函数如下</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lnumpy_mm_relu_v3</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">C</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">128</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">):</span>
@@ -496,7 +634,9 @@
 </span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">                <span class="n">j</span> <span class="o">=</span> <span class="n">j0</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">j1</span> 
 </span></span><span class="line"><span class="cl">                <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
-</span></span></code></pre></div><h1 id="why-do-loop-influence-the-exec-time">Why Do Loop Influence the Exec Time<a hidden class="anchor" aria-hidden="true" href="#why-do-loop-influence-the-exec-time">#</a></h1>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="why-do-loop-influence-the-exec-time">Why Do Loop Influence the Exec Time<a hidden class="anchor" aria-hidden="true" href="#why-do-loop-influence-the-exec-time">#</a></h1>
 <p>
 <figure class="post-figure">
     <a href="https://mlc.ai/zh/_images/cpu_arch.png" target="_blank" rel="noopener">
@@ -514,13 +654,25 @@ CPU 带有多级缓存，需要先将数据提取到缓存中，然后 CPU 才�
 <p>创建 TensorIR 函数的第一种方法是直接在 TVMScript 中编写函数，它也是一种在变换过程中检查张量函数的有用方法。我们可以打印出 TVMScript，进行一些手动编辑，然后将其反馈给 MLC 流程以调试和尝试可能的（手动）变换，然后将变换后的程序重新应用到 MLC 流程中。</p>
 <h2 id="generate-tensorir-code-using-tensor-expression">Generate TensorIR code using Tensor Expression<a hidden class="anchor" aria-hidden="true" href="#generate-tensorir-code-using-tensor-expression">#</a></h2>
 <p>张量表达式 (TE) 是一种特定领域的语言，它通过 API 之类的表达式描述一系列计算。MM-ReLU 可以通过以下程序完成</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">tvm</span> <span class="kn">import</span> <span class="n">te</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">tvm</span> <span class="kn">import</span> <span class="n">te</span>
 </span></span><span class="line"><span class="cl"><span class="n">A</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;A&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">B</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">placeholder</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;float32&#34;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;B&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">k</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">reduce_axis</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">&#34;k&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">Y</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="n">te</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="n">k</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;Y&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">C</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="n">te</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="mi">0</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;C&#34;</span><span class="p">)</span>
-</span></span></code></pre></div>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
 
   </div>
 
@@ -529,10 +681,10 @@ CPU 带有多级缓存，需要先将数据提取到缓存中，然后 CPU 才�
       <li><a href="http://localhost:1313/tags/autotuning/">Autotuning</a></li>
     </ul>
 <nav class="paginav">
-  <a class="prev" href="http://localhost:1313/blogs/courselearning/tvm/tvm-ch3/">
+  <a class="prev" href="http://localhost:1313/blogs/courselearning/tvm/tcm-ch10/">
     <span class="title">« Prev</span>
     <br>
-    <span>TVM Learning (4)-End to End Model Execution</span>
+    <span>TVM Learning (3)-Schedule Analysis</span>
   </a>
   <a class="next" href="http://localhost:1313/blogs/courselearning/tvm/tvm-ch1/">
     <span class="title">Next »</span>

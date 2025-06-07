@@ -78,7 +78,7 @@ cell 的读取依靠小电容充放电，电容充放电导致位线产生电压
 - 避免将资源消耗增加到损害占用的程度。根据内核的不同，线程粗化可能需要每个线程使用更多的寄存器或每个线程块使用更多的共享内存。
 
 
-```cpp
+```cpp {linenos=true}
 __global__ 
 void CoarsingMatrixMulKernel(float* M, float* N, float* P, int width)
 {

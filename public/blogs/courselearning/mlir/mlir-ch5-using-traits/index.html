@@ -10,7 +10,7 @@
 <meta name="description" content="Personal MLIR learning notes 5.">
 <meta name="author" content="WITHER">
 <link rel="canonical" href="http://localhost:1313/blogs/courselearning/mlir/mlir-ch5-using-traits/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.a3afc927e13c8d8d72138af4254aadf37b5653f96e325fea8d50c85abdca381a.css" integrity="sha256-o6/JJ&#43;E8jY1yE4r0JUqt83tWU/luMl/qjVDIWr3KOBo=" rel="preload stylesheet" as="style">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
@@ -66,9 +66,8 @@
   };
 </script>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/courselearning/mlir/mlir-ch5-using-traits/">
+
+<meta property="og:url" content="http://localhost:1313/blogs/courselearning/mlir/mlir-ch5-using-traits/">
   <meta property="og:site_name" content="WITHER">
   <meta property="og:title" content="MLIR-Ch5 Using Traits">
   <meta property="og:description" content="Personal MLIR learning notes 5.">
@@ -76,7 +75,7 @@
   <meta property="og:type" content="article">
     <meta property="article:section" content="blogs">
     <meta property="article:published_time" content="2024-11-08T23:06:23+08:00">
-    <meta property="article:modified_time" content="2024-11-08T23:06:23+08:00">
+    <meta property="article:modified_time" content="2025-06-07T16:41:56+08:00">
     <meta property="article:tag" content="Jeremykun MLIR Learning">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MLIR-Ch5 Using Traits">
@@ -126,10 +125,10 @@
     "MLIR"
   ],
   "articleBody": "Traits and Loop Invariant Code Motion 为了提高代码重用性，MLIR 提供了 Traits 和 Interfaces Traits，用于增强 op (Operation) 或类型的功能，提供结构化的约束和功能接口，方便在编译优化和生成过程中进行更强大和灵活的 op 。\nTraits 是一种机制，用于抽象出多个不同属性、 op 或类型之间共同的实现细节和特性。可用于指定对象的特殊属性和约束，例如 op 是否具有副作用，或其输出类型是否与输入类型相同。Traits 将特定的行为或限制抽象出来，使这些行为可以复用在不同的对象上，而不需要在每个对象中重复实现相同的逻辑。\nInterfaces 是一种通用的机制，用于与 IR 进行交互。它们的目标是使转换或分析可以基于这些接口进行，而无需了解具体的 op 或 dialect 的内部实现。通过这种方法，编译器可以在实现转换和分析时不依赖于特定 dialect 或 op ，从而更轻松地扩展编译器的功能。\nLoop Invariant Code Motion 是 MLIR 提供的 General Transform Passes 之一。它会检查循环体中的 op ，如果发现某些 op 在循环内部执行没有必要（即它们的结果在每次循环中保持不变），就会将这些 op 移出循环体。这可以减少循环中的重复计算，提高效率。\n要让某个自定义 op 可以被这种 pass 识别并移出循环体，需要添加两个关键的 Traits 来表明该 op 在循环外执行是安全的：\nNoMemoryEffect: 是 MemoryEffect 的一个 empty 实现，表示该 op 不会产生任何与内存写入相关的副作用。 AlwaysSpeculatable: 是一个包含两个 Traits 的 列表，告诉编译器该 op 可以在不影响程序逻辑的前提下，将其提前计算或移动到其他位置。 在 MLIR 中，Loop Invariant Code Motion (LICM) 会将具有 NoMemoryEffect 和 AlwaysSpeculatable 这两个 Traits 的 op 移动到循环体外部，但前提是该 op 的 operands 在整个循环体中保持不变。这样可以避免循环内部的重复计算，从而优化代码执行效率。MLIR 提供了一个方便的组合 Trait Pure，它包含了 NoMemoryEffect 和 AlwaysSpeculatable 这两个 Traits. 因此，直接添加 Pure Trait 到 op 的定义中就能让编译器自动识别它为可移动到循环外部的 op 。\nTypeOrContainer 是一个用于处理 op 输入和输出类型的机制，它可以匹配单个类型 (如 f32 或 i32) 以及容器类型(如 vector 或 tensor)，使得一个 op 可以被设计为同时支持标量类型和集合类型。\ninclude \"mlir/Interfaces/SideEffectInterfaces.td\"\rdef PolyOrContainer: TypeOrContainer",
-  "wordCount" : "2156",
+  "wordCount" : "2212",
   "inLanguage": "en",
   "datePublished": "2024-11-08T23:06:23+08:00",
-  "dateModified": "2024-11-08T23:06:23+08:00",
+  "dateModified": "2025-06-07T16:41:56+08:00",
   "author":[{
     "@type": "Person",
     "name": "WITHER"
@@ -250,7 +249,7 @@
     <div class="post-description">
       Personal MLIR learning notes 5.
     </div>
-    <div class="post-meta"><span title='2024-11-08 23:06:23 +0800 CST'>Nov-08-2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;2156 words&nbsp;·&nbsp;WITHER
+    <div class="post-meta"><span title='2024-11-08 23:06:23 +0800 CST'>Nov-08-2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;2212 words&nbsp;·&nbsp;WITHER
 
 </div>
   </header> <aside id="toc-container" class="toc-container wide">
@@ -356,7 +355,22 @@ class Poly_BinOp&lt;string mnemonic&gt;: Op&lt;Poly_Dialect, mnemonic, [Pure]&gt
     let assemblyFormat = &#34;$lhs `,` $rhs attr-dict `:` `(` type($lhs) `,` type($rhs) `)` `-&gt;` type($output)&#34;;
 }
 </code></pre><p>加入 <code>Pure</code> trait 后生成的 .hpp.inc 中关于 op 的定义继承了新的内容</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">AddOp</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">AddOp</span>
 </span></span><span class="line"><span class="cl">    <span class="o">:</span> <span class="k">public</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Op</span><span class="o">&lt;</span> <span class="n">AddOp</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">ZeroRegions</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">OneResult</span><span class="p">,</span>
@@ -367,14 +381,56 @@ class Poly_BinOp&lt;string mnemonic&gt;: Op&lt;Poly_Dialect, mnemonic, [Pure]&gt
 </span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">ConditionallySpeculatable</span><span class="o">::</span><span class="n">Trait</span><span class="p">,</span>            <span class="c1">// &lt;-- new
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpTrait</span><span class="o">::</span><span class="n">AlwaysSpeculatableImplTrait</span><span class="p">,</span>   <span class="c1">// &lt;-- new
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">MemoryEffectOpInterface</span><span class="o">::</span><span class="n">Trait</span><span class="o">&gt;</span>          <span class="c1">// &lt;--- new
-</span></span></span></code></pre></div><p><code>NoMemoryEffect</code> interface 则在生成的 .cpp.inc 中添加了一个简单的函数</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">AddOp</span><span class="o">::</span><span class="n">getEffects</span><span class="p">(</span>
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>NoMemoryEffect</code> interface 则在生成的 .cpp.inc 中添加了一个简单的函数</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">AddOp</span><span class="o">::</span><span class="n">getEffects</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">    <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">SmallVectorImpl</span><span class="o">&lt;</span>
 </span></span><span class="line"><span class="cl">        <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">SideEffects</span><span class="o">::</span><span class="n">EffectInstance</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">MemoryEffects</span><span class="o">::</span><span class="n">Effect</span><span class="o">&gt;&gt;&amp;</span>
 </span></span><span class="line"><span class="cl">        <span class="n">effects</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>我们可以写一个 .mlir 来测试 <code>%2</code> 的计算是否能优化到循环外：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="c">// RUN: build/Ch4-UsingTraits/tools/ch4-tutorial-opt %s --loop-invariant-code-motion &gt; %t
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>我们可以写一个 .mlir 来测试 <code>%2</code> 的计算是否能优化到循环外：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="c">// RUN: build/Ch4-UsingTraits/tools/ch4-tutorial-opt %s --loop-invariant-code-motion &gt; %t
 </span></span></span><span class="line"><span class="cl"><span class="c">// RUN: FileCheck %s &lt; %t
 </span></span></span><span class="line"><span class="cl"><span class="c"></span>
 </span></span><span class="line"><span class="cl">module <span class="p">{</span>
@@ -399,7 +455,9 @@ class Poly_BinOp&lt;string mnemonic&gt;: Op&lt;Poly_Dialect, mnemonic, [Pure]&gt
 </span></span><span class="line"><span class="cl">        <span class="kt">return</span> <span class="nv">%ret_val</span><span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><h1 id="passes-already-handled-by-pure">Passes Already Handled by Pure<a hidden class="anchor" aria-hidden="true" href="#passes-already-handled-by-pure">#</a></h1>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="passes-already-handled-by-pure">Passes Already Handled by Pure<a hidden class="anchor" aria-hidden="true" href="#passes-already-handled-by-pure">#</a></h1>
 <p>给某个 op 加上 <code>Pure</code> Trait 后，下列 Pass 就会自动识别并优化该 op ：</p>
 <ul>
 <li><code>--control-flow-sink</code>: 将只在条件语句的某一个分支中使用的 op 移动到对应的分支中，以减少无效代码的执行。需要 op 无内存副作用 (memory-effect free)，通常可以通过 <code>Pure</code> Trait 来满足。</li>
@@ -459,7 +517,26 @@ class Poly_BinOp&lt;string mnemonic&gt; : Op&lt;Poly_Dialect, mnemonic, [Pure, E
   ...
 }
 </code></pre><p>添加这个 Trait 后，生成的 .cpp.inc 文件定义了许多检查 op 数类型的函数，下面是其中一个：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">static</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">LogicalResult</span> <span class="n">__mlir_ods_local_type_constraint_PolyOps1</span><span class="p">(</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">static</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">LogicalResult</span> <span class="n">__mlir_ods_local_type_constraint_PolyOps1</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">    <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Operation</span><span class="o">*</span> <span class="n">op</span><span class="p">,</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">type</span><span class="p">,</span> <span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span> <span class="n">valueKind</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="n">valueIndex</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(((</span><span class="o">::</span><span class="n">llvm</span><span class="o">::</span><span class="n">isa</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">tutorial</span><span class="o">::</span><span class="n">poly</span><span class="o">::</span><span class="n">PolynomialType</span><span class="o">&gt;</span><span class="p">(</span><span class="n">type</span><span class="p">)))</span> <span class="o">||</span>
@@ -474,7 +551,9 @@ class Poly_BinOp&lt;string mnemonic&gt; : Op&lt;Poly_Dialect, mnemonic, [Pure, E
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">success</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该函数首先检查 <code>type</code> 是否为 <code>PolynomialType</code>；如果不是，则进一步检查它是否具有 <code>ValueSemantics</code> Trait，并且是一个 <code>ShapedType</code>（即容器类型，如 <code>vector</code> 或 <code>tensor</code>），其中包含的元素类型是 <code>PolynomialType</code>.</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>该函数首先检查 <code>type</code> 是否为 <code>PolynomialType</code>；如果不是，则进一步检查它是否具有 <code>ValueSemantics</code> Trait，并且是一个 <code>ShapedType</code>（即容器类型，如 <code>vector</code> 或 <code>tensor</code>），其中包含的元素类型是 <code>PolynomialType</code>.</p>
 
 
   </div>

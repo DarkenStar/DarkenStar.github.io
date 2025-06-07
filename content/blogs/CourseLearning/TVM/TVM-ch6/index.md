@@ -33,7 +33,7 @@ cover:
 
 我们以两个长度为1024的向量加法 `C=A+B`为例，我们先把外循环 split 成两部分
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module  
 class MyModuleVecAdd:
     @T.prim_func
@@ -55,7 +55,7 @@ sch.mod.show()
 
 得到的 TensorIR 如下
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @T.prim_func
@@ -81,7 +81,7 @@ class Module:
 
 可以看到循环变量变成了 `T.thead_binding`
 
-```python
+```python {linenos=true}
 sch.bind(i0, "blockIdx.x")
 sch.bind(i1, "threadIdx.x")
 sch.mod.show()
@@ -104,7 +104,7 @@ class Module:
 
 然后我们可以在GPU上构建并测试程序的正确性
 
-```python
+```python {linenos=true}
 rt_mod = tvm.build(sch.mod, target="cuda")
 
 A_np = np.random.uniform(size=(1024,)).astype("float32")
@@ -125,7 +125,7 @@ np.testing.assert_allclose(C_nd.numpy(), A_np + B_np)
 
 跟上一节一样我们将循环split后把外循环和内循环分别bind到block和thread上
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module 
 class MyModuleWindowSum:
     @T.prim_func
@@ -148,7 +148,7 @@ sch.bind(i1, "threadIdx.x")
 
 对应的TensorIR如下
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @T.prim_func
@@ -177,7 +177,7 @@ class Module:
 
 3. `sch.compute_at(A_shared, i1)` 将 `A_shared` 的计算位置设置为 `i1` 循环，这意味着 `A_shared` 将在每个 thread 中被计算。
 
-```python
+```python {linenos=true}
 sch = tvm.tir.Schedule(MyModuleWindowSum)
 nthread = 128
 block_C = sch.get_block("C")
@@ -223,7 +223,7 @@ sch.mod.show()
 
 `rane(130)` 的出现是因为需要将 `A` 缓冲区中的数据缓存到共享内存 `A_shared` 中。每个 GPU block 处理的数据范围是 `128` 个元素，对应于 `i1` 循环的范围。由于窗口求和操作需要访问 `A` 缓冲区中当前元素的三个相邻元素，因此每个 thread 需要访问 `128 + 2 = 130` 个元素。为了确保每个 thread 都能访问到所需的数据，需要将 `A` 缓冲区中 `130` 个元素缓存到 `A_shared` 中。
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @T.prim_func
@@ -250,7 +250,7 @@ class Module:
 
 我们可以检查相应的底层代码（CUDA ）
 
-```python
+```python {linenos=true}
 rt_mod = tvm.build(sch.mod, target="cuda")
 print(rt_mod.imported_modules[0].get_source())
 ```
@@ -260,7 +260,7 @@ print(rt_mod.imported_modules[0].get_source())
 * 在主机 (CPU) 上的调用 GPU 程序的部分；
 * 相应计算的 CUDA 内核。
 
-```cpp
+```cpp {linenos=true}
 #if (((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)) || \
      (__CUDACC_VER_MAJOR__ > 11))
 #define TVM_ENABLE_L2_PREFETCH 1
@@ -296,7 +296,7 @@ extern "C" __global__ void __launch_bounds__(128) main_kernel(float* __restrict_
 
 下面我们对原始的 `1024*1024`的矩阵乘法进行优化
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class MyModuleMatmul:
     @T.prim_func
@@ -326,7 +326,7 @@ class MyModuleMatmul:
 6. 使用 `unroll` 函数展开 `k1` 循环，以便在每个 thread 中展开计算，从而提高性能。
 7. 使用 `decompose_reduction` 函数分解 `k0` 循环，以便在每个 thread 中计算 `k0` 循环的所有迭代，从而利用共享内存缓存。
 
-```python
+```python {linenos=true}
 def blocking(sch: tvm.tir.Schedule,
              tile_local_y,
              tile_local_x,
@@ -357,7 +357,7 @@ def blocking(sch: tvm.tir.Schedule,
 
 进行 Local Blocking 后的TensorIR如下
 
-```python
+```python {linenos=true}
 sch = tvm.tir.Schedule(MyModuleMatmul)
 sch = blocking(sch, 8, 8, 8, 8, 4)
 sch.mod.show()
@@ -408,7 +408,7 @@ class Module:
 
 `cache_read_and_coop_fetch` 函数负责将 `A` 和 `B` 矩阵中的数据加载到共享内存中。首先使用 `cache_read` 创建一个共享内存缓存，用于存储 `A` 或 `B` 矩阵的数据。然后使用 `compute_at` 将缓存的计算位置设置为 `k0` 循环，在每个线程中计算缓存的所有迭代。最后使用 `split` 和 `vectorize` 函数对 `k0` 循环进行向量化，提高加载数据的效率。
 
-```python
+```python {linenos=true}
 def cache_read_and_coop_fetch(sch: tvm.tir.Schedule, block, nthread, read_idx, read_loc):
     read_cache = sch.cache_read(block=block, read_buffer_index=read_idx, storage_scope="shared")
     sch.compute_at(block=read_cache, loop=read_loc)
@@ -422,7 +422,7 @@ def cache_read_and_coop_fetch(sch: tvm.tir.Schedule, block, nthread, read_idx, r
 
 其余的操作和 Local Blocking 一致
 
-```python
+```python {linenos=true}
 def blocking_with_shared(sch: tvm.tir.Schedule,
                         tile_local_y,
                         tile_local_x,

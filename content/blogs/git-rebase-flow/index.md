@@ -27,7 +27,7 @@ cover:
 
 假设你的项目历史是这样的：你在 main 分支上切出了一个 feature 分支，之后 main 分支和你自己的 feature 分支都有了新的 commits.
 
-```plaintext
+```plaintext {linenos=true}
       A---B---C   <-- feature
      /
 D---E---F---G   <-- main
@@ -38,7 +38,7 @@ D---E---F---G   <-- main
 2. 将 feature 分支的起点移动到 main 分支的最新提交 G 上。
 3. 把刚才收起的提交 (A, B, C) 依次重新应用到新的起点上，形成新的提交 A', B', C'
 
-```plaintext
+```plaintext {linenos=true}
               A'--B'--C'  <-- feature
              /
 D---E---F---G   <-- main
@@ -47,7 +47,7 @@ D---E---F---G   <-- main
 
 现在，再切换回 main 分支，执行 `git merge feature`，由于 main 分支的所有历史现在是 feature 分支历史的子集，Git 只会进行一次 Fast-forward 合并，不会产生新的合并提交。最终结果如下
 
-```plaintext
+```plaintext {linenos=true}
 D---E---F---G---A'--B'--C'  <-- main, feature
 ```
 
@@ -57,7 +57,7 @@ D---E---F---G---A'--B'--C'  <-- main, feature
 
 要理解 rebase，最好的方法就是和 merge 对比。如果在 main 分支上运行 `git merge feature`，结果会是这样
 
-```plaintext
+```plaintext {linenos=true}
       A---B---C
      /         \
 D---E---F---G---H   <-- main (H 是一个合并提交)
@@ -75,7 +75,7 @@ merge 完全全保留了历史的真实性。它清楚地记录了“在某个�
 
 1. 确保 main 分支处于最新的状态 
 
-```bash
+```bash {linenos=true}
 git checkout main
 git pull origin main
 ```
@@ -89,7 +89,7 @@ git pull origin main
     - 如果中途想放弃，可以回到 rebase 开始前的状态 `git rebase --abort`
 5. 合并到主分支
 rebase 成功后，你的 feature-login 分支就已经包含了 main 的所有更新，并且**你的提交都在最前面**。现在可以进行一次干净的快进合并。
-```bash
+```bash {linenos=true}
 git checkout main
 git merge feature-login
 ```
@@ -109,7 +109,7 @@ git merge feature-login
 2. 编辑 Rebase 脚本
 Git 会打开一个文本编辑器，列出这 3 个提交：
 
-```plaintext
+```plaintext {linenos=true}
 pick a31ab34 complete login UI
 pick 58c34bb fix a button bug
 pick 948f2cb add backend verify logic
@@ -117,7 +117,7 @@ pick 948f2cb add backend verify logic
 
 在文件下方会有指令说明。你可以修改每一行前面的 pick 命令。比如，我们想把后两个提交合并到第一个里面：
 
-```plaintext
+```plaintext {linenos=true}
 pick a31ab34 complete login UI
 squash 58c34bb fix a button bug
 squash 948f2cb add backend verify logic

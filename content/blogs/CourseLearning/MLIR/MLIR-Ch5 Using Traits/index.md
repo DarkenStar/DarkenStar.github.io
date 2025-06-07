@@ -54,7 +54,7 @@ class Poly_BinOp<string mnemonic>: Op<Poly_Dialect, mnemonic, [Pure]> {
 
 加入 `Pure` trait 后生成的 .hpp.inc 中关于 op 的定义继承了新的内容
 
-```cpp
+```cpp {linenos=true}
 class AddOp
     : public ::mlir::Op< AddOp,
         ::mlir::OpTrait::ZeroRegions,
@@ -70,7 +70,7 @@ class AddOp
 
 `NoMemoryEffect` interface 则在生成的 .cpp.inc 中添加了一个简单的函数
 
-```cpp
+```cpp {linenos=true}
 void AddOp::getEffects(
     ::llvm::SmallVectorImpl<
         ::mlir::SideEffects::EffectInstance<::mlir::MemoryEffects::Effect>>&
@@ -80,7 +80,7 @@ void AddOp::getEffects(
 
 我们可以写一个 .mlir 来测试 `%2` 的计算是否能优化到循环外：
 
-```mlir
+```mlir {linenos=true}
 // RUN: build/Ch4-UsingTraits/tools/ch4-tutorial-opt %s --loop-invariant-code-motion > %t
 // RUN: FileCheck %s < %t
 
@@ -173,7 +173,7 @@ class Poly_BinOp<string mnemonic> : Op<Poly_Dialect, mnemonic, [Pure, Elementwis
 
 添加这个 Trait 后，生成的 .cpp.inc 文件定义了许多检查 op 数类型的函数，下面是其中一个：
 
-```cpp
+```cpp {linenos=true}
 static ::llvm::LogicalResult __mlir_ods_local_type_constraint_PolyOps1(
     ::mlir::Operation* op, ::mlir::Type type, ::llvm::StringRef valueKind,
     unsigned valueIndex) {

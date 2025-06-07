@@ -49,7 +49,7 @@ cover:
 
 对应的内核代码如下所示，它在列索引对应的位置查找输入向量值，将其乘以非零值，然后将结果累加到对应的行索引处的输出值。
 
-```cpp
+```cpp {linenos=true}
 struct COOMATRIX {
 	int* rowIdx;
 	int* colIdx;
@@ -90,7 +90,7 @@ void spmv_coo_kernel(COOMATRIX m, float* x, float* y) {  // Assign a thread to e
 
 对应的内核代码如下，每个线程确定它负责的行，循环遍历该行的非零元素来执行点积。线程在 `rowPtrs` 数组中确定它们的起始索引 (`rowPtrs[row]`)和通过下一行非零的起始索引 (`rowPtrs[row+1]`) 来确定结束位置。
 
-```cpp
+```cpp {linenos=true}
 struct CSRMatrix {
 	int* rowPtrs;
 	int* colIdx;
@@ -135,7 +135,7 @@ ELL 存储格式通过对稀疏矩阵数据进行填充和转置，可以解决�
 
 对应的内核代码如下，点积循环遍历每行的非零元素。SpMV/ELL 内核假设输入矩阵有一个向量 `ellMatrix.nnzPerRow` 记录每行中非零的数量，每个线程只迭代其分配的行中的非零元素。
 
-```cpp
+```cpp {linenos=true}
 struct ELLMATRIX {
 	int* nnzPerRow;  // Number of nonzeros per row
 	int* colIdx;  // Column indices of nonzeros
@@ -175,7 +175,7 @@ void spmv_ell_kernel(ELLMATRIX m, float* x, float* y) {
 
 对应的内核代码如下，点积将被划分为两部分处理，一部分负责处理 ELL 格式的非零元素，另一部分负责处理 COO 格式中 rowIdx 与 row 相同的非零元素。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void spmv_hybrid_ell_coo_kernel(ELLMATRIX ell, COOMATRIX coo, float* x, float* y) {
 	unsigned int row = blockIdx.x * blockDim.x + threadIdx.x;
@@ -217,7 +217,7 @@ void spmv_hybrid_ell_coo_kernel(ELLMATRIX ell, COOMATRIX coo, float* x, float* y
 
 对应的内核代码如下，我们一共要迭代 `maxNumNonZerosPerRow` 次，每次迭代中每个线程判断自己负责的行是否还存在非零元素。
 
-```cpp
+```cpp {linenos=true}
 struct JDSMATRIX {
 	int* iterPtr;  // Pointer to the start of each row in the JDS format
 	int* colIdx;  // Column indices of nonzeros

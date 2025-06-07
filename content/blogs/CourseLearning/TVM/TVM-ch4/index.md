@@ -25,7 +25,7 @@ cover:
 
 之前已经讲过如何通过 `tir.Schedule`对T.prim_func进行变换，仍以矩阵乘法为例
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class MyModule:
     @T.prim_func
@@ -60,7 +60,7 @@ class MyModule:
 * 将对 `k`的归约操作分解为初始化阶段和更新阶段，有助于将计算的两个阶段（即设置初始值和实际归约）分开。
 * 提高并行化的机会，并且允许更好地利用向量化指令或其他硬件优化。
 
-```python
+```python {linenos=true}
 def schedule_mm(sch: tvm.tir.Schedule, jfactor=4):
     block_C = sch.get_block("C", "main")
     i, j, k = sch.get_loops(block=block_C)
@@ -100,7 +100,7 @@ class Module:
 
 我们可以比较变换前后的计算用时
 
-```python
+```python {linenos=true}
 a_np = np.random.rand(128, 128).astype(dtype)
 b_np = np.random.rand(128, 128).astype(dtype)
 c_mm = a_np @ b_np 
@@ -124,7 +124,7 @@ print("Time cost of MyModule=>schedule_mm: %.3f ms" % (f_timer_after(a_nd, b_nd,
 
 除了 `sch.mod`字段，`tir.Schedule`还提供了一个跟踪字段 `sch.trace`，用于显示变换IRModule的步骤。
 
-```python
+```python {linenos=true}
 print(sch.trace)
 #-------------------------------------------
 def apply_trace(sch: tir.Schedule) -> None:
@@ -150,7 +150,7 @@ def apply_trace(sch: tir.Schedule) -> None:
 
 下面函数 `stochastic_schedule_mm`和 `schedule_mm`唯一的区别是指定 `j_factors`采用的是随机的策略。
 
-```python
+```python {linenos=true}
 def stochastic_schedule_mm(sch: tvm.tir.Schedule):
     block_C = sch.get_block("C", "main")
     i, j, k = sch.get_loops(block=block_C)
@@ -168,7 +168,7 @@ def stochastic_schedule_mm(sch: tvm.tir.Schedule):
 
 `j_factors` 中的元素不是整数。相它们是**符号变量**，指的是正在采样的随机变量。我们可以将这些变量传递给转换 API，以指定factors. 调用 `stochastic_schedule_mm`后的trace如下
 
-```python
+```python {linenos=true}
 sch = tvm.tir.Schedule(MyModule)
 sch = stochastic_schedule_mm(sch)
 print(sch.trace)
@@ -191,7 +191,7 @@ def apply_trace(sch: tir.Schedule) -> None:
 
 我们需要一种搜索算法能找到性能最好的变换。下面的函数使用最直接的搜索算法--随机搜索。它尝试重复运行 `stochastic_schedule_mm`，得到一个转换后的IR module，运行benchmark，然后将性能最好的IR module记录下来。
 
-```python
+```python {linenos=true}
 def random_search(mod: tvm.IRModule, num_trails=5):
     best_result = None
     best_sch = False
@@ -223,7 +223,7 @@ def random_search(mod: tvm.IRModule, num_trails=5):
 
 `tune_tir` API 仍使用随机变换来指定好程序的搜索空间并在搜索空间内找到优化的方案。
 
-```python
+```python {linenos=true}
 database = ms.tune_tir(
     mod=MyModule,
     target="llvm --num-cores=1",
@@ -242,7 +242,7 @@ print(sch_tuned.trace)
 
 不知道为何Windows上运行clang会出错
 
-```bash
+```bash {linenos=true}
 LocalRunner: An exception occurred
 Traceback (most recent call last):
   File "D:\Work\Anaconda\envs\tvm-build\lib\site-packages\tvm-0.18.dev0-py3.9-win-amd64.egg\tvm\exec\popen_worker.py", line 87, in main

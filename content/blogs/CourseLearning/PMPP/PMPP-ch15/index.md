@@ -56,7 +56,7 @@ BFS 通常用于找到从图的一个顶点到另一个顶点所需遍历的最�
 
 以顶点为中心的并行实现将线程分配给顶点，并让每个线程对其顶点执行操作，这通常涉及迭代该顶点的邻居。当处理不同层级的迭代时，并行实现遵循相同的策略。为每一层调用一个单独的内核的原因是，我们需要等待前一层的所有顶点都被标记，然后再继续标记下一层的顶点。下面实现了一个 BFS 内核，根据前一个层级的顶点标签来标记属于该层级的所有顶点。该内核将每个线程分配给一个顶点，检查其顶点是否属于前一层。如果是，线程将遍历出边，将所有未访问的邻居标记为属于当前级别。这种以顶点为中心的实现通常被称为自顶向下或 push 实现，因为其需要访问给定源顶点的出边。多个线程可以将该标志赋值为 1，代码仍然可以正确执行。这个性质称为幂等性 (*idempotence*).
 
-```cpp
+```cpp {linenos=true}
 struct CSRGRAPH {
     int numVertices;
     int* scrPtrs;  // Strating outgoing edge index of each vertex
@@ -87,7 +87,7 @@ void bfs_kernel_csr(CSRGRAPH graph, unsigned int* level, unsigned int* visited, 
 第二个以顶点为中心的并行实现将每个线程分配给一个顶点，迭代顶点的入边。每个线程首先检查其顶点是否已被访问。如果没被访问，线程将遍历入边，如果线程找到一个属于前一层的邻居，线程将把它的顶点标记为属于当前层。这种以顶点为中心的实现通常被称为自底向上或 pull 实现。实现要求能访问给定目标顶点的入边，因此要采用 CSC 表示。
 以顶点为中心的 pull 实现的内核代码如下，对于一个线程来说，要确定它的顶点处于当前层，只需要该顶点有一个邻居s属于前一层中就足够了。
 
-```cpp
+```cpp {linenos=true}
 struct CSCGRAPH {
     int numVertices;
     int* dstPtrs;  // Starting incoming edge index of each vertex
@@ -126,7 +126,7 @@ void bfs_kernel_csc(CSCGRAPH graph, unsigned int* level, unsigned int* visited, 
 在这个实现中，每个线程被分配到一条边。它检查边的源顶点是否属于前一层以及边的目标顶点是否未被访问。
 以边为中心的并行实现的内核代码如下。每个线程使用 COO `src` 数组找到其边缘的源顶点，并检查顶点是否属于前一级。通过此检查的线程将使用 COO `dst` 数组确定边的目的顶点，并检查其是否未被访问过。
 
-```cpp
+```cpp {linenos=true}
 struct COOGRAPH {
     int numVertices;
     int numEdges;
@@ -169,7 +169,7 @@ void bfs_kernel_coo(COOGRAPH graph, unsigned int* level, unsigned int* visited, 
 
 对应的内核代码如下。首先为 frontier 的每个元素分配一个线程，使用 CSR `srcPtrs` 数组来定位顶点的出边并进行迭代。对于每个出边，线程使用 CSR `dst` 数组确定其目的顶点，若未被访问过，并将其标记为属于当前层级。为了避免多个线程将邻居视为未访问，应该以原子方式执行邻居标签的检查和更新。`atomicCAS` 内置函数提供 compare-and-swap 的原子操作。如果比较成功,与其他原子操作一样，`atomicCAS` 返回存储的旧值。因此，我们可以通过比较返回值与被比较的值来检查该顶点是否被访问过。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void frontier_bfs_kernel(CSRGRAPH graph, unsigned int* level,
     unsigned int* prevFroniter, unsigned int* currFroniter,
@@ -202,7 +202,7 @@ void frontier_bfs_kernel(CSRGRAPH graph, unsigned int* level,
 ![Privatization of Frontiers Example](https://note.youdao.com/yws/api/personal/file/WEB34a0e090d131236cb469365789ba6a21?method=download&shareKey=cd8a9dcd79e858b456d2bcd1d99c16c3 "Privatization of Frontiers Example")
 
 对应的内核代码如下。注意到公共 frontiner 的索引 `currFrontierIdx` 是用 `currFrontierIdx_s` 表示的，而 `currFrontierIdx_s` 是用 `threadIdx.x` 表示的。因此，相邻线程存储到连续的全局内存位置，这意味着内存访问是合并的。
-```cpp
+```cpp {linenos=true}
 #define LOCAL_FRONTIER_SIZE 4
 __global__
 void private_frontier_bfs_kernel(CSRGRAPH graph, unsigned int* level,

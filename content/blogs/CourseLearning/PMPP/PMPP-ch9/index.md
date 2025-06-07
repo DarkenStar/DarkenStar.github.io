@@ -57,7 +57,7 @@ histo 数组中间隔计数器的增加是对内存位置的更新或 read-modif
 
 原子操作 (*atomic operation*) 的读、修改和写部分构成一个不可分割的单元，因此称为原子操作。对该位置的其他读-修改-写序列不能与其在时间上有重叠。需要注意*原子操作在线程之间不强制任何特定的执行顺序*，比如线程 1 可以在线程 2 之前或之后运行。CUDA内核可以通过函数调用对内存位置执行原子加法操作:
 
-```cpp
+```cpp {linenos=true}
 int atomicAdd(int* address, int val);
 ```
 
@@ -67,7 +67,7 @@ int atomicAdd(int* address, int val);
 现代处理器通常提供特殊指令，这些指令要么执行关键功能 (如原子操作)，要么大幅提高性能 (如矢量指令)。这些指令通常作为内建函数暴露给程序员，从程序员的角度来看，这些是库函数。然而，它们被编译器以一种特殊的方式处理。每个这样的调用都被翻译成相应的特殊指令。在最终代码中没有函数调用，只有与用户代码一致的特殊指令。
 {{< /details >}}
 
-```cpp
+```cpp {linenos=true}
 __global__ 
 void histo_kernel(char* data, unsigned int length, unsigned int* histo) {
 	unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -97,7 +97,7 @@ void histo_kernel(char* data, unsigned int length, unsigned int* histo) {
 
 一个私有化版本的代码如下，为 histo 数组分配足够的设备内存 (`gridDim.x*NUM_BINS*4` bytes) 来保存直方图的所有私有副本。在执行结束时，每个线程块将把私有副本中的值提交到 块 0 的部分。
 
-```cpp
+```cpp {linenos=true}
 #define NUM_BINS 7  // # histo bins 
 __global__
 void histo_private_kernel(char* data, unsigned int length, unsigned int* histo) {
@@ -122,7 +122,7 @@ void histo_private_kernel(char* data, unsigned int length, unsigned int* histo) 
 
 在每个线程块的基础上创建直方图的私有副本的一个好处是线程可以在提交自己的统计结果之前使用 `__syncthreads()` 来等待彼此。另一个好处是，如果直方图中的 bin 数量足够小，则可以在共享内存中声明直方图的私有副本 (每个线程块一个)。下面代码直方图在共享内存中分配私有副本 `histo_s` 数组，并由块的线程并行初始化为 0.
 
-```cpp
+```cpp {linenos=true}
 __global__
 void histo_shared_private_kernel(char* data, unsigned int length, unsigned int* histo) {
 
@@ -161,7 +161,7 @@ void histo_shared_private_kernel(char* data, unsigned int length, unsigned int* 
 
 下面代码是一个连续分区 (*contiguous partition*) 策略的示例，输入被连续划分成多个段，每个段被分配给一个线程，每个线程从 `tid*CFACTOR` 迭代到 `(tid+1)*CFACTOR` 进行所负责部分的统计。
 
-```cpp
+```cpp {linenos=true}
 #define CFACTOR 3
 __global__
 void histo_shared_private_contiguous_kernel(char* data, unsigned int length, unsigned int* histo) {
@@ -200,7 +200,7 @@ void histo_shared_private_contiguous_kernel(char* data, unsigned int length, uns
 
 下面代码是一个交错分区的示例。在循环的第一次迭代中，每个线程使用其全局线程索引访问数据数组:线程 0 访问元素 0，线程 1 访问元素 1，线程 2 访问元素 2...所有线程共同处理输入的第一个 `blockDim.x*gridDim.x` 元素。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void histo_shared_private_interleaved_kernel(char* data, unsigned int length, unsigned int* histo) {
 {
@@ -236,7 +236,7 @@ void histo_shared_private_interleaved_kernel(char* data, unsigned int length, un
 
 一些数据集在局部区域有大量相同的数据值。如此高度集中的相同值会导致严重的争用，并降低并行直方图计算的吞吐量。一个简单而有效的优化是，如果每个线程正在更新直方图的相同元素，则将连续的更新聚合为单个更新。下面的代码展示了聚合的直方图计算。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void histo_shared_private_interleaved_aggregated_kernel(char* data, unsigned int length, unsigned int* histo) {
 

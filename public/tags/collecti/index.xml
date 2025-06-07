@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Collecti on WITHER</title>
+    <link>http://localhost:1313/tags/collecti/</link>
+    <description>Recent content in Collecti on WITHER</description>
+    <generator>Hugo -- 0.147.7</generator>
+    <language>en</language>
+    <copyright>2024-2025 WITHER</copyright>
+    <lastBuildDate>Sun, 12 Jan 2025 16:05:23 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/collecti/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>All2All Communication Cost</title>
+      <link>http://localhost:1313/blogs/all2allcommcost/</link>
+      <pubDate>Sun, 12 Jan 2025 16:05:23 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/all2allcommcost/</guid>
+      <description>Introduction of Transformer Family</description>
+    </item>
+  </channel>
+</rss>

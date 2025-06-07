@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Megatron-LM | WITHER</title>
+<meta name="keywords" content="MegatronLM">
+<meta name="description" content="Paper reading about Megatron-LM">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/megatronlm/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/megatronlm/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+
+<meta property="og:url" content="http://localhost:1313/blogs/megatronlm/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="Megatron-LM">
+  <meta property="og:description" content="Paper reading about Megatron-LM">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-10-02T15:51:50+08:00">
+    <meta property="article:modified_time" content="2024-10-02T15:51:50+08:00">
+    <meta property="article:tag" content="Distributed Training">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Megatron-LM">
+<meta name="twitter:description" content="Paper reading about Megatron-LM">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Megatron-LM",
+      "item": "http://localhost:1313/blogs/megatronlm/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Megatron-LM",
+  "name": "Megatron-LM",
+  "description": "Paper reading about Megatron-LM",
+  "keywords": [
+    "MegatronLM"
+  ],
+  "articleBody": "Abstract 我们的方法不需要新的编译器或更改库，与流水线模型并行 (pipeline model parallelism) 正交互补，并且可以通过在原生 PyTorch 中插入一些通信操作来实现。为了阐述我们的方法，使用 512 个 GPU 将基于 transformer 的模型扩展到 83 亿个参数。与可保持 39 TeraFLOPs (峰值 FLOPs 的 30%) 的强大单 GPU 基准相比，我们在整个应用中保持了 15.1 PetaFLOPs，扩展效率高达 76%.\nIntroduction 随着 LLM 变得越来越大，它们会超出现代处理器的内存限制，并需要如激活检查点 (activation checkpoint) 等额外的内存管理技术。广泛使用的优化算法 (如ADAM) 需要每个参数额外的内存来存储动量和其他优化器状态。这减少了可以有效训练的模型的大小。模型并行性的几种方法克服了这一限制，它们对模型进行分区，使权重及其相关的优化器状态不需要并发地驻留在处理器上。\nActivation Checkpoint 在深度学习模型的训练过程中，前向传播会计算并存储每一层的激活值，这些激活值在后向传播时被用来计算梯度。然而，对于深度很大的模型因为需要存储大量的激活值，可能会导致内存溢出。激活检查点技术通过在前向传播过程中只存储一部分的激活值来解决内存占用问题，如果在后向传播过程中需要没有存储的激活值就进行重新计算。 为了证明方法的可扩展性，通过在单个英伟达 V100 32GB GPU 上训练一个包含 12 亿个参数的模型来建立基准。训练该模型可维持 39 TeraFLOPs 的算力，是在 DGX-2H 服务器中配置的单个 GPU 理论峰值 FLOPS 的 30%. 在 512 个 GPU 上将模型扩展到 83 亿个参数，并采用 8 路模型并行，在整个应用中实现了高达 15.1 PetaFLOPs 的持续运行速度。与单 GPU 情况相比，扩展效率提高了 76%. 下图展示了更详细的扩展结果。\nModel (blue) and model+data (green) parallel FLOPS\nBackground \u0026 Chanllenges Neural Language Model Pretraining 早期的预训练和传递语言神经表示的例子表明，与从头开始学习的词嵌入表相比，预训练的词嵌入表改善了下游任务的结果。目前的技术水平已经从传输单词嵌入表发展到传输整个数十亿参数的语言模型。这种方法的进步要求硬件、系统技术和框架能够高效地大规模运行。\nTransformer Language Models and Multi-Head Attention 下图展示了使用的 transformer 模型的示意图。最近利用 transformer 进行语言建模的工作，如 BERT 和 GPT-2 根据需要分别只使用编码器和解码器。\nGPT-2 和 BERT 都对多头注意和 FFN 的输入使用 GeLU 非线性和层归一化，而原始 transformer 使用 ReLU 非线性并对输出进行层归一化。\nTransformer Architecture\nData and Model Parallelism in Deep Learning 将深度神经网络训练扩展到多硬件加速器有两种范式:\nData Parallelism (DP): 将 batch 拆分到多个 worker Model Parallelism (MP): 将模型的内存使用和计算分布在多个 worker 中。 Pipeline Parallelism (PP): 一组操作在一个设备上执行，然后将输出传递到流水线中的下一个设备执行另一组操作。 Distributed Tensor Computation: 将张量运算分割到多个设备上，以加速计算或增加模型大小。 然而，这些技术有一个基本的限制: 模型权重必须能加载进 worker. 我们的方法是利用模型并行性在多个加速器之间分割模型。\nModel Parallel Transformers 我们利用 transformer 网络的结构 (self-attention 和 FFN (2*MLP) 组成)，通过添加一些同步原语，创建了一个简单的并行计算模型。下面分别阐述对 FFN 和 self-attention 的并行化。\nFFN 第一个 MLP 由一个 GEMM，后跟一个 GeLU 非线性组成:\n$$\rY=\\text{GeLU}(XA)\r$$并行化 GEMM 的一种选择是将权重矩阵 A 沿着行切分，并将 X 沿着其列切分:\n$$\rX=[X_1,X_2], A=\\begin{bmatrix}A_1\\\\A_2\\end{bmatrix}\r$$\rRow Split of Weight\n可以得出 $Y = X_1A_1+X_2A_2$. 由于 GeLU 是非线性函数，因此这种方法需要在 GeLU 函数之前进行同步。\n另一个选择是沿着列切分 $A=\\begin{bmatrix}A_1,A_2\\end{bmatrix}$. 这样可以让 GeLU 独立地应用于每个 GEMM 的输出\n$[Y_1, Y_2]=\\begin{bmatrix}\\text{GeLU}(XA_1),\\text{GeLU}(XA_2)\\end{bmatrix}$.\nColumn Split of Weight\n这种切分方式的优点是不需要进行同步操作。\n如下图所示，以列并行方式切分第一个 GEMM，并沿着其行切分第二个GEMM。然后，在将输出传递给 dropout 层之前，第二个GEMM 的输出在 GPU 之间进行 all-reduce 操作。这种方法将 FFN 中的两个 GEMM 拆分到多个 GPU 上执行，并且只需要在正向传播 (g 操作符) 和反向传播 (f 操作符) 中分别执行一次 all-reduce 操作。\nParallelism of MLP\n如下图所示，利用多头注意力操作中本身存在的并行性，以列并行的方式划分与 QKV 相关的 GEMM，以便每个注意力头对应的矩阵乘法在一个 GPU 上独立完成。输出线性层的 GEMM 沿着其行并行化，并直接获取并行 attention 的输出。\nParallelism of Self-Attention\n如下图所示，这使能够仅在正向传播和反向传播中分别中使用两个 all-reduce 操作执行 transformer 中所有的 GEMM.\nParallelism of Transformer Layer\n基于 transformer 的语言模型的输出嵌入维度为隐藏层大小 (H) 乘以词汇表大小 (v). 我们沿着词汇表维度 $E = \\begin{bmatrix}E_1,E_2\\end{bmatrix}$ 并行化权重矩阵。每一块现在只包含嵌入表的一部分，输入嵌入后需要一个 all-reduce (g 算子).\n对于输出嵌入，一种方法是通过并行 $\\mathrm{GEMM} [Y_{1},Y_{2}]=[XE_{1},XE_{2}]$ 来获得 logits，并对结果 all-gather 后送入交叉熵损失函数。在这种情况下，all-gather 通信量为 bsv 个元素 (b 是批处理大小，s 是序列长度). 为了减小通信规模，我们将输出与交叉熵损失融合，这样通信量降为 bs.\n我们在每个 GPU 上维护层归一化参数的副本，并在将这些张量作为输入送到下一个模型并行区域之前，在本地输出上进行 dropout 和残差连接。为了优化模型，我们允许每个模型并行 worker 优化自己的一组参数。因为所有的值要么是本地的，要么是在 GPU上 重复的，所以在这个公式中不需要通信更新的参数值。\n",
+  "wordCount" : "1867",
+  "inLanguage": "en",
+  "datePublished": "2024-10-02T15:51:50+08:00",
+  "dateModified": "2024-10-02T15:51:50+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/megatronlm/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Megatron-LM
+    </h1>
+    <div class="post-description">
+      Paper reading about Megatron-LM
+    </div>
+    <div class="post-meta"><span title='2024-10-02 15:51:50 +0800 CST'>Oct-02-2024</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;1867 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#abstract" aria-label="Abstract">Abstract</a></li>
+                    <li>
+                        <a href="#introduction" aria-label="Introduction">Introduction</a></li>
+                    <li>
+                        <a href="#background--chanllenges" aria-label="Background &amp; Chanllenges">Background &amp; Chanllenges</a><ul>
+                            
+                    <li>
+                        <a href="#neural-language-model-pretraining" aria-label="Neural Language Model Pretraining">Neural Language Model Pretraining</a></li>
+                    <li>
+                        <a href="#transformer-language-models-and-multi-head-attention" aria-label="Transformer Language Models and Multi-Head Attention">Transformer Language Models and Multi-Head Attention</a></li>
+                    <li>
+                        <a href="#data-and-model-parallelism-in-deep-learning" aria-label="Data and Model Parallelism in Deep Learning">Data and Model Parallelism in Deep Learning</a></li></ul>
+                    </li>
+                    <li>
+                        <a href="#model-parallel-transformers" aria-label="Model Parallel Transformers">Model Parallel Transformers</a>
+                    </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="abstract">Abstract<a hidden class="anchor" aria-hidden="true" href="#abstract">#</a></h1>
+<p>我们的方法不需要新的编译器或更改库，与流水线模型并行 (<em>pipeline model parallelism</em>) 正交互补，并且可以通过在原生 PyTorch 中插入一些通信操作来实现。为了阐述我们的方法，使用 512 个 GPU 将基于 transformer 的模型扩展到 83 亿个参数。与可保持 39 TeraFLOPs (峰值 FLOPs 的 30%) 的强大单 GPU 基准相比，我们在整个应用中保持了 15.1 PetaFLOPs，扩展效率高达 76%.</p>
+<h1 id="introduction">Introduction<a hidden class="anchor" aria-hidden="true" href="#introduction">#</a></h1>
+<p>随着 LLM 变得越来越大，它们会超出现代处理器的内存限制，并需要如激活检查点 (activation checkpoint) 等额外的内存管理技术。广泛使用的优化算法 (如ADAM) 需要每个参数额外的内存来存储动量和其他优化器状态。这减少了可以有效训练的模型的大小。模型并行性的几种方法克服了这一限制，它们对模型进行分区，使权重及其相关的优化器状态不需要并发地驻留在处理器上。</p>
+<details class="custom-details">
+    <summary class="custom-summary">Activation Checkpoint</summary>
+    <div>在深度学习模型的训练过程中，前向传播会计算并存储每一层的激活值，这些激活值在后向传播时被用来计算梯度。然而，对于深度很大的模型因为需要存储大量的激活值，可能会导致内存溢出。激活检查点技术通过在前向传播过程中只存储一部分的激活值来解决内存占用问题，如果在后向传播过程中需要没有存储的激活值就进行重新计算。</div>
+</details><br>
+<p>为了证明方法的可扩展性，通过在单个英伟达 V100 32GB GPU 上训练一个包含 12 亿个参数的模型来建立基准。训练该模型可维持 39 TeraFLOPs 的算力，是在 DGX-2H 服务器中配置的单个 GPU 理论峰值 FLOPS 的 30%. 在 512 个 GPU 上将模型扩展到 83 亿个参数，并采用 8 路模型并行，在整个应用中实现了高达 15.1 PetaFLOPs 的持续运行速度。与单 GPU 情况相比，扩展效率提高了 76%. 下图展示了更详细的扩展结果。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB64c800c2db5cda251cb35df9208d8f94?method=download&amp;shareKey=3c2e4f94cd1ca9520e5d9f49a7dfb620" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB64c800c2db5cda251cb35df9208d8f94?method=download&amp;shareKey=3c2e4f94cd1ca9520e5d9f49a7dfb620" alt="Model (blue) and model&#43;data (green) parallel FLOPS">
+    </a><figcaption>Model (blue) and model&#43;data (green) parallel FLOPS</figcaption></figure></p>
+<h1 id="background--chanllenges">Background &amp; Chanllenges<a hidden class="anchor" aria-hidden="true" href="#background--chanllenges">#</a></h1>
+<h2 id="neural-language-model-pretraining">Neural Language Model Pretraining<a hidden class="anchor" aria-hidden="true" href="#neural-language-model-pretraining">#</a></h2>
+<p>早期的预训练和传递语言神经表示的例子表明，与从头开始学习的词嵌入表相比，预训练的词嵌入表改善了下游任务的结果。目前的技术水平已经从传输单词嵌入表发展到传输整个数十亿参数的语言模型。这种方法的进步要求硬件、系统技术和框架能够高效地大规模运行。</p>
+<h2 id="transformer-language-models-and-multi-head-attention">Transformer Language Models and Multi-Head Attention<a hidden class="anchor" aria-hidden="true" href="#transformer-language-models-and-multi-head-attention">#</a></h2>
+<p>下图展示了使用的 transformer 模型的示意图。最近利用 transformer 进行语言建模的工作，如 BERT 和 GPT-2 根据需要分别只使用编码器和解码器。</p>
+<blockquote>
+<p>GPT-2 和 BERT 都对多头注意和 FFN 的输入使用 GeLU 非线性和层归一化，而原始 transformer 使用 ReLU 非线性并对输出进行层归一化。</p></blockquote>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB1fcc47c83c934bf20c33fa9a88bfc34e?method=download&amp;shareKey=2132c1442224cafae4ca86d6fd01720d" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB1fcc47c83c934bf20c33fa9a88bfc34e?method=download&amp;shareKey=2132c1442224cafae4ca86d6fd01720d" alt="Transformer Architecture">
+    </a><figcaption>Transformer Architecture</figcaption></figure></p>
+<h2 id="data-and-model-parallelism-in-deep-learning">Data and Model Parallelism in Deep Learning<a hidden class="anchor" aria-hidden="true" href="#data-and-model-parallelism-in-deep-learning">#</a></h2>
+<p>将深度神经网络训练扩展到多硬件加速器有两种范式:</p>
+<ul>
+<li>Data Parallelism (DP): 将 batch 拆分到多个 worker</li>
+<li>Model Parallelism (MP): 将模型的内存使用和计算分布在多个 worker 中。
+<ul>
+<li>Pipeline Parallelism (PP): 一组操作在一个设备上执行，然后将输出传递到流水线中的下一个设备执行另一组操作。</li>
+<li>Distributed Tensor Computation: 将张量运算分割到多个设备上，以加速计算或增加模型大小。</li>
+</ul>
+</li>
+</ul>
+<p>然而，这些技术有一个基本的限制: 模型权重必须能加载进 worker. 我们的方法是利用模型并行性在多个加速器之间分割模型。</p>
+<h1 id="model-parallel-transformers">Model Parallel Transformers<a hidden class="anchor" aria-hidden="true" href="#model-parallel-transformers">#</a></h1>
+<p>我们利用 transformer 网络的结构 (self-attention 和 FFN (2*MLP) 组成)，通过添加一些同步原语，创建了一个简单的并行计算模型。下面分别阐述对 FFN 和 self-attention 的并行化。</p>
+<p>FFN 第一个 MLP 由一个 GEMM，后跟一个 GeLU 非线性组成:</p>
+$$
+Y=\text{GeLU}(XA)
+$$<p>并行化 GEMM 的一种选择是将权重矩阵 A 沿着行切分，并将 X 沿着其列切分:</p>
+$$
+X=[X_1,X_2], A=\begin{bmatrix}A_1\\A_2\end{bmatrix}
+$$<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBb1a0688321b545061bd3652261e6bf71?method=download&amp;shareKey=2cc0ee6c275925d756b0b877c961e682" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBb1a0688321b545061bd3652261e6bf71?method=download&amp;shareKey=2cc0ee6c275925d756b0b877c961e682" alt="Row Split of Weight">
+    </a><figcaption>Row Split of Weight</figcaption></figure></p>
+<p>可以得出 $Y = X_1A_1+X_2A_2$. 由于 GeLU 是非线性函数，因此这种方法需要在 GeLU 函数之前进行同步。</p>
+<p>另一个选择是沿着列切分 $A=\begin{bmatrix}A_1,A_2\end{bmatrix}$. 这样可以让 GeLU 独立地应用于每个 GEMM 的输出</p>
+<p>$[Y_1, Y_2]=\begin{bmatrix}\text{GeLU}(XA_1),\text{GeLU}(XA_2)\end{bmatrix}$.</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB5732c68a72330d13b288ab3d1828a6d2?method=download&amp;shareKey=01e733100161309cbb283548474f22f7" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB5732c68a72330d13b288ab3d1828a6d2?method=download&amp;shareKey=01e733100161309cbb283548474f22f7" alt="Column Split of Weight">
+    </a><figcaption>Column Split of Weight</figcaption></figure></p>
+<p>这种切分方式的优点是不需要进行同步操作。</p>
+<p>如下图所示，以列并行方式切分第一个 GEMM，并沿着其行切分第二个GEMM。然后，在将输出传递给 dropout 层之前，第二个GEMM 的输出在 GPU 之间进行 all-reduce 操作。这种方法将 FFN 中的两个 GEMM 拆分到多个 GPU 上执行，并且只需要在正向传播 (g 操作符) 和反向传播 (f 操作符) 中分别执行一次 all-reduce 操作。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBc1b8e9f509879d5984e2b85db312760f?method=download&amp;shareKey=39a5f19a9a477a8d9c3a80b4c5c3bd0f" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBc1b8e9f509879d5984e2b85db312760f?method=download&amp;shareKey=39a5f19a9a477a8d9c3a80b4c5c3bd0f" alt="Parallelism of MLP">
+    </a><figcaption>Parallelism of MLP</figcaption></figure></p>
+<p>如下图所示，利用多头注意力操作中本身存在的并行性，以列并行的方式划分与 QKV 相关的 GEMM，以便每个注意力头对应的矩阵乘法在一个 GPU 上独立完成。输出线性层的 GEMM 沿着其行并行化，并直接获取并行 attention 的输出。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBbd9aaf24f7a7a275f026d617e5d49da7?method=download&amp;shareKey=f927c189a40038f613ca4f917effa454" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBbd9aaf24f7a7a275f026d617e5d49da7?method=download&amp;shareKey=f927c189a40038f613ca4f917effa454" alt="Parallelism of Self-Attention">
+    </a><figcaption>Parallelism of Self-Attention</figcaption></figure></p>
+<p>如下图所示，这使能够仅在正向传播和反向传播中分别中使用两个 all-reduce 操作执行 transformer 中所有的 GEMM.</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB471b6d468483ddff2c68c46e71ec70ee?method=download&amp;shareKey=7e29126eacd44c304a8f9b2b25b4bbc3" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB471b6d468483ddff2c68c46e71ec70ee?method=download&amp;shareKey=7e29126eacd44c304a8f9b2b25b4bbc3" alt="Parallelism of Transformer Layer">
+    </a><figcaption>Parallelism of Transformer Layer</figcaption></figure></p>
+<p>基于 transformer 的语言模型的输出嵌入维度为隐藏层大小 (H) 乘以词汇表大小 (v). 我们沿着词汇表维度 $E = \begin{bmatrix}E_1,E_2\end{bmatrix}$ 并行化权重矩阵。每一块现在只包含嵌入表的一部分，输入嵌入后需要一个 all-reduce (g 算子).</p>
+<p>对于输出嵌入，一种方法是通过并行 $\mathrm{GEMM} [Y_{1},Y_{2}]=[XE_{1},XE_{2}]$ 来获得 logits，并对结果 all-gather 后送入交叉熵损失函数。在这种情况下，all-gather 通信量为 bsv 个元素 (b 是批处理大小，s 是序列长度). 为了减小通信规模，我们将输出与交叉熵损失融合，这样通信量降为 bs.</p>
+<p>我们在每个 GPU 上维护层归一化参数的副本，并在将这些张量作为输入送到下一个模型并行区域之前，在本地输出上进行 dropout 和残差连接。为了优化模型，我们允许每个模型并行 worker 优化自己的一组参数。因为所有的值要么是本地的，要么是在 GPU上 重复的，所以在这个公式中不需要通信更新的参数值。</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/distributed-training/">Distributed Training</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>Efficient Large-Scale Language Model Training on GPU</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/ringattention/">
+    <span class="title">Next »</span>
+    <br>
+    <span>Ring Attention Principle</span>
+  </a>
+</nav>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

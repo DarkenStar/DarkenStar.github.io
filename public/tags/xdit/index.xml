@@ -1,0 +1,1580 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>XDiT on WITHER</title>
+    <link>http://localhost:1313/tags/xdit/</link>
+    <description>Recent content in XDiT on WITHER</description>
+    <generator>Hugo -- 0.147.7</generator>
+    <language>en</language>
+    <copyright>2024-2025 WITHER</copyright>
+    <lastBuildDate>Sat, 07 Jun 2025 20:44:50 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/xdit/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>xDiT Principle</title>
+      <link>http://localhost:1313/blogs/xdit/</link>
+      <pubDate>Sat, 07 Jun 2025 20:44:50 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/xdit/</guid>
+      <description>This is a brief introduction to the xDiT Principle.</description>
+      <content:encoded><![CDATA[<h1 id="parse-config-arguments">Parse Config Arguments</h1>
+<p>会从命令行参数中获取有关 Model, Runtime, Parallel Processing &amp; Input 有关的信息。前三者被包含在 <code>engine_config</code> 中，而最后者则被包含在 <code>input_config</code> 中。在 <code>create_config()</code> 函数中，会初始化 <code>_WORLD</code> 全局变量，它是一个 <code>GroupCoordinator</code> 实例。很明显它只有一个包含所有的设备进程组。
+<details class="custom-details">
+    <summary class="custom-summary">GroupCoordinator</summary>
+    <div><p><code>GroupCoordinator</code> 类是一个 PyTorch 的进程组封装器，主要用于管理一组进程之间的通信。它可以根据不同的通信后端（如 NCCL、Gloo、MPI 等）来协调进程之间的操作。包含以下信息</p>
+<ul>
+<li><code>rank</code>: 当前进程的全局索引（全局唯一）。</li>
+<li><code>ranks</code>: 组内所有进程的全局索引列表。</li>
+<li><code>world_size</code>: 组的大小，即进程的数量 <code>len(ranks)</code></li>
+<li><code>local_rank</code>: 当前进程在本地节点中的索引。</li>
+<li><code>rank_in_group</code>: 当前进程在组内的索引。</li>
+<li><code>cpu_group</code>: 用于 CPU 通信的进程组。</li>
+<li><code>device_group</code>: 用于设备（如 GPU）通信的进程组。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">if</span> <span class="n">we</span> <span class="n">have</span> <span class="n">a</span> <span class="n">group</span> <span class="n">of</span> <span class="n">size</span> <span class="mi">4</span> <span class="n">across</span> <span class="n">two</span> <span class="n">nodes</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl"><span class="n">Process</span> <span class="o">|</span> <span class="n">Node</span> <span class="o">|</span> <span class="n">Rank</span> <span class="o">|</span> <span class="n">Local</span> <span class="n">Rank</span> <span class="o">|</span> <span class="n">Rank</span> <span class="ow">in</span> <span class="n">Group</span>
+</span></span><span class="line"><span class="cl">  <span class="mi">0</span>     <span class="o">|</span>   <span class="mi">0</span>  <span class="o">|</span>  <span class="mi">0</span>   <span class="o">|</span>     <span class="mi">0</span>      <span class="o">|</span>       <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">  <span class="mi">1</span>     <span class="o">|</span>   <span class="mi">0</span>  <span class="o">|</span>  <span class="mi">1</span>   <span class="o">|</span>     <span class="mi">1</span>      <span class="o">|</span>       <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">  <span class="mi">2</span>     <span class="o">|</span>   <span class="mi">1</span>  <span class="o">|</span>  <span class="mi">2</span>   <span class="o">|</span>     <span class="mi">0</span>      <span class="o">|</span>       <span class="mi">2</span>
+</span></span><span class="line"><span class="cl">  <span class="mi">3</span>     <span class="o">|</span>   <span class="mi">1</span>  <span class="o">|</span>  <span class="mi">3</span>   <span class="o">|</span>     <span class="mi">1</span>      <span class="o">|</span>       <span class="mi">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>__init__</code> 方法接收以下参数：</p>
+<ul>
+<li><code>group_ranks</code>: 一个包含多个进程索引列表的列表，每个子列表表示一个进程组。</li>
+<li><code>local_rank</code>: 当前进程的本地索引。</li>
+<li><code>torch_distributed_backend</code>: 指定用于通信的后端类型 (如 &ldquo;gloo&rdquo; 或 &ldquo;nccl&rdquo;).</li>
+</ul>
+<p>初始化过程：</p>
+<ol>
+<li>使用 <code>torch.distributed.get_rank()</code> 获取当前进程的全局索引。</li>
+<li>遍历传入的 <code>group_ranks</code> 列表，为每个子列表创建一个新的设备组和 CPU 组。</li>
+<li>如果当前进程的索引在当前子列表中，则设置该进程的组内信息 (包括 <code>ranks</code>、<code>world_size</code> 和 <code>rank_in_group</code>).</li>
+<li>确保 CPU 组和设备组都已成功创建。</li>
+<li>根据是否可用 CUDA 设置当前设备为 GPU 或 CPU.</li>
+</ol>
+</div>
+</details><br></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parser</span> <span class="o">=</span> <span class="n">FlexibleArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&#34;xFuser Arguments&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">args</span> <span class="o">=</span> <span class="n">xFuserArgs</span><span class="o">.</span><span class="n">add_cli_args</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>  <span class="c1"># Add Command Line Interface (CLI) arguments</span>
+</span></span><span class="line"><span class="cl">    <span class="n">engine_args</span> <span class="o">=</span> <span class="n">xFuserArgs</span><span class="o">.</span><span class="n">from_cli_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>  <span class="c1"># Extract CLI args and pass them to xFuserArgs Constructor</span>
+</span></span><span class="line"><span class="cl">    <span class="n">engine_config</span><span class="p">,</span> <span class="n">input_config</span> <span class="o">=</span> <span class="n">engine_args</span><span class="o">.</span><span class="n">create_config</span><span class="p">()</span>  <span class="c1"># Init _WORLD. engine_config: model, run_time &amp; parallel infos, input_config: input shape, prompt &amp; sampler infos</span>
+</span></span><span class="line"><span class="cl">    <span class="n">local_rank</span> <span class="o">=</span> <span class="n">get_world_group</span><span class="p">()</span><span class="o">.</span><span class="n">local_rank</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关于可以支持的并行策略如下，包括 Data Parallel, Sequence Parallel, Pipefusion Parallel &amp; Tensor Parallel.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Parallel Processing Options:
+</span></span><span class="line"><span class="cl">  --use_cfg_parallel    Use split batch in classifier_free_guidance. cfg_degree will be <span class="m">2</span> <span class="k">if</span> <span class="nb">set</span>
+</span></span><span class="line"><span class="cl">  --data_parallel_degree DATA_PARALLEL_DEGREE
+</span></span><span class="line"><span class="cl">                        Data parallel degree.
+</span></span><span class="line"><span class="cl">  --ulysses_degree ULYSSES_DEGREE
+</span></span><span class="line"><span class="cl">                        Ulysses sequence parallel degree. Used in attention layer.
+</span></span><span class="line"><span class="cl">  --ring_degree RING_DEGREE
+</span></span><span class="line"><span class="cl">                        Ring sequence parallel degree. Used in attention layer.
+</span></span><span class="line"><span class="cl">  --pipefusion_parallel_degree PIPEFUSION_PARALLEL_DEGREE
+</span></span><span class="line"><span class="cl">                        Pipefusion parallel degree. Indicates the number of pipeline stages.
+</span></span><span class="line"><span class="cl">  --num_pipeline_patch NUM_PIPELINE_PATCH
+</span></span><span class="line"><span class="cl">                        Number of patches the feature map should be segmented in pipefusion parallel.
+</span></span><span class="line"><span class="cl">  --attn_layer_num_for_pp <span class="o">[</span>ATTN_LAYER_NUM_FOR_PP ...<span class="o">]</span>
+</span></span><span class="line"><span class="cl">                        List representing the number of layers per stage of the pipeline in pipefusion parallel
+</span></span><span class="line"><span class="cl">  --tensor_parallel_degree TENSOR_PARALLEL_DEGREE
+</span></span><span class="line"><span class="cl">                        Tensor parallel degree.
+</span></span><span class="line"><span class="cl">  --split_scheme SPLIT_SCHEME
+</span></span><span class="line"><span class="cl">                        Split scheme <span class="k">for</span> tensor parallel.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从 CLI 解析的参数后会在 <code>create_config()</code> 中组成如下的 <a href="https://github.com/xdit-project/xDiT/blob/6f92383e76b5f8bbaf8f45e6863d1e69b0d2f955/xfuser/config/config.py#L185">ParallelConfig</a>.</p>
+<ul>
+<li><code>DataParallelConfig</code>: 总的并行度为 <code>dp_degree * cfg_degree</code>.
+<ul>
+<li><code>dp_degree</code>: 相当于对 batch 维度进行切分，</li>
+<li><code>cfg_degree</code>: Class-free Guidance(cfg) 用于控制无条件的图片生成 (若使用相当于 <code>batchsize *= 2</code>).</li>
+</ul>
+</li>
+<li><code>SequenceParallelConfig</code>: 总的并行度为 <code>sp_degree = ulysses_degree * ring_degree</code>
+<ul>
+<li><code>ulysses_degree</code>: 用于控制 <a href="https://arxiv.org/abs/2309.14509">DeepSeed-Ulesses</a> 的序列并行度。</li>
+<li><code>ring_degree</code>: 用于控制计算 Ring Attention 时对 Q K V 沿着 Sequence 维度的切分块数。</li>
+</ul>
+</li>
+<li><code>TensorParallelConfig</code>: 总的并行度为 <code>tp_degree</code>.
+<ul>
+<li><code>tp_degree</code>: 用于控制 <a href="https://arxiv.org/abs/2104.05343">2D Tensor Parallel</a> 的并行度。</li>
+<li><code>split_scheme</code>: 用于控制张量切分方式.</li>
+</ul>
+</li>
+<li><code>PipeFusionParallelConfig</code>: 总的并行度为 <code>pp_degree=num_pipeline_patch</code>.
+<ul>
+<li><code>pp_degree</code>: 用于控制 <a href="https://arxiv.org/abs/2112.11446">PipeFusion</a> 中模型 Transoformer Blocks 的切分个数。</li>
+<li><code>num_pipeline_patch</code>: 用于控制对 latent feature map 的切分块数.</li>
+<li><code>attn_layer_num_for_pp</code>: 是一个 list，表示 <code>pp_degree</code> 里每个 stage 的 Transformer 层数。</li>
+</ul>
+</li>
+</ul>
+<style type="text/css">
+     
+    .notice {
+        --title-color: #fff;
+        --title-background-color: #6be;
+        --content-color: #444;
+        --content-background-color: #e7f2fa;
+    }
+
+    .notice.info {
+        --title-background-color: #fb7;
+        --content-background-color: #fec;
+    }
+
+    .notice.tip {
+        --title-background-color: #5a5;
+        --content-background-color: #efe;
+    }
+
+    .notice.warning {
+        --title-background-color: #c33;
+        --content-background-color: #fee;
+    }
+
+     
+    @media (prefers-color-scheme:dark) {
+        .notice {
+            --title-color: #fff;
+            --title-background-color: #069;
+            --content-color: #ddd;
+            --content-background-color: #023;
+        }
+
+        .notice.info {
+            --title-background-color: #a50;
+            --content-background-color: #420;
+        }
+
+        .notice.tip {
+            --title-background-color: #363;
+            --content-background-color: #121;
+        }
+
+        .notice.warning {
+            --title-background-color: #800;
+            --content-background-color: #400;
+        }
+    }
+
+    body.dark .notice {
+        --title-color: #fff;
+        --title-background-color: #069;
+        --content-color: #ddd;
+        --content-background-color: #023;
+    }
+
+    body.dark .notice.info {
+        --title-background-color: #a50;
+        --content-background-color: #420;
+    }
+
+    body.dark .notice.tip {
+        --title-background-color: #363;
+        --content-background-color: #121;
+    }
+
+    body.dark .notice.warning {
+        --title-background-color: #800;
+        --content-background-color: #400;
+    }
+
+     
+    .notice {
+        padding: 18px;
+        line-height: 24px;
+        margin-bottom: 24px;
+        border-radius: 4px;
+        color: var(--content-color);
+        background: var(--content-background-color);
+    }
+
+    .notice p:last-child {
+        margin-bottom: 0
+    }
+
+     
+    .notice-title {
+        margin: -18px -18px 12px;
+        padding: 4px 18px;
+        border-radius: 4px 4px 0 0;
+        font-weight: 700;
+        color: var(--title-color);
+        background: var(--title-background-color);
+    }
+
+     
+    .icon-notice {
+        display: inline-flex;
+        align-self: center;
+        margin-right: 8px;
+    }
+
+    .icon-notice img,
+    .icon-notice svg {
+        height: 1em;
+        width: 1em;
+        fill: currentColor;
+    }
+
+    .icon-notice img,
+    .icon-notice.baseline svg {
+        top: .125em;
+        position: relative;
+    }
+</style><div class="notice warning" >
+    <p class="notice-title">
+        <span class="icon-notice baseline">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="126 76.5 300 300">
+  <path d="M297.431 324.397v-34.255c0-3.245-2.344-5.95-5.358-5.95h-32.146c-3.014 0-5.358 2.705-5.358 5.95v34.255c0 3.245 2.344 5.95 5.358 5.95h32.146c3.014 0 5.358-2.705 5.358-5.95Zm-.335-67.428 3.014-82.753c0-1.081-.502-2.524-1.674-3.425-1.005-.902-2.512-1.983-4.019-1.983h-36.834c-1.507 0-3.014 1.081-4.019 1.983-1.172.901-1.674 2.704-1.674 3.786l2.846 82.392c0 2.344 2.512 4.146 5.693 4.146h30.975c3.013 0 5.525-1.803 5.692-4.146Zm-2.344-168.39L423.34 342.425c3.683 7.032 3.516 15.686-.335 22.717-3.85 7.031-10.883 11.358-18.417 11.358H147.413c-7.534 0-14.566-4.327-18.417-11.358-3.85-7.031-4.018-15.685-.335-22.716L257.248 88.578C260.93 81.188 268.13 76.5 276 76.5c7.87 0 15.069 4.688 18.752 12.08Z"/>
+</svg>
+
+        </span>Warning</p><p>关于 PipeFusion，原文说切分的 patch 数和 pipeline 大小可以不同，但这里要求 <code>len(attn_layer_num_for_pp)=pp_degree</code></p></div>
+
+<div class="notice info" >
+    <p class="notice-title">
+        <span class="icon-notice baseline">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="92 59.5 300 300">
+  <path d="M292 303.25V272c0-3.516-2.734-6.25-6.25-6.25H267v-100c0-3.516-2.734-6.25-6.25-6.25h-62.5c-3.516 0-6.25 2.734-6.25 6.25V197c0 3.516 2.734 6.25 6.25 6.25H217v62.5h-18.75c-3.516 0-6.25 2.734-6.25 6.25v31.25c0 3.516 2.734 6.25 6.25 6.25h87.5c3.516 0 6.25-2.734 6.25-6.25Zm-25-175V97c0-3.516-2.734-6.25-6.25-6.25h-37.5c-3.516 0-6.25 2.734-6.25 6.25v31.25c0 3.516 2.734 6.25 6.25 6.25h37.5c3.516 0 6.25-2.734 6.25-6.25Zm125 81.25c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+        </span>Info</p><p>设备数必须等于 <code>dp_degree * cfg_degree * sp_degree * tp_degree * num_pipeline_patch</code>，并且 <code>pp_degree</code> 必须小于等于设备数。
+<code>ulysses_degree</code> 必须要大于且能被 attention 的头数整除。</p></div>
+
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">parallel_config</span> <span class="o">=</span> <span class="n">ParallelConfig</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dp_config</span><span class="o">=</span><span class="n">DataParallelConfig</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dp_degree</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_parallel_degree</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">use_cfg_parallel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_cfg_parallel</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sp_config</span><span class="o">=</span><span class="n">SequenceParallelConfig</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ulysses_degree</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ulysses_degree</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ring_degree</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ring_degree</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tp_config</span><span class="o">=</span><span class="n">TensorParallelConfig</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">tp_degree</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_parallel_degree</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">split_scheme</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">split_scheme</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pp_config</span><span class="o">=</span><span class="n">PipeFusionParallelConfig</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pp_degree</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pipefusion_parallel_degree</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num_pipeline_patch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_pipeline_patch</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">attn_layer_num_for_pp</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">attn_layer_num_for_pp</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="construct-pipeline">Construct Pipeline</h1>
+<p>解析完配置参数并构建了 <code>engine_config</code> 后，下一步是构建模型的 pipeline.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl">    <span class="n">pipe</span> <span class="o">=</span> <span class="n">xFuserPixArtAlphaPipeline</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>  <span class="c1"># First construct a PixArtAlphaPipeline, then pass it and engine_config to xFuserPipelineBaseWrapper</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pretrained_model_name_or_path</span><span class="o">=</span><span class="n">engine_config</span><span class="o">.</span><span class="n">model_config</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">engine_config</span><span class="o">=</span><span class="n">engine_config</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">torch_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;cuda:</span><span class="si">{</span><span class="n">local_rank</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pipe</span><span class="o">.</span><span class="n">prepare_run</span><span class="p">(</span><span class="n">input_config</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>xFuserPixArtAlphaPipeline 继承自 <a href="https://github.com/xdit-project/xDiT/blob/6f92383e76b5f8bbaf8f45e6863d1e69b0d2f955/xfuser/model_executor/pipelines/base_pipeline.py#L61">xFuserPipelineBaseWrapper</a>，_init_runtime_state 函数经过一番调用后会使用 <a href="https://github.com/xdit-project/xDiT/blob/6f92383e76b5f8bbaf8f45e6863d1e69b0d2f955/xfuser/core/distributed/parallel_state.py#L265">initialize_model_parallel</a> 初始化 <code>_RUNTIME</code> 有关模型参数的部分和模型并行的全局变量 <code>_DP, _CFG, _PP, _SP, _TP</code>，它是一个 DiTRuntimeState (继承 RuntimeState) 实例，记录了每个 Group 包含的设备索引，除此之外还包括 PipeFusionParallel 中有关 patch 索引的参数 (在稍后 pipeline 执行的时候计算).</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">xFuserPipelineBaseWrapper</span><span class="p">(</span><span class="n">xFuserBaseWrapper</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pipeline</span><span class="p">:</span> <span class="n">DiffusionPipeline</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">engine_config</span><span class="p">:</span> <span class="n">EngineConfig</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">:</span> <span class="n">DiffusionPipeline</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_init_runtime_state</span><span class="p">(</span><span class="n">pipeline</span><span class="o">=</span><span class="n">pipeline</span><span class="p">,</span> <span class="n">engine_config</span><span class="o">=</span><span class="n">engine_config</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># backbone</span>
+</span></span><span class="line"><span class="cl">        <span class="n">transformer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="s2">&#34;transformer&#34;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">unet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="s2">&#34;unet&#34;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># vae</span>
+</span></span><span class="line"><span class="cl">        <span class="n">vae</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="s2">&#34;vae&#34;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># scheduler</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scheduler</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="s2">&#34;scheduler&#34;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">transformer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">pipeline</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_transformer_backbone</span><span class="p">(</span><span class="n">transformer</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">unet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">pipeline</span><span class="o">.</span><span class="n">unet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_unet_backbone</span><span class="p">(</span><span class="n">unet</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">scheduler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">pipeline</span><span class="o">.</span><span class="n">scheduler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_scheduler</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="n">pipeline</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">   
+</span></span><span class="line"><span class="cl">   
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_convert_transformer_backbone</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">transformer</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">):</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">#...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&#34;Transformer backbone found, paralleling transformer...&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">wrapper</span> <span class="o">=</span> <span class="o">**</span><span class="n">xFuserTransformerWrappersRegister</span><span class="o">.</span><span class="n">get_wrapper</span><span class="p">(</span><span class="n">transformer</span><span class="p">)</span><span class="o">**</span>
+</span></span><span class="line"><span class="cl">            <span class="n">transformer</span> <span class="o">=</span> <span class="n">wrapper</span><span class="p">(</span><span class="n">transformer</span><span class="o">=</span><span class="n">transformer</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">transformer</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="initialize_model_parallel">initialize_model_parallel</h2>
+<p>该函数中会初始化一个 <code>RankGenerator</code>，它接收每个并行方法的设备组大小和并行度大小顺序。其主要的方法是通过 <a href="https://github.com/xdit-project/xDiT/blob/6f92383e76b5f8bbaf8f45e6863d1e69b0d2f955/xfuser/core/distributed/utils.py#L4">generate_masked_orthogonal_rank_groups</a> 函数确定每个并行组由包含哪些设备，先把并行方法按照并行度从小到大排列成 <code>tp-sp-pp-cfg-dp</code>. 再根据要生成的并行组产生对应的 <code>mask</code>. 即如果要生成 <code>pp</code> 组对应的 rank，那么 <code>mask = [0, 0, 1, 0, 0]</code></p>
+<p>该函数首先会生成需要生成的并行组的大小组成的 masked_shape 和不需要生成的 unmasked_shape. 首先要用 prefix_product 计算 <code>global_stride</code>，即每个并行度的设备组包含几个设备。再根据 <code>mask</code> 取出对应的 <code>mask_stride</code> 和 <code>unmaskd_stride</code>. <code>group_size = mask_stride[-1]</code> 即为最大并行度的组包含的设备数。<code>num_of_group = num_of_device / mask_stride[-1]</code> 即为要生成几个并行度最大的组。先遍历要生成的每个设备组，并用 decompose 函数确定该设备组在不需要并行维度上的索引；再遍历该组中的每个设备的 lock rank，确定该设备在需要并行维度上的索引，最后用 inner_product 确定该设备的 global rank.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">generate_masked_orthogonal_rank_groups</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">world_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">parallel_size</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">mask</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">prefix_product</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">init</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>  <span class="c1"># Exclusive</span>
+</span></span><span class="line"><span class="cl">        <span class="n">r</span> <span class="o">=</span> <span class="p">[</span><span class="n">init</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">init</span> <span class="o">=</span> <span class="n">init</span> <span class="o">*</span> <span class="n">v</span>
+</span></span><span class="line"><span class="cl">            <span class="n">r</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">init</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">r</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">inner_product</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">b</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">sum</span><span class="p">([</span><span class="n">x</span> <span class="o">*</span> <span class="n">y</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">decompose</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="c1"># index: 第几个并行组  # shape: 并行组大小的 list</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">        This function solve the math problem below:
+</span></span></span><span class="line"><span class="cl"><span class="s2">            There is an equation: index = sum(idx[i] * stride[i])
+</span></span></span><span class="line"><span class="cl"><span class="s2">            And given the value of index, stride.
+</span></span></span><span class="line"><span class="cl"><span class="s2">            Return the idx.
+</span></span></span><span class="line"><span class="cl"><span class="s2">        This function will used to get the pp/dp/pp_rank from group_index and rank_in_group.
+</span></span></span><span class="line"><span class="cl"><span class="s2">        &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">stride</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">stride</span> <span class="o">=</span> <span class="n">prefix_product</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="p">[(</span><span class="n">index</span> <span class="o">//</span> <span class="n">d</span><span class="p">)</span> <span class="o">%</span> <span class="n">s</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">)]</span>  <span class="c1">#  计算在每个并行维度上的索引</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># stride is a prefix_product result. And the value of stride[-1]</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># is not used.</span>
+</span></span><span class="line"><span class="cl">        <span class="k">assert</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">sum</span><span class="p">([</span><span class="n">x</span> <span class="o">*</span> <span class="n">y</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">stride</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])])</span> <span class="o">==</span> <span class="n">index</span>
+</span></span><span class="line"><span class="cl">        <span class="p">),</span> <span class="s2">&#34;idx </span><span class="si">{}</span><span class="s2"> with shape </span><span class="si">{}</span><span class="s2"> mismatch the return idx </span><span class="si">{}</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">idx</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">masked_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">parallel_size</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="n">m</span><span class="p">]</span>  <span class="c1"># 需要采取并行的维度</span>
+</span></span><span class="line"><span class="cl">    <span class="n">unmasked_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">parallel_size</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">]</span>  <span class="c1"># 不需要的</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">global_stride</span> <span class="o">=</span> <span class="n">prefix_product</span><span class="p">(</span><span class="n">parallel_size</span><span class="p">)</span>  <span class="c1"># exclusive 前缀积 表示大的并行维度包括几个设备</span>
+</span></span><span class="line"><span class="cl">    <span class="n">masked_stride</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">global_stride</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="n">m</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">unmasked_stride</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">global_stride</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">group_size</span> <span class="o">=</span> <span class="n">prefix_product</span><span class="p">(</span><span class="n">masked_shape</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># 最大的一个并行维度包括几个设备</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_of_group</span> <span class="o">=</span> <span class="n">world_size</span> <span class="o">//</span> <span class="n">group_size</span>  <span class="c1"># 分成几个大组</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">ranks</span> <span class="o">=</span> <span class="p">[]</span>  
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">group_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_of_group</span><span class="p">):</span>  <span class="c1"># 遍历每个设备组</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># get indices from unmaksed for group_index.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">decomposed_group_idx</span> <span class="o">=</span> <span class="n">decompose</span><span class="p">(</span><span class="n">group_index</span><span class="p">,</span> <span class="n">unmasked_shape</span><span class="p">)</span>  <span class="c1"># 得到在不需要采取并行的维度上的索引</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rank</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">rank_in_group</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">group_size</span><span class="p">):</span>  <span class="c1"># 遍历该组中的每个设备 local rank</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># get indices from masked for rank_in_group.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">decomposed_rank_idx</span> <span class="o">=</span> <span class="n">decompose</span><span class="p">(</span><span class="n">rank_in_group</span><span class="p">,</span> <span class="n">masked_shape</span><span class="p">)</span>  <span class="c1"># 得到最大并行组的每个设备在采取并行的维度上的索引</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rank</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>  <span class="o">//</span> <span class="n">相加得到全局rank</span>
+</span></span><span class="line"><span class="cl">                <span class="n">inner_product</span><span class="p">(</span><span class="n">decomposed_rank_idx</span><span class="p">,</span> <span class="n">masked_stride</span><span class="p">)</span>  
+</span></span><span class="line"><span class="cl">                <span class="o">+</span> <span class="n">inner_product</span><span class="p">(</span><span class="n">decomposed_group_idx</span><span class="p">,</span> <span class="n">unmasked_stride</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ranks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rank</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">ranks</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="hybrid-parallelsim-design">Hybrid Parallelsim Design</h2>
+<p>xDiT支持四种并行方式：PipeFusion、Sequence、Data 和 CFG Parallel。其中，Data 和 CFG Parallel在图像间并行相对简单，而 PipeFusion和 Sequence 在图像内部的不同 Patch 间并行则较为复杂。能</p>
+<p>PipeFusion 利用 Input Tempor Redundancy特点，使用过时的 KV（Stale KV）进行 Attention 计算，这使得 PipeFusion 无法像大型语言模型那样轻松地实现并行策略的混合。使用标准的序列并行接口，如RingAttention、Ulysses或 USP，无法满足 SP 与PipeFusion混合并行的需求。</p>
+<p>我们对这个问题具体说明，下图展示了pipe_degree=4，sp_degree=2的混合并行方法。设置 <code>num_pipeline_patch</code>=4，图片切分为 M=<code>num_pipeline_patch*sp_degree</code>=8 个 Patch，分别是 P0~P7.</p>
+<div align="center">
+    <img src="https://raw.githubusercontent.com/xdit-project/xdit_assets/main/methods/hybrid_pp_scheme.png" alt="hybrid process group config"  width="60%">
+</div>
+<p>Standard SP Attention 的输入Q，K，V 和输出 O 都是沿着序列维度切分，且切分方式一致。如果不同 rank 的输入 patch 没有重叠，每个 micro step 计算出 fresh KV 更新的位置在不同 rank 间也没有重叠。如下图所示，standard SP 的 KV Buffer 中黄色部分是 SP0 rank=0 拥有的 fresh KV，绿色部分是 SP1 rank=1 拥有的fresh KV，二者并不相同。在这个 diffusion step 内，device=0 无法拿到 P1,3,5,7 的 fresh KV 进行计算，但是 PipeFusion 则需要在下一个 diffusion step 中，拥有上一个diffusion step 全部的 KV. standard SP 只拥有 1/sp_degree 的 fresh kv buffer，因此无法获得混合并行推理正确的结果。</p>
+<div align="center">
+    <img src="https://raw.githubusercontent.com/xdit-project/xdit_assets/main/methods/hybrid_workflow.png" alt="hybrid parallel workflow">
+</div>
+<p>xDiT专门定制了序列并行的实现方式，以适应这种混合并行的需求。xDiT使用 <code>xFuserLongContextAttention</code> 把SP的中间结果存在 KV Buffer 内。效果如下图，每个 micro-step SP 执行完毕后，SP Group 内不同 rank 设备的 fresh KV是 replicate 的。这样一个 diffusion step 后，SP Group 所有设备的 KV Buffer 都更新成最新，供下一个 Diffusion Step 使用。</p>
+<div align="center">
+    <img src="https://raw.githubusercontent.com/xdit-project/xdit_assets/main/methods/kvbuffer_hybrid.png" alt="kvbuffer in hybrid parallel">
+</div>
+<div class="notice note" >
+    <p class="notice-title">
+        <span class="icon-notice baseline">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 128 300 300">
+  <path d="M150 128c82.813 0 150 67.188 150 150 0 82.813-67.188 150-150 150C67.187 428 0 360.812 0 278c0-82.813 67.188-150 150-150Zm25 243.555v-37.11c0-3.515-2.734-6.445-6.055-6.445h-37.5c-3.515 0-6.445 2.93-6.445 6.445v37.11c0 3.515 2.93 6.445 6.445 6.445h37.5c3.32 0 6.055-2.93 6.055-6.445Zm-.39-67.188 3.515-121.289c0-1.367-.586-2.734-1.953-3.516-1.172-.976-2.93-1.562-4.688-1.562h-42.968c-1.758 0-3.516.586-4.688 1.563-1.367.78-1.953 2.148-1.953 3.515l3.32 121.29c0 2.734 2.93 4.882 6.64 4.882h36.134c3.515 0 6.445-2.148 6.64-4.883Z"/>
+</svg>
+
+        </span>Note</p><p>假设一共有 16 个 GPU，索引表示为 g0 &hellip; g15，并行方法和并行度设置如下</p>
+<p><code>dp_degree (2) * cfg_degree (2) * pp_degree (2) * sp_degree (2) = 16</code>.</p>
+<p>那么一共会创建 2 data parallel-groups, 8 CFG groups, 8 pipeline-parallel groups &amp; 8 sequence-parallel groups:</p>
+<ul>
+<li>2 data-parallel groups:
+[g0, g1, g2, g3, g4, g5, g6, g7],
+[g8, g9, g10, g11, g12, g13, g14, g15]</li>
+<li>8 CFG-parallel groups:
+[g0, g4], [g1, g5], [g2, g6], [g3, g7],
+[g8, g12], [g9, g13], [g10, g14], [g11, g15]</li>
+<li>8 pipeline-parallel groups:
+[g0, g2], [g4, g6], [g8, g10], [g12, g14],
+[g1, g3], [g5, g7], [g9, g11], [g13, g15]</li>
+<li>8 sequence-parallel groups:
+[g0, g1], [g2, g3], [g4, g5], [g6, g7],
+[g8, g9], [g10, g11], [g12, g13], [g14, g15]</li>
+</ul></div>
+
+<h2 id="convert-model">Convert Model</h2>
+<p><a href="https://github.com/xdit-project/xDiT/blob/6f92383e76b5f8bbaf8f45e6863d1e69b0d2f955/xfuser/model_executor/models/transformers/base_transformer.py#L76">_split_transformer_blocks</a> 会对 transformer block 进行分配，如果 parallel_config 指定了 attn_layer_num_for_pp，即存有每个 pipeFusion 的设备被分配的 transformer block 数量的列表，按其进行分配；否则平均分。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">_split_transformer_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transformer</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,):</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># omit</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># transformer layer split</span>
+</span></span><span class="line"><span class="cl">    <span class="n">attn_layer_num_for_pp</span> <span class="o">=</span> <span class="p">(</span>  <span class="c1"># 获取每个 pipeFusion 的设备被分配的 transformer block 数量</span>
+</span></span><span class="line"><span class="cl">        <span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">parallel_config</span><span class="o">.</span><span class="n">pp_config</span><span class="o">.</span><span class="n">attn_layer_num_for_pp</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pp_rank</span> <span class="o">=</span> <span class="n">get_pipeline_parallel_rank</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pp_world_size</span> <span class="o">=</span> <span class="n">get_pipeline_parallel_world_size</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">attn_layer_num_for_pp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">is_pipeline_first_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">transformer</span><span class="o">.</span><span class="n">transformer_blocks</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">transformer_blocks</span><span class="p">[</span> <span class="p">:</span> <span class="n">attn_layer_num_for_pp</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">transformer</span><span class="o">.</span><span class="n">transformer_blocks</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">transformer_blocks</span><span class="p">[</span><span class="nb">sum</span><span class="p">(</span><span class="n">attn_layer_num_for_pp</span><span class="p">[:</span> <span class="n">pp_rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="p">:</span> 
+</span></span><span class="line"><span class="cl">                                                                            <span class="nb">sum</span><span class="p">(</span><span class="n">attn_layer_num_for_pp</span><span class="p">[:</span><span class="n">pp_rank</span><span class="p">])]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span><span class="p">:</span>  <span class="c1"># 没有指定则平均分</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num_blocks_per_stage</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">transformer</span><span class="o">.</span><span class="n">transformer_blocks</span><span class="p">)</span> <span class="o">+</span> <span class="n">pp_world_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">pp_world_size</span>
+</span></span><span class="line"><span class="cl">        <span class="n">start_idx</span> <span class="o">=</span> <span class="n">pp_rank</span> <span class="o">*</span> <span class="n">num_blocks_per_stage</span>
+</span></span><span class="line"><span class="cl">        <span class="n">end_idx</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span><span class="n">pp_rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_blocks_per_stage</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">transformer</span><span class="o">.</span><span class="n">transformer_blocks</span><span class="p">),)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">transformer</span><span class="o">.</span><span class="n">transformer_blocks</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">transformer_blocks</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># position embedding</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_pipeline_first_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">        <span class="n">transformer</span><span class="o">.</span><span class="n">pos_embed</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_pipeline_last_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">        <span class="n">transformer</span><span class="o">.</span><span class="n">norm_out</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">        <span class="n">transformer</span><span class="o">.</span><span class="n">proj_out</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">transformer</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>同时也会 convert 原先的 transformer backbone 为 <a href="https://github.com/xdit-project/xDiT/blob/main/xfuser/model_executor/models/transformers/pixart_transformer_2d.py#L21">xFuserPixArtTransformer2DWrapper</a>，具体表现为只有 pipeline 的第一阶段进行 position embedding，最后一阶段进行 unpatchify 变为原来的图像形状。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nd">@xFuserTransformerWrappersRegister.register</span><span class="p">(</span><span class="n">PixArtTransformer2DModel</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">xFuserPixArtTransformer2DWrapper</span><span class="p">(</span><span class="n">xFuserTransformerBaseWrapper</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">transformer</span><span class="p">:</span> <span class="n">PixArtTransformer2DModel</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">transformer</span><span class="o">=</span><span class="n">transformer</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">submodule_classes_to_wrap</span><span class="o">=</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">,</span> <span class="n">PatchEmbed</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="n">submodule_name_to_wrap</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;attn1&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@xFuserBaseWrapper.forward_check_condition</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">hidden_states</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">encoder_hidden_states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">timestep</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">added_cond_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cross_attention_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">attention_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">encoder_attention_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">return_dict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">):</span>  
+</span></span><span class="line"><span class="cl">	<span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">	......
+</span></span></span><span class="line"><span class="cl"><span class="s1">	&#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">	<span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_patch_height_width</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># * only pp rank 0 needs pos_embed (patchify)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">is_pipeline_first_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">hidden_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_embed</span><span class="p">(</span><span class="n">hidden_states</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">	......
+</span></span></span><span class="line"><span class="cl"><span class="s1">	&#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="n">is_pipeline_last_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">	<span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">	......
+</span></span></span><span class="line"><span class="cl"><span class="s1">	&#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">	    <span class="n">output</span> <span class="o">=</span> <span class="n">hidden_states</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">return_dict</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">(</span><span class="n">output</span><span class="p">,)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">Transformer2DModelOutput</span><span class="p">(</span><span class="n">sample</span><span class="o">=</span><span class="n">output</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="pipeline-execution">Pipeline Execution</h1>
+<p>在进行 warm up 后便会进行模型推理和采样器的去噪过程。模型推理通过调用 pipeline 的 <code>__call__</code> 方法实现。在原先 diffusers 包中的 <a href="https://github.com/huggingface/diffusers/blob/main/src/diffusers/pipelines/pixart_alpha/pipeline_pixart_alpha.py">PixaeArtAlphaPipeline</a> 基础上做了一些修改。我们直接看修改的部分。</p>
+<p><code>get_runtime_state()</code> 返回 <code>_RUNTIME</code> ，再调用 <code>set_input_parameters</code> 方法，设置输入参数和计算 PipeFusionParallel 中有关 patch 索引的参数。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">set_input_parameters</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_inference_steps</span><span class="o">=</span><span class="n">num_inference_steps</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>该函数会计算</p>
+<ul>
+<li>pipeline parallel 中每个 patch 的高度，必须是 <code>patch_size * num_sp_patches</code> 的整数倍。</li>
+<li>将每个流水线阶段的 patch 高度均匀地分配给 <code>num_sp_patches</code> 个序列并行设备，计算每个设备的 patch 高度和起始索引。</li>
+</ul>
+<p>然后会对 prompt 嵌入后的正样本和负样本在 cfg parallel 组中的设备进行分割, rank 0 负样本，rank 1 正样本。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">if</span> <span class="n">do_classifier_free_guidance</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="n">prompt_embeds</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">    <span class="n">prompt_attention_mask</span><span class="p">,)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_cfg_split_batch</span><span class="p">(</span><span class="n">negative_prompt_embeds</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                                                            <span class="n">prompt_embeds</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                                                            <span class="n">negative_prompt_attention_mask</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                                                            <span class="n">prompt_attention_mask</span><span class="p">,)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">_process_cfg_split_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">concat_group_0_negative</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">concat_group_0</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">concat_group_1_negative</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">concat_group_1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,):</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="n">get_classifier_free_guidance_world_size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">      <span class="n">concat_group_0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">concat_group_0_negative</span><span class="p">,</span> <span class="n">concat_group_0</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">concat_group_1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">concat_group_1_negative</span><span class="p">,</span> <span class="n">concat_group_1</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">elif</span> <span class="n">get_classifier_free_guidance_rank</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">      <span class="n">concat_group_0</span> <span class="o">=</span> <span class="n">concat_group_0_negative</span>
+</span></span><span class="line"><span class="cl">      <span class="n">concat_group_1</span> <span class="o">=</span> <span class="n">concat_group_1_negative</span>
+</span></span><span class="line"><span class="cl">  <span class="k">elif</span> <span class="n">get_classifier_free_guidance_rank</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">      <span class="n">concat_group_0</span> <span class="o">=</span> <span class="n">concat_group_0</span>
+</span></span><span class="line"><span class="cl">      <span class="n">concat_group_1</span> <span class="o">=</span> <span class="n">concat_group_1</span>
+</span></span><span class="line"><span class="cl">  <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&#34;Invalid classifier free guidance rank&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">concat_group_0</span><span class="p">,</span> <span class="n">concat_group_1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="async-pipeline">Async Pipeline</h1>
+<h2 id="initialize-pipeline">Initialize Pipeline</h2>
+<p>首先会初始化 pipeline，rank 0 会接收 warmup 阶段的 latents 然后沿着 H 维度进行分块，rank -1 也会沿着 H 维度进行分块。然后为每个 patch 创建接收的任务，注意 rank 0 第一次是从 warmup 阶段接收 latents，所以他的需要接收的 timestep 少一个。
+<code>patch_latents</code> 表示当前设备正在处理的 patch 数据，它会在流水线的每一阶段进行处理和传递。<code>last_patch_latents</code> 只在流水线的最后阶段设备中使用，用来存储每个 patch 的最终计算结果。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">timesteps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">latents</span>
+</span></span><span class="line"><span class="cl"><span class="n">num_pipeline_patch</span> <span class="o">=</span> <span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">num_pipeline_patch</span>
+</span></span><span class="line"><span class="cl"><span class="n">num_pipeline_warmup_steps</span> <span class="o">=</span> <span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">runtime_config</span><span class="o">.</span><span class="n">warmup_steps</span>
+</span></span><span class="line"><span class="cl"><span class="n">patch_latents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_async_pipeline</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_timesteps</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">timesteps</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">latents</span><span class="o">=</span><span class="n">latents</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_pipeline_warmup_steps</span><span class="o">=</span><span class="n">num_pipeline_warmup_steps</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">last_patch_latents</span> <span class="o">=</span> <span class="p">(</span>  <span class="c1"># 每个 pipeline group 最后的设备接收所有的 patch</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pipeline_patch</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">is_pipeline_last_stage</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">_init_async_pipeline</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_timesteps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">latents</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_pipeline_warmup_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">set_patched_mode</span><span class="p">(</span><span class="n">patch_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">is_pipeline_first_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># get latents computed in warmup stage</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># ignore latents after the last timestep</span>
+</span></span><span class="line"><span class="cl">        <span class="n">latents</span> <span class="o">=</span> <span class="p">(</span><span class="n">get_pp_group</span><span class="p">()</span><span class="o">.</span><span class="n">pipeline_recv</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                  <span class="k">if</span> <span class="n">num_pipeline_warmup_steps</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">                  <span class="k">else</span> <span class="n">latents</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">patch_latents</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">latents</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">pp_patches_height</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">elif</span> <span class="n">is_pipeline_last_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">        <span class="n">patch_latents</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">latents</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">pp_patches_height</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">patch_latents</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">num_pipeline_patch</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">recv_timesteps</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_timesteps</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">is_pipeline_first_stage</span><span class="p">()</span> <span class="k">else</span> <span class="n">num_timesteps</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># construct receive tasks for each patch</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">recv_timesteps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">patch_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">num_pipeline_patch</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">get_pp_group</span><span class="p">()</span><span class="o">.</span><span class="n">add_pipeline_recv_task</span><span class="p">(</span><span class="n">patch_idx</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">patch_latents</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="iterate-over-timesteps">Iterate Over Timesteps</h1>
+<p>对于每个 <code>timestep</code>（即每个去噪步骤），会对每个 patch 执行：</p>
+<ol>
+<li>如果当前设备是流水线的最后一阶段 (<code>is_pipeline_last_stage()</code>)，将当前 patch 的数据保存到 <code>last_patch_latents</code> 中。</li>
+<li>如果不是第一阶段的第一个时间步 (<code>i == 0</code>)，调用 <code>recv_next()</code> 来异步接收来自上一设备的 patch 数据（非阻塞操作，通过 <code>irecv</code> 完成）。</li>
+<li>对每个 patch 执行模型的前向传播 <code>_backbone_forward</code>，根据当前时间步 <code>t</code> 进行推理和计算。</li>
+<li>如果当前设备是最后一阶段，调用 <code>_scheduler_step</code> 来根据噪声进行去噪，并将数据发送给下一个设备 <code>pipeline_isend</code>。</li>
+<li>对于非最后阶段的设备，继续将当前 patch 的计算结果发送到下一设备。</li>
+</ol>
+<p><code>get_pp_group().pipeline_isend</code> 用于将当前 patch 发送到下一个设备，使用的是 torch.distributed.isend，这是非阻塞发送。
+<code>get_pp_group().recv_next</code> 会准备好接收来自上一个设备的数据，recv_buffer 用来存放接收到的数据。irecv 实现非阻塞接收，可以在等待数据的同时进行其他操作。</p>
+<div class="notice warning" >
+    <p class="notice-title">
+        <span class="icon-notice baseline">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="126 76.5 300 300">
+  <path d="M297.431 324.397v-34.255c0-3.245-2.344-5.95-5.358-5.95h-32.146c-3.014 0-5.358 2.705-5.358 5.95v34.255c0 3.245 2.344 5.95 5.358 5.95h32.146c3.014 0 5.358-2.705 5.358-5.95Zm-.335-67.428 3.014-82.753c0-1.081-.502-2.524-1.674-3.425-1.005-.902-2.512-1.983-4.019-1.983h-36.834c-1.507 0-3.014 1.081-4.019 1.983-1.172.901-1.674 2.704-1.674 3.786l2.846 82.392c0 2.344 2.512 4.146 5.693 4.146h30.975c3.013 0 5.525-1.803 5.692-4.146Zm-2.344-168.39L423.34 342.425c3.683 7.032 3.516 15.686-.335 22.717-3.85 7.031-10.883 11.358-18.417 11.358H147.413c-7.534 0-14.566-4.327-18.417-11.358-3.85-7.031-4.018-15.685-.335-22.716L257.248 88.578C260.93 81.188 268.13 76.5 276 76.5c7.87 0 15.069 4.688 18.752 12.08Z"/>
+</svg>
+
+        </span>Warning</p><p>scheduler_step 只对单独的 patch 进行，原因未知。</p></div>
+
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">first_async_recv</span> <span class="o">=</span> <span class="kc">True</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">timesteps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">patch_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pipeline_patch</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">is_pipeline_last_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">last_patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">is_pipeline_first_stage</span><span class="p">()</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">pass</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">first_async_recv</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">get_pp_group</span><span class="p">()</span><span class="o">.</span><span class="n">recv_next</span><span class="p">()</span>  
+</span></span><span class="line"><span class="cl">                <span class="n">first_async_recv</span> <span class="o">=</span> <span class="kc">False</span>
+</span></span><span class="line"><span class="cl">            <span class="n">patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_pp_group</span><span class="p">()</span><span class="o">.</span><span class="n">get_pipeline_recv_data</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">idx</span><span class="o">=</span><span class="n">patch_idx</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backbone_forward</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">latents</span><span class="o">=</span><span class="n">patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prompt_embeds</span><span class="o">=</span><span class="n">prompt_embeds</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prompt_attention_mask</span><span class="o">=</span><span class="n">prompt_attention_mask</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">added_cond_kwargs</span><span class="o">=</span><span class="n">added_cond_kwargs</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">guidance_scale</span><span class="o">=</span><span class="n">guidance_scale</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">is_pipeline_last_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduler_step</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">],</span>  <span class="c1"># pred noise</span>
+</span></span><span class="line"><span class="cl">                <span class="n">last_patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">],</span>  <span class="c1"># last timestep noise</span>
+</span></span><span class="line"><span class="cl">                <span class="n">t</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">extra_step_kwargs</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">timesteps</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">get_pp_group</span><span class="p">()</span><span class="o">.</span><span class="n">pipeline_isend</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">],</span> <span class="n">segment_idx</span><span class="o">=</span><span class="n">patch_idx</span>
+</span></span><span class="line"><span class="cl">                <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">get_pp_group</span><span class="p">()</span><span class="o">.</span><span class="n">pipeline_isend</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">],</span> <span class="n">segment_idx</span><span class="o">=</span><span class="n">patch_idx</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">is_pipeline_first_stage</span><span class="p">()</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">pass</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">timesteps</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">patch_idx</span> <span class="o">==</span> <span class="n">num_pipeline_patch</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">pass</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">get_pp_group</span><span class="p">()</span><span class="o">.</span><span class="n">recv_next</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">next_patch</span><span class="p">()</span>  <span class="c1"># switch to next: (self.pipeline_patch_idx + 1) % self.num_pipeline_patch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">timesteps</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">num_pipeline_warmup_steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">num_warmup_steps</span>
+</span></span><span class="line"><span class="cl">        <span class="ow">and</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">num_pipeline_warmup_steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">order</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">progress_bar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">assert</span> <span class="n">callback</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&#34;callback not supported in async &#34;</span> <span class="s2">&#34;pipeline&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">            <span class="ow">and</span> <span class="n">i</span> <span class="o">+</span> <span class="n">num_pipeline_warmup_steps</span> <span class="o">%</span> <span class="n">callback_steps</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">step_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">num_pipeline_warmup_steps</span><span class="p">)</span> <span class="o">//</span> <span class="nb">getattr</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="p">,</span> <span class="s2">&#34;order&#34;</span><span class="p">,</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">callback</span><span class="p">(</span><span class="n">step_idx</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">patch_latents</span><span class="p">[</span><span class="n">patch_idx</span><span class="p">])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="construct-final-latents">Construct Final Latents</h2>
+<p>timestep 遍历完成后，仍然有最后的操作要进行，这些操作的主要目的是将流水线并行中各个 patch 的结果拼接起来，形成完整的输出结果。尤其是对于最后一个设备，还需要处理 序列并行（sequence parallelism） 的合并操作。通过 all_gather 操作将每个设备上处理的 patch 结果收集起来，然后从每个设备的 <code>sp_latents_list</code> 中，提取出对应于 <code>pp_patch_idx</code> 的 patch 数据并将它们拼接起来。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">latents</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">is_pipeline_last_stage</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="n">latents</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">patch_latents</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">get_sequence_parallel_world_size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sp_degree</span> <span class="o">=</span> <span class="n">get_sequence_parallel_world_size</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sp_latents_list</span> <span class="o">=</span> <span class="n">get_sp_group</span><span class="p">()</span><span class="o">.</span><span class="n">all_gather</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">latents</span><span class="p">,</span> <span class="n">separate_tensors</span><span class="o">=</span><span class="kc">True</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">latents_list</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">pp_patch_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">num_pipeline_patch</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">latents_list</span> <span class="o">+=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">                <span class="n">sp_latents_list</span><span class="p">[</span><span class="n">sp_patch_idx</span><span class="p">][</span>
+</span></span><span class="line"><span class="cl">                    <span class="o">...</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">pp_patches_start_idx_local</span><span class="p">[</span><span class="n">pp_patch_idx</span><span class="p">]</span> <span class="p">:</span> <span class="n">get_runtime_state</span><span class="p">()</span><span class="o">.</span><span class="n">pp_patches_start_idx_local</span><span class="p">[</span><span class="n">pp_patch_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                    <span class="p">:,</span>
+</span></span><span class="line"><span class="cl">                <span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="k">for</span> <span class="n">sp_patch_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sp_degree</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">latents</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">latents_list</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">return</span> <span class="n">latents</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="decode-latents">Decode Latents</h1>
+<p>为了避免 VAE 中的 <a href="https://github.com/huggingface/diffusers/blob/main/src/diffusers/models/autoencoders/vae.py#L185">Decoder</a> 在对 8192px 分辨率图像进行 conv2D 的过程中出现 OOM 的问题， xDiT 使用了序列并行和 patch 并行的 <a href="https://github.com/xdit-project/DistVAE/blob/a7e7ee7ec222f45af1214984561c8c645be8aece/distvae/models/layers/conv2d.py#L13">PatchConv2d</a> 和 <a href="https://github.com/xdit-project/DistVAE/blob/a7e7ee7ec222f45af1214984561c8c645be8aece/distvae/models/layers/normalization.py#L59">PatchGroupNorm</a> 来替换掉原有 Decoder 中的 <a href="https://github.com/huggingface/diffusers/blob/main/src/diffusers/models/unets/unet_2d_blocks.py#L2682">UpDecoderBlock2D</a> 对应的层。</p>
+<h2 id="patchgroupnorm">PatchGroupNorm</h2>
+<p>PatchGroupNorm 在 H 维度上划分为多个 patch，每个设备求自己所负责的部分和。
+<details class="custom-details">
+    <summary class="custom-summary">GroupNorm Principles</summary>
+    <div>假设输入张量 x 的形状为 [N, C, H, W]，其中 N 表示批量大小（Batch Size），C 表示通道数（Channels），H 和 W 分别表示高度和宽度。在 GN 中，通道数 C 被划分为 G 组，每个组包含 C/G 个通道。计算每个组内即 [C/G, H, W] 维度上的均值和方差。特别的 G=1 时，GN 退化为 BN。G=C 时，GN 退化为 LN。</div>
+</details><br></p>
+<ol>
+<li>获取高度信息</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PatchGroupNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#39;&#39; def __init__(self, ...)&#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">height</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dist</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>  <span class="c1"># 收集所有进程的高度并汇总。最终每个进程的 height 都将表示全局的高度和。</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>计算每个组的通道数量以及每个进程内的元素数量</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">channels_per_group</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_groups</span>  <span class="c1"># 每个组的通道数量</span>
+</span></span><span class="line"><span class="cl"><span class="n">nelements_rank</span> <span class="o">=</span> <span class="n">channels_per_group</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># 当前进程负责的每个组中的元素总</span>
+</span></span><span class="line"><span class="cl"><span class="n">nelements</span> <span class="o">=</span> <span class="n">channels_per_group</span> <span class="o">*</span> <span class="n">height</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># 所有进程的每个组中的元素总数</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>计算每个组的均值</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1">#  [batch_size, num_groups, channels_per_group, height, width]</span>
+</span></span><span class="line"><span class="cl"><span class="n">group_sum</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># 对每个组的所有元素 (channels_per_group, height, width) 求平均</span>
+</span></span><span class="line"><span class="cl"><span class="n">group_sum</span> <span class="o">=</span> <span class="n">group_sum</span> <span class="o">*</span> <span class="n">nelements_rank</span>  <span class="c1"># 加权后的局部和 = 局部均值 * 当前进程的元素数量</span>
+</span></span><span class="line"><span class="cl"><span class="n">dist</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">group_sum</span><span class="p">)</span>  <span class="c1"># 收集并汇总所有进程的局部和，得到全局和</span>
+</span></span><span class="line"><span class="cl"><span class="n">E</span> <span class="o">=</span> <span class="p">(</span><span class="n">group_sum</span> <span class="o">/</span> <span class="n">nelements</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>  <span class="c1"># 计算全局的均值 E</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>计算每个组的方差</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># 和计算均值同样的操作</span>
+</span></span><span class="line"><span class="cl"><span class="n">group_var_sum</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_groups</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">torch</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="n">out</span><span class="o">=</span><span class="n">group_var_sum</span><span class="p">)</span>  
+</span></span><span class="line"><span class="cl"><span class="n">group_var_sum</span> <span class="o">=</span> <span class="n">group_var_sum</span> <span class="o">*</span> <span class="n">nelements_rank</span>
+</span></span><span class="line"><span class="cl"><span class="n">dist</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">group_var_sum</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">var</span> <span class="o">=</span> <span class="p">(</span><span class="n">group_var_sum</span> <span class="o">/</span> <span class="n">nelements</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>归一化并缩放 $y = \frac{x - \mathrm{E}[x]}{ \sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta$</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">E</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">var</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="k">return</span> <span class="n">x</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="patchconv2d">PatchConv2d</h2>
+<p><code>PatchConv2d</code> 将潜在空间中的特征映射分割成多个 patch，跨不同设备进行序列并行 VAE 解码。这种技术将中间激活所需的峰值内存减少到 1/N，其中 N 是所使用的设备数量。对于 VAE 中的卷积算子，需要对如下图所示的 halo 区域数据进行通信。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://raw.githubusercontent.com/xdit-project/xdit_assets/main/methods/patchvaeconv.png" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://raw.githubusercontent.com/xdit-project/xdit_assets/main/methods/patchvaeconv.png" alt="Patch VAE Conv">
+    </a><figcaption>Patch VAE Conv</figcaption></figure></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PatchConv2d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">kernel_size</span><span class="p">:</span> <span class="n">_size_2_t</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stride</span><span class="p">:</span> <span class="n">_size_2_t</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">padding</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_size_2_t</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dilation</span><span class="p">:</span> <span class="n">_size_2_t</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">groups</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">padding_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;zeros&#39;</span><span class="p">,</span>  <span class="c1"># TODO: refine this type</span>
+</span></span><span class="line"><span class="cl">        <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">block_size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dilation</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">assert</span> <span class="n">dilation</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&#34;dilation is not supported in PatchConv2d&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">dilation</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">assert</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&#34;dilation is not supported in PatchConv2d&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">=</span> <span class="n">block_size</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">dilation</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">            <span class="n">groups</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">padding_mode</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>_conv_forward</code> 函数是 <code>PatchConv2d</code> 类的核心，它负责在输入张量上执行卷积操作，特别是在分布式计算场景下处理跨进程的输入切分、halo 区域的传递和计算。以下是使用的辅助函数的简要功能说明</p>
+<ul>
+<li><code>_get_world_size_and_rank </code>：获取当前分布式环境中的进程总数 <code>world_size</code> 和当前进程的编号 <code>rank</code></li>
+<li><code>_calc_patch_height_index</code>：根据每个进程的输入高度，计算所有进程的起始和结束高度索引。</li>
+<li><code>_calc_halo_width_in_h_dim</code>：计算当前进程在 h 维度上所需的上方和下方的 halo 区域宽度。</li>
+<li><code>_calc_bottom_halo_width</code>：计算当前进程从下方相邻进程需要接收的 halo 区域的宽度。</li>
+<li><code>_calc_top_halo_width</code>：计算当前进程从上方相邻进程需要接收的 halo 区域的宽度。</li>
+<li><code>_adjust_padding_for_patch</code>：根据当前进程的 <code>rank</code> 和总进程数调整输入数据的填充方式，防止边界重复计算。</li>
+</ul>
+<ol>
+<li>获取输入信息以及通信组信息</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">_conv_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">bs</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">world_size</span><span class="p">,</span> <span class="n">rank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_world_size_and_rank</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">world_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>  <span class="c1"># 处理非分布式情况</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_mode</span> <span class="o">!=</span> <span class="s1">&#39;zeros&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reversed_padding_repeated_twice</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_mode</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                                <span class="n">weight</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                <span class="n">_pair</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                            <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>获取输入的元数据</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">patch_height_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="sa">f</span><span class="s2">&#34;cuda:</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">())]</span>
+</span></span><span class="line"><span class="cl"><span class="n">dist</span><span class="o">.</span><span class="n">all_gather</span><span class="p">(</span><span class="n">patch_height_list</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">h</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="sa">f</span><span class="s2">&#34;cuda:</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">))</span>  <span class="c1"># 收集所有进程的输入高度</span>
+</span></span><span class="line"><span class="cl"><span class="n">patch_height_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_patch_height_index</span><span class="p">(</span><span class="n">patch_height_list</span><span class="p">)</span>  <span class="c1"># 计算每个进程块的起始高度和结束高度的索引</span>
+</span></span><span class="line"><span class="cl"><span class="n">halo_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_halo_width_in_h_dim</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="n">patch_height_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># 计算当前进程块的上下 halo 区域的宽度</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>计算相邻进程的 halo 区域 (也就是自己需要接发送的部分)</li>
+</ol>
+<p>通过计算前一个进程的 bottom_halo_width 和后一个进程的 top_halo_width 得出自己需要发送的部分</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">prev_bottom_halo_width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl"><span class="n">next_top_halo_width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">rank</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">prev_bottom_halo_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_bottom_halo_width</span><span class="p">(</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">patch_height_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">rank</span> <span class="o">!=</span> <span class="n">world_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">next_top_halo_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_top_halo_width</span><span class="p">(</span><span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">patch_height_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="n">next_top_halo_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">next_top_halo_width</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>进行 halo 区域的发送与接收</li>
+</ol>
+<p>异步发送，同步接收</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">to_next</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl"><span class="n">to_prev</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl"><span class="n">top_halo_recv</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl"><span class="n">bottom_halo_recv</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">next_top_halo_width</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">bottom_halo_send</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">next_top_halo_width</span><span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">to_next</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">isend</span><span class="p">(</span><span class="n">bottom_halo_send</span><span class="p">,</span> <span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">halo_width</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># not rank 0</span>
+</span></span><span class="line"><span class="cl">    <span class="n">top_halo_recv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">halo_width</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">w</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="sa">f</span><span class="s2">&#34;cuda:</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dist</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">top_halo_recv</span><span class="p">,</span> <span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">prev_bottom_halo_width</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># not rank N-1</span>
+</span></span><span class="line"><span class="cl">    <span class="n">top_halo_send</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">prev_bottom_halo_width</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">to_prev</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">isend</span><span class="p">(</span><span class="n">top_halo_send</span><span class="p">,</span> <span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">halo_width</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">bottom_halo_recv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">halo_width</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">w</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="sa">f</span><span class="s2">&#34;cuda:</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dist</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">bottom_halo_recv</span><span class="p">,</span> <span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="5">
+<li>拼接 halo 区域</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">if</span> <span class="n">halo_width</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Remove redundancy at the top of the input</span>
+</span></span><span class="line"><span class="cl"><span class="nb">input</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">halo_width</span><span class="p">[</span><span class="mi">0</span><span class="p">]:,</span> <span class="p">:]</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">top_halo_recv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># concat the halo region to the input tensor </span>
+</span></span><span class="line"><span class="cl">    <span class="nb">input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">top_halo_recv</span><span class="p">,</span> <span class="nb">input</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">bottom_halo_recv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="nb">input</span><span class="p">,</span> <span class="n">bottom_halo_recv</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="6">
+<li>等待发送完成再开始计算</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">if</span> <span class="n">to_next</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">to_next</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">to_prev</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">to_prev</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="7">
+<li>进行卷积和后处理</li>
+</ol>
+<p>为了减少 memory spike 一次计算 block_size*block_size 的区域，并将结果拼接起来</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjust_padding_for_patch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reversed_padding_repeated_twice</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">world_size</span><span class="o">=</span><span class="n">world_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">h</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="ow">and</span> <span class="n">w</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_mode</span> <span class="o">!=</span> <span class="s1">&#39;zeros&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">conv_res</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_mode</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">weight</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="n">_pair</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">conv_res</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                            <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">conv_res</span>
+</span></span><span class="line"><span class="cl"><span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_mode</span> <span class="o">!=</span> <span class="s2">&#34;zeros&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">input</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_mode</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">input</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&#34;constant&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_chunks_in_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span>  <span class="c1"># h 维度的 block 数量</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_chunks_in_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span>  <span class="c1"># w ...</span>
+</span></span><span class="line"><span class="cl">    <span class="n">unit_chunk_size_h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">//</span> <span class="n">num_chunks_in_h</span>
+</span></span><span class="line"><span class="cl">    <span class="n">unit_chunk_size_w</span> <span class="o">=</span> <span class="n">w</span> <span class="o">//</span> <span class="n">num_chunks_in_w</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl"><span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">idx_h</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_chunks_in_h</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">inner_output</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">idx_w</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_chunks_in_w</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">start_w</span> <span class="o">=</span> <span class="n">idx_w</span> <span class="o">*</span> <span class="n">unit_chunk_size_w</span>
+</span></span><span class="line"><span class="cl">        <span class="n">start_h</span> <span class="o">=</span> <span class="n">idx_h</span> <span class="o">*</span> <span class="n">unit_chunk_size_h</span>
+</span></span><span class="line"><span class="cl">        <span class="n">end_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">idx_w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">unit_chunk_size_w</span>
+</span></span><span class="line"><span class="cl">        <span class="n">end_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">idx_h</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">unit_chunk_size_h</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 计算每个块的开始和结束索引，调整块的边界</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># ...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 对当前块执行卷积操作</span>
+</span></span><span class="line"><span class="cl">        <span class="n">inner_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="nb">input</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">start_h</span><span class="p">:</span><span class="n">end_h</span><span class="p">,</span> <span class="n">start_w</span><span class="p">:</span><span class="n">end_w</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                <span class="n">weight</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">bias</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="mi">0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">inner_output</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>]]></content:encoded>
+    </item>
+  </channel>
+</rss>

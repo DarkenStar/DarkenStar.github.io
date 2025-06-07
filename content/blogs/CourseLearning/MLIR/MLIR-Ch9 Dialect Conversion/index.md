@@ -72,7 +72,7 @@ MLIR 通过一个围绕标准转换的包装器来处理这种情况，这个包
 
 跟之前写 Pass tablegen 的时候大同小异，主要是需要定义 dependent dialects. Lowering 必须以这种方式依赖于包含将创建的操作或类型的任何方言，以确保 MLIR 在尝试运行 pass 之前加载这些方言。
 
-```cpp
+```cpp {linenos=true}
 // include/Conversion/PolyToStandard/PolyToStandard.td
 
 #ifndef LIB_CONVERSION_POLYTOSTANDARD_POLYTOSTANDARD_TD_
@@ -99,7 +99,7 @@ def PolyToStandard : Pass<"poly-to-standard"> {
 
 下一步需要定义 ConversionTarget，告诉 MLIR 哪些 OP 需要进行 lowering，可以定义整个需要下降的 dialect 为 illegal，确保在转换完成后没有该 dialect. 这里使用 `applyPartialConversion` 而不是 `applyFullConversion` 的原因是报错消息更直观。Partial Conversion 可以看到步骤以及最后无法修补的冲突类型。
 
-```cpp
+```cpp {linenos=true}
 // lib/Conversion/PolyToStandard/PolyToStandard.cpp
 
 struct PolyToStandard : impl::PolyToStandardBase<PolyToStandard> {
@@ -123,7 +123,7 @@ struct PolyToStandard : impl::PolyToStandardBase<PolyToStandard> {
 
 接下来需要定义一个 [TypeConverter](https://github.com/llvm/llvm-project/blob/11b9ec5f240ebb32013c33b0c2c80cb7f05ba213/mlir/include/mlir/Transforms/DialectConversion.h#L38) 的子类将 poly dialect 下的 type 转换成其他类型. 其中类型转换和 materialization 是分别通过 `addConversion` 和 `addMaterialization` 完成的。这里我们将属于 poly.poly 类型的 degreBound 转换成 Tensor.
 
-```cpp
+```cpp {linenos=true}
 class PolyToStandardTypeConverter : public TypeConverter
 {
 public:
@@ -142,7 +142,7 @@ public:
 
 接下来就是要转换 Poly 中的各种 op，需要继承 [OpConversionPattern](https://github.com/llvm/llvm-project/blob/11b9ec5f240ebb32013c33b0c2c80cb7f05ba213/mlir/include/mlir/Transforms/DialectConversion.h#L511)，重写里面的 `matchAndRewrtite` 方法. 以 poly.add 为例，根据父类里的定义，这里 `OpAdaptor` 即为 `AddOp:OpAdaptor`，它使用 tablegen 定义的名称作为 op 的参数和方法名称的结果，而不是之前的的getOperand. `AddOp` 参数包含原始的、未类型转换的操作数和结果。ConversionPatternRewriter类 似于PatternRewriter，但有与方言转换相关的其他方法，例如 convertRegionTypes，用于为嵌套区域的操作应用类型转换。对IR
 
-```cpp
+```cpp {linenos=true}
 struct ConvertAdd : public OpConversionPattern<AddOp>
 {
     ConvertAdd(MLIRContext* context) : OpConversionPattern<AddOp>(context)
@@ -165,7 +165,7 @@ struct ConvertAdd : public OpConversionPattern<AddOp>
 
 下面我们需要将 ConvertAdd 添加进 `PolyToStandard::runOnOperation` 中定义的 RewriterPatternSet 中。
 
-```cpp
+```cpp {linenos=true}
 void runOnOperation() {
   ...
   RewritePatternSet patterns(context);

@@ -25,7 +25,7 @@ cover:
 
 规范化器可以用标准的方式编写：在 tablegen 中声明 op 具有规范化器，然后实现生成的 C++函数声明。[官网例子如下](https://mlir.llvm.org/docs/Canonicalization/#canonicalizing-with-rewritepatterns)
 
-```cpp
+```cpp {linenos=true}
 def MyOp : ... {
   // I want to define a fully general set of patterns for this op.
   let hasCanonicalizer = 1;
@@ -40,7 +40,7 @@ def OtherOp : ... {
 
 Canonicalization 模式可以通过如下方式定义
 
-```cpp
+```cpp {linenos=true}
 void MyOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                        MLIRContext *context) {
   patterns.add<...>(...);
@@ -56,7 +56,7 @@ LogicalResult OtherOp::canonicalize(OtherOp op, PatternRewriter &rewriter) {
 
 在 Op 定义中添加 `let hasCanonicalizeMethod = 1;` 后会为该 Op 生成如下的函数声明。
 
-```cpp
+```cpp {linenos=true}
 static void getCanonicalizationPatterns(
     ::mlir::RewritePatternSet& results, 
     ::mlir::MLIRContext* context
@@ -65,7 +65,7 @@ static void getCanonicalizationPatterns(
 
 这个函数需要对 results 加入自定义的 `OpRewritePattern`. 例如可以重写 x^2 - y^2 这个 SubOp 为 (x+y)(x-y)，当 x^2 和 y^2 在后续没有被使用时。
 
-```cpp
+```cpp {linenos=true}
 struct DifferenceOfSquares : public OpRewritePattern<SubOp>
 {
     DifferenceOfSquares(mlir::MLIRContext* context)
@@ -124,7 +124,7 @@ void SubOp::getCanonicalizationPatterns(::mlir::RewritePatternSet& results,
 
 下面利用 tablegen 实现一个多项式共轭的 canonicalizer，f(conj(z)) = conj(f(z)).
 
-```cpp
+```cpp {linenos=true}
 // PolyPatterns.td
 def LiftConjThroughEval : Pat<(Poly_EvalOp $f, (ConjOp $z, $fastmath)),
                                 (ConjOp (Poly_EvalOp $f, $z), $fastmath)>;
@@ -132,7 +132,7 @@ def LiftConjThroughEval : Pat<(Poly_EvalOp $f, (ConjOp $z, $fastmath)),
 
 这里的义了重写模式的 [Pat](https://github.com/llvm/llvm-project/blob/d8873df4dc74cdcbbfd3334657daf9fedfaab951/mlir/include/mlir/IR/PatternBase.td#L120) 类和定义要匹配和重写的 IR tree 的括号. Pattern 和 Pat 的定义如下
 
-```cpp
+```cpp {linenos=true}
 class Pattern<dag source, list<dag> results, list<dag> preds = [],
               list<dag> supplemental_results = [],
               dag benefitAdded = (addBenefit 0)> {
@@ -158,7 +158,7 @@ Pat 类继承自 Pattern 类。输入是两个IR tree 对象 (MLIR称之为 DAG 
 
 生成的代码如下所示
 
-```cpp
+```cpp {linenos=true}
 /* Generated from:
      /code/sac_mlir_learning/Ch8-DialectConversion/include/mlir-tutorial/Dialect/Poly/PolyPatterns.td:8
 */
@@ -288,7 +288,7 @@ populateWithGenerated(::mlir::RewritePatternSet& patterns)
 
 然后跟上一个方法一样，需要添加这个 canonicalizer.
 
-```cpp
+```cpp {linenos=true}
 void EvalOp::getCanonicalizationPatterns(::mlir::RewritePatternSet& results,
                                          ::mlir::MLIRContext* context)
 {
@@ -298,7 +298,7 @@ void EvalOp::getCanonicalizationPatterns(::mlir::RewritePatternSet& results,
 
 同样我们可以通过 tablegen 的方式编写 DifferenceOfSquares，但由于将一个 SubOp 替换成了 3 个 Op，需要继承 `Pattern` 而不是 `Pat`.
 
-```cpp
+```cpp {linenos=true}
 // PolyPatterns.td
 def HasOneUse: Constraint<CPred<"$_self.hasOneUse()">, "has one use">;
 

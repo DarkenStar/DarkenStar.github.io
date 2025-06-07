@@ -33,7 +33,7 @@ Verifiers 确保具体的 MLIR 程序中的类型和操作格式正确。验证�
 
 下面展示了 AddOp 的 inferReturnTypes 方法
 
-```c++
+```c {linenos=true}++
 ::llvm::LogicalResult AddOp::inferReturnTypes(
     ::mlir::MLIRContext* context, ::std::optional<::mlir::Location> location,
     ::mlir::ValueRange operands, ::mlir::DictionaryAttr attributes,
@@ -51,13 +51,13 @@ Verifiers 确保具体的 MLIR 程序中的类型和操作格式正确。验证�
 
 有了类型推导钩子，我们可以简化操作的汇编格式，类型只需要指定一次，而不是三次 (`(type, type) -> type`). 同时也需要更新所有测试的 mlir 以启用这个新的 assemblyFormat.
 
-```tablegen
+```tablegen {linenos=true}
 let assemblyFormat = "$lhs `,` $rhs attr-dict `:` qualified(type($output))"; 
 ```
 
 我们可以从 AddOp 的 build 方法中看到现在不需要指定返回值，而是通过 `inferReturnTypes` 来推导。
 
-```c++
+```c {linenos=true}++
 void AddOp::build(::mlir::OpBuilder& odsBuilder,
                   ::mlir::OperationState& odsState, ::mlir::Value lhs,
                   ::mlir::Value rhs) {
@@ -78,7 +78,7 @@ void AddOp::build(::mlir::OpBuilder& odsBuilder,
 
 `EvalOp` 无法使用 `SameOperandsAndResultType`，因为它的操作数需要不同的类型。然而，我们可以使用 `AllTypesMatch`，它会生成类似的代码，但将验证限制在某些特定类型的子集上。
 
-```td
+```td {linenos=true}
 def Poly_EvalOp : Op<Poly_Dialect, "eval", [AllTypesMatch<["point", "output"]>]> {
   let summary = "Evaluates a Polynomial at a given input value.";
   let arguments = (ins Polynomial:$input, AnyInteger:$point);
@@ -88,7 +88,7 @@ def Poly_EvalOp : Op<Poly_Dialect, "eval", [AllTypesMatch<["point", "output"]>]>
 
 可以看到相似的 `inferReturnTypes` 方法，由于 EvalOp 是返回多项式在某个整数点上的值，因此推断的返回值类型需要与第二个操作数类型一致。
 
-```c++
+```c {linenos=true}++
 ::llvm::LogicalResult EvalOp::inferReturnTypes(
     ::mlir::MLIRContext* context, ::std::optional<::mlir::Location> location,
     ::mlir::ValueRange operands, ::mlir::DictionaryAttr attributes,
@@ -108,7 +108,7 @@ def Poly_EvalOp : Op<Poly_Dialect, "eval", [AllTypesMatch<["point", "output"]>]>
 
 如果需要添加自定义的 verifier 我们需要在 def 的时候添加 `let hasVerifier = 1`. 我们会发现生成的类里面定义了 verify 方法。
 
-```c++
+```c {linenos=true}++
 class EvalOp ... {
   ...
   ::mlir::LogicalResult verify();
@@ -117,7 +117,7 @@ class EvalOp ... {
 
 因此我们需要在 PolyOps.cpp 中实现它。
 
-```c++
+```c {linenos=true}++
 // lib/Dialect/Poly/PolyOps.cpp
 LogicalResult EvalOp::verify() {
     return getPoint().getType().isSignlessInteger(32)
@@ -132,14 +132,14 @@ LogicalResult EvalOp::verify() {
 
 因此我们先需要 def 一个新的 Trait，然后将它加入到 `EvalOp` 中.
 
-```tablegen
+```tablegen {linenos=true}
   let cppNamespace = "::mlir::tutorial::poly";
 }
 ```
 
 我们可以看到生成的代码里有一个新类需要我们实现
 
-```c++
+```c {linenos=true}++
 class EvalOp : public ::mlir::Op<
     EvalOp, ::mlir::OpTrait::ZeroRegions,
     //...,
@@ -152,7 +152,7 @@ class EvalOp : public ::mlir::Op<
 
 我们需要新建一个 PolyTraits.h 文件并且让 PolyOps.h 包含它
 
-```c++
+```c {linenos=true}++
 // 
 // /include/mlir-learning/Dialect/Poly/PolyOps.h
 

@@ -41,7 +41,7 @@ cover:
 
 其Numpy实现如下，下面的代码直接调用了Numpy的高级API，看起来非常简洁。
 
-```python
+```python {linenos=true}
 dtype = "float32"
 a_np = np.random.rand(128, 128).astype(dtype)
 b_np = np.random.rand(128, 128).astype(dtype)
@@ -51,7 +51,7 @@ c_mm_relu = np.maximum(a_np @ b_np, 0)
 
 我们可以将上述程序改写成Low-level Numpy，意味着对于复杂的计算我们使用循环进行表示，并且写出开辟数组空间的过程。
 
-```python
+```python {linenos=true}
 def lnumpy_mm_relu(A: np.ndarray, B: np.ndarray, C: np.ndarray):
     Y = np.empty((128, 128), dtype="float32")
     for i in range(128):
@@ -72,7 +72,7 @@ def lnumpy_mm_relu(A: np.ndarray, B: np.ndarray, C: np.ndarray):
 
 可以用以下代码来检查上述实现的正确性：
 
-```python
+```python {linenos=true}
 c_np = np.empty((128, 128), dtype=dtype)
 lnumpy_mm_relu(a_np, b_np, c_np)
 np.testing.assert_allclose(c_mm_relu, c_np, rtol=1e-5)
@@ -89,7 +89,7 @@ np.testing.assert_allclose(c_mm_relu, c_np, rtol=1e-5)
 > Dialect 通常指一种语言的变体或子集，它与原始语言共享大部分语法和语义，但也有一些独特的特征。
 > 抽象语法树 (AST) 是源代码的树状表示形式。它将代码的结构以一种层次化的方式呈现，每个节点代表代码中的一个语法元素，例如变量、运算符、函数调用等。
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class MyModule:
     @T.prim_func
@@ -125,14 +125,14 @@ class MyModule:
 
 我们可以用以下函数获得计算块和其对应的循环
 
-```python
+```python {linenos=true}
 block_Y = sch.get_block("Y", func_name="mm_relu")
 i, j, k = sch.get_loops(block_Y)
 ```
 
 我们可以使用 `split`函数将一个循环拆成多个循环，用 `reorder`函数交换循环的顺序，用 `reverse_compute_at` 函数移动计算块所在的循环，用 `decompose_reduction`函数将初始化和归约操作分开。
 
-```python
+```python {linenos=true}
 j0, j1 = sch.split(j, factors=[None, 4])
 sch.reorder(j0, k, j1)
 block_C = sch.get_block("C", "mm_relu")
@@ -177,7 +177,7 @@ class Module:
 
 对应的 Low-level Numpy 函数如下
 
-```python
+```python {linenos=true}
 def lnumpy_mm_relu_v3(A: np.ndarray, B: np.ndarray, C: np.ndarray):
     Y = np.empty((128, 128), dtype="float32")
     for i in range(128):
@@ -215,7 +215,7 @@ CPU 带有多级缓存，需要先将数据提取到缓存中，然后 CPU 才�
 
 张量表达式 (TE) 是一种特定领域的语言，它通过 API 之类的表达式描述一系列计算。MM-ReLU 可以通过以下程序完成
 
-```python
+```python {linenos=true}
 from tvm import te
 A = te.placeholder((128, 128), "float32", name="A")
 B = te.placeholder((128, 128), "float32", name="B")

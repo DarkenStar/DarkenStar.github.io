@@ -40,7 +40,7 @@ Kogge-Stone 算法最初是为了设计快速加法器电路而发明的，如�
 
 对应的内核函数如下，假设输入最初位于全局内存数组 X 中。让每个线程计算其全局数据索引，即其负责计算输出数组的位置。每个个活动线程首先将其位置的部分和存储到一个临时变量中(在寄存器中)。当步幅值大于 threadIdx.x 时，意味着线程分配的 XY 位置已经累加了所有所需的输入值，退出活动状态。需要额外的 `temp` 和 `__syncthreads()` 因为更新中存在读后写数据依赖竞争关系。
 
-```cpp
+```cpp {linenos=true}
 #define SECTION_SIZE 32
 __global__ 
 void Kogge_Stone_Scan_Kernel(int* X, int* Y, unsigned int N) {
@@ -77,7 +77,7 @@ void Kogge_Stone_Scan_Kernel(int* X, int* Y, unsigned int N) {
 
 Kogge-Stone 算法重用了横跨归约树的部分和来降低计算复杂度。在上一章的归约内核中，活动线程在迭代中写入的元素不会在同一迭代中被任何其他活动线程读取，因此不存在读后写竞争条件。如果希望避免在每次迭代中都有 barrier 同步，那么克服竞争条件的另一种方法是为输入和输出使用单独的数组。这种方法需要两个共享内存缓冲区。交替变化不能输入/输出缓冲区的角色，直到迭代完成。这种优化称为双缓冲 (*double buffering*).
 
-```cpp
+```cpp {linenos=true}
 #define SECTION_SIZE 32
 __global__
 void DF_Kogge_Stone_Scan_Kernel(int* X, int* Y, unsigned int N) {
@@ -152,7 +152,7 @@ $$
 1. 我们把求和结果写到最大索引的位置。
 2. 我们将线程索引组织成 $2^n-1$ 的形式 (n 为树的高度)。
 
-```cpp
+```cpp {linenos=true}
 for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
 	__syncthreads();
 	if ((threadIdx.x + 1) % (2 * stride) == 0) {
@@ -163,7 +163,7 @@ for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
 
 这种归约方式的一个缺点是存在控制发散问题。因此需要将线程的连续部分映射到索引为 $k*2^n-1$ 形式的 XY 位置。
 
-```cpp
+```cpp {linenos=true}
 // Mapping a continous section of threads to the XY positions
 for (unsigned int stride = 1; stride <= blockDim.x; stride *= 2) {
 	__syncthreads();
@@ -176,7 +176,7 @@ for (unsigned int stride = 1; stride <= blockDim.x; stride *= 2) {
 
 反向树的实现要复杂一些。步长从 `SECTION_SIZE/4` 减小到 1. 在每次迭代中，我们需要将 XY 元素索引值从步长减去 1 后的两倍的位置向右推到距离其一个步长的位置。
 
-```cpp
+```cpp {linenos=true}
 // Reverse tree stride value decreases from SECTION_SIZE / 4 to 1
 for (unsigned int stride = SECTION_SIZE / 4; stride > 0; stride /= 2) {
 	__syncthreads();
@@ -197,7 +197,7 @@ Brent-Kung 算法的活动线程的数量通过归约树比 Kogge-Stone 算法�
 
 ![A Three-phase Parallel Scan for Higher Work Efficiency](https://note.youdao.com/yws/api/personal/file/WEB169e018f54e6c49c493de068d8a5f3f6?method=download&shareKey=a54b5ab82631a6c403d2709f702f48c0 "A Three-phase Parallel Scan for Higher Work Efficiency")
 
-```cpp
+```cpp {linenos=true}
 #define CORASE_FACTOR 4
 #define SUBSECTION_SIZE (SECTION_SIZE / CORASE_FACTOR)
 __global__

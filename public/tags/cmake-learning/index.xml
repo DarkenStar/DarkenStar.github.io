@@ -7,7 +7,7 @@
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Fri, 06 Jun 2025 18:32:00 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 07 Jun 2025 16:41:56 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/cmake-learning/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>A Simple Cmake Example</title>
@@ -24,7 +24,27 @@
 <li>推荐的项目目录结构 📂</li>
 </ol>
 <p>一个良好组织的 C++ 项目结构不仅清晰，也让 CMake 的配置工作事半功倍。这是一个推荐的、可扩展的目录结构：my_project/</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">│
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">│
 </span></span><span class="line"><span class="cl">├── build/                  # 构建目录 (初始为空，所有生成文件都在此)
 </span></span><span class="line"><span class="cl">│
 </span></span><span class="line"><span class="cl">├── include/                # 存放项目全局头文件
@@ -40,7 +60,9 @@
 </span></span><span class="line"><span class="cl">│       └── my_lib.cpp
 </span></span><span class="line"><span class="cl">│
 </span></span><span class="line"><span class="cl">└── CMakeLists.txt          # 整个项目的顶层 CMake 配置文件
-</span></span></code></pre></div><ul>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
 <li>build/: 这个目录用于执行所有构建命令，源码不会被污染。include/: 存放可以被项目内其他部分（或被其他项目）引用的头文件。按模块组织可以避免头文件名冲突。src/: 存放所有 .cpp 源文件。</li>
 <li>src/my_lib/: 将项目按功能模块化是一种好习惯。每个模块（比如一个库）可以有自己的 CMakeLists.txt 文件，负责管理自身的编译。</li>
 <li>CMakeLists.txt (顶层): 这是整个项目的入口，负责设置全局配置、找到并构建所有子模块，最后生成主程序。</li>
@@ -50,7 +72,35 @@
 第 1 步: 库的 CMakeLists.txt (src/my_lib/CMakeLists.txt</li>
 </ol>
 <p>)这个文件只负责一件事：将 my_lib.cpp 和相关的头文件编译成一个库。# 文件位置: src/my_lib/CMakeLists.txt</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cmake" data-lang="cmake"><span class="line"><span class="cl"><span class="c"># 使用 add_library 命令创建一个库。
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-cmake" data-lang="cmake"><span class="line"><span class="cl"><span class="c"># 使用 add_library 命令创建一个库。
 </span></span></span><span class="line"><span class="cl"><span class="c"># 语法: add_library(&lt;库名称&gt; [STATIC | SHARED] &lt;源文件...&gt;)
 </span></span></span><span class="line"><span class="cl"><span class="c">#
 </span></span></span><span class="line"><span class="cl"><span class="c"># &lt;库名称&gt;: 我们称之为 my_lib，这是其他部分链接此库时使用的名字。
@@ -74,12 +124,54 @@
 </span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="c"># 我们将项目的全局 include 目录暴露出去。
 </span></span></span><span class="line"><span class="cl"><span class="c"></span>    <span class="o">${</span><span class="nv">PROJECT_SOURCE_DIR</span><span class="o">}</span><span class="s">/include</span>
 </span></span><span class="line"><span class="cl"><span class="p">)</span><span class="err">
-</span></span></span></code></pre></div><ul>
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
 <li><code>add_library()</code> 定义了一个编译目标——一个库。</li>
 <li><code>target_include_directories()</code> 为这个目标指定了头文件搜索路径。使用 <code>PUBLIC </code>关键字至关重要使得任何链接到 <code>my_lib</code> 的程序都能自动找到 my_lib.h，无需在链接方再次手动添加头文件路径。</li>
 </ul>
 <p>第 2 步: 顶层的 CMakeLists.txt 这个文件是整个项目的总指挥，负责设置全局配置、调用子模块，并生成最终的可执行文件。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cmake" data-lang="cmake"><span class="line"><span class="cl"><span class="c"># 文件位置: my_project/CMakeLists.txt
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-cmake" data-lang="cmake"><span class="line"><span class="cl"><span class="c"># 文件位置: my_project/CMakeLists.txt
 </span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="err">
 </span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># 1. 指定 CMake 的最低版本要求。这是每个顶层文件都应该有的第一行。
 </span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="nb">cmake_minimum_required</span><span class="p">(</span><span class="s">VERSION</span> <span class="s">3.10</span><span class="p">)</span><span class="err">
@@ -115,7 +207,9 @@
 </span></span></span><span class="line"><span class="cl"><span class="c">#          对于可执行文件，通常使用 PRIVATE。
 </span></span></span><span class="line"><span class="cl"><span class="c"># &lt;要链接的库&gt;: 我们在子目录中定义的库目标 my_lib。
 </span></span></span><span class="line"><span class="cl"><span class="c"></span><span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">app</span> <span class="s">PRIVATE</span> <span class="s">my_lib</span><span class="p">)</span><span class="err">
-</span></span></span></code></pre></div><ul>
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
 <li>add_subdirectory() 使得顶层文件保持简洁，只负责“指挥”，具体实现则交给各个子模块。</li>
 <li>target_link_libraries() 负责将不同的编译目标（库和可执行文件）链接在一起，形成依赖关系。</li>
 </ul>
@@ -123,7 +217,37 @@
 <li>如何构建项目 🚀
 现在已经写好了所有的 CMakeLists.txt 文件，可以开始构建了。整个过程都在终端中完成。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 确保你位于项目的根目录 (my_project)</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 确保你位于项目的根目录 (my_project)</span>
 </span></span><span class="line"><span class="cl"><span class="nb">cd</span> path/to/my_project
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1"># 2. 创建并进入我们规划好的 build 目录</span>
@@ -149,7 +273,9 @@
 </span></span><span class="line"><span class="cl"><span class="c1"># 或者在 Linux/macOS 上，你可以直接运行:</span>
 </span></span><span class="line"><span class="cl"><span class="c1"># make</span>
 </span></span><span class="line"><span class="cl"><span class="c1"># 编译完成后，你会在 build 目录（或其子目录）下找到你的可执行文件 `app` 和库文件 `libmy_lib.a`。</span>
-</span></span></code></pre></div>]]></content:encoded>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>]]></content:encoded>
     </item>
   </channel>
 </rss>

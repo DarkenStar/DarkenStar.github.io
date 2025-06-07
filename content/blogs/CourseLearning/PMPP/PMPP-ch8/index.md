@@ -51,7 +51,7 @@ cover:
 
 ![2D 5-point Stencil Tiling for Output Grid](https://note.youdao.com/yws/api/personal/file/WEBb784ac30b171fdcf2a3ec27e6b4351dd?method=download&shareKey=518a1c8267ed726cce9d05ebbe087bce "2D 5-point Stencil Tiling for Output Grid")
 
-```cpp
+```cpp {linenos=true}
 __global__ 
 void stencil_kernel(float* in, float* out, unsigned int N) {
 	unsigned int i = blockIdx.z*blockDim.z+threadIdx.z;
@@ -73,7 +73,7 @@ void stencil_kernel(float* in, float* out, unsigned int N) {
 
 ![Input and Output Tiles for a 2D 5-point Stencil](https://note.youdao.com/yws/api/personal/file/WEB248ae00a16c8ed3da3dc8832ced6ebc0?method=download&shareKey=40a18c41ed91dacafbde0c5beac0aaf6 "Input and Output Tiles for a 2D 5-point Stencil")
 
-```cpp
+```cpp {linenos=true}
 #define IN_TILE_DIM 16
 __global__
 void stencil_shared_mem_tiling_kernel(float* in, float* out, unsigned int N) {
@@ -110,7 +110,7 @@ void stencil_shared_mem_tiling_kernel(float* in, float* out, unsigned int N) {
 
 ![Mapping of Shared Memory Array after First Iteration](https://note.youdao.com/yws/api/personal/file/WEBec24cfc7edeb84a1a010b315f5ac49e0?method=download&shareKey=edc686e7586e2c3b7f55e32af7bbd83d "Mapping of Shared Memory Array after First Iteration")
 
-```cpp
+```cpp {linenos=true}
 #define OUT_TILE_DIM IN_TILE_DIM - 2
 __global__
 void stencil_thread_coarsening_kernel(float* in, float* out, unsigned int N) {
@@ -158,7 +158,7 @@ void stencil_thread_coarsening_kernel(float* in, float* out, unsigned int N) {
 
 根据计算过程可以发现每个 `inPrev_s` 和 `inNext_s` 的元素仅由一个线程在计算具有相同 x-y 索引的输出 tile 网格点时使用。只有 inCurr_s 的元素被多个线程访问，真正需要位于共享内存中。因此我们可以修改内涵函数如下，寄存器变量 `inPrev` 和 `inNext` 分别替换共享内存数组 `inPrev_s` 和 `inNext_s`. 保留了 `inCurr_s` 以允许在线程之间共享 x-y 平面相邻网格点值。这样这个内核使用的共享内存量减少到原来的 1/3.
 
-```cpp
+```cpp {linenos=true}
 void stencil_register_tiling_coarsening_kernel(float* in, float* out, unsigned int N) {
 	int iStart = blockIdx.z * OUT_TILE_DIM;
 	int j = blockIdx.y * blockDim.y + threadIdx.y - 1;

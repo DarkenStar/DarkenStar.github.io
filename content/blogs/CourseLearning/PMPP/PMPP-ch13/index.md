@@ -72,7 +72,7 @@ $$
 
 对应的内核代码如下所示。在每个线程确定自己的索引并提取出对应的 bit 后，因为这些位不是 0 就是 1，所以排除扫描的结果就等于索引前面 1 的个数。
 
-```cpp
+```cpp {linenos=true}
 __global__ 
 void exclusiveScan(unsigned int* bits, int N) {
     extern __shared__ unsigned int temp[];
@@ -148,7 +148,7 @@ void radix_sort_iter(unsigned int* input, unsigned int* output, unsigned int* bi
 
 ![Finding the Destination of Each Thread Block's Local Buckets](https://note.youdao.com/yws/api/personal/file/WEBea305ebe970559e5fae76374c79ee2f7?method=download&shareKey=1a6535297a6a2fbccbeed23f7a25eeb6 "Finding the Destination of Each Thread Block's Local Buckets")
 
-```cpp
+```cpp {linenos=true}
 #define SECTION_SIZE 32
 __global__
 void memory_coalescing_radix_sort(unsigned int* input, unsigned int* output, unsigned int* bits, unsigned int* table, int N, int iter) {

@@ -25,7 +25,7 @@ cover:
 
 我们采用Pytorch框架先定一个模型，该模型接受一批图像为输入，然后对它们依次作用卷积层，激活层，池化层和全连接层，得到分类结果。并从训练好的模型里加载权重，输入图像来自FashionMNIST数据集，shape为(1, 28, 28)，我们设置batch size=4.
 
-```python
+```python {linenos=true}
 # Load the weight map from file.
 weight_map = pkl.load(open("fasionmnist_mlp_assignment_params.pkl", "rb"))
 class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
@@ -73,7 +73,7 @@ def pytorch_model():
 * `**kwargs`: `func`输入的的关键字参数 (relax Tensor)。
 * `name_hint`: 可选参数，用于指定生成的 PrimFunc 的名称。
 
-```python
+```python {linenos=true}
 def relu(A):
     B = te.compute(shape=(128, 128), fcompute=lambda i, j: te.max(A[i, j], 0), name="B")
     return B
@@ -96,7 +96,7 @@ def emit_te_example():
 
 可以看到通过BlockBuilder生成的IRModule包含了ReLU的TensorIR实现和一个含有调用ReLU实现的 `call_tir`的Relax函数
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @T.prim_func(private=True)
@@ -126,14 +126,14 @@ class Module:
 
 **在加上bias的时候要和reduction操作分开进行**，即不能在一个te.compute里面进行 `te.sum+bias[...]`的操作，否则会报错
 
-```bash
+```bash {linenos=true}
 TVMError
 Traceback (most recent call last):
 File "D:\Work\tvm\tvm0.18\tvm\src\te\operation\compute_op.cc", line 566
 InternalError: Check failed: (0 == level_) is false: Reductions are only allowed at the top level of compute. Please create another tensor for further composition.
 ```
 
-```python
+```python {linenos=true}
 def my_conv2d(X, K, B):  # No padding, stride = 1
     N, CI, H, W = X.shape
     CO, _, KH, KW = K.shape
@@ -193,7 +193,7 @@ def my_softmax(X):
 
 然后我们就可以利用 `BlockBuilder`构建IRModule
 
-```python
+```python {linenos=true}
 def create_model_via_emit_te():
     batch_size = 4
     input_shape = (batch_size, 1, 28, 28)  # BCHW
@@ -226,7 +226,7 @@ def create_model_via_emit_te():
 
 得到的IRModule的TensorIR如下
 
-```python
+```python {linenos=true}
 mod = create_model_via_emit_te()   
 exec = relax.build(mod, "llvm")
 dev = tvm.cpu()
@@ -236,7 +236,7 @@ print(mod.script())
 
 {{< details title="mod.script" >}}
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @T.prim_func(private=True)
@@ -402,7 +402,7 @@ class Module:
 
 我们可以与Pytorch模型的执行结果进行比较来验证正确性。
 
-```python
+```python {linenos=true}
 def build_mod(mod):
     exec = relax.vm.build(mod, "llvm")
     dev = tvm.cpu()

@@ -50,7 +50,7 @@ CUDA程序的执行流程如下图所示。执行从主机代码 (CPU 串行代�
 
 当需要区分主机和设备数据时，我们都会在主机使用的变量名后面加上 “`_h`”，而在设备使用的变量名后面加上 “`_d`”.
 
-```cpp
+```cpp {linenos=true}
 // Compute vector sum h_C = h_A+h_B
 void vecAdd(float* h_A, float* h_B, float* h_C, int n)
 {
@@ -70,7 +70,7 @@ int main()
 
 ![Structure of the Modified VecAdd](https://note.youdao.com/yws/api/personal/file/WEB1aadc269025d2f33b2bd42b7838c7cc3?method=download&shareKey=04dc8aeb81948f9dd66f6dccb54e8bd5 "Structure of the Modified VecAdd")
 
-```cpp
+```cpp {linenos=true}
 #include <cuda_runtime.h>
 
 // …
@@ -96,7 +96,7 @@ void vecAdd(float* A, float* B, float* C, int n)
 在当前的CUDA系统中，设备通常是带有自己的 DRAM 的硬件卡，称为 (设备)全局内存 (*device global memory*). 对于向量加法内核，在调用内核之前，程序员需要在设备全局内存中分配空间，并将数据从主机内存传输到设备全局内存中分配的空间。这对应于 1. 部分。类似地，在设备执行之后，程序员需要将结果数据从设备全局内存传输回主机内存，并释放设备全局内存中不再需要的已分配空间。这对应于 3. 部分。
 `cudaMalloc` 函数可以从主机代码中调用，为对象分配一块设备全局内存。第一个参数是指针变量的地址，该变量将被设置为指向分配的对象。指针变量的地址应强制转换为 `void**`，这样可以允许 `cudaMalloc` 函数将分配内存的地址写入所提供的指针变量中，而不考虑其类型[^2]。
 
-```cpp
+```cpp {linenos=true}
 cudaError_t cudaMalloc(void** devPtr, size_t size);
 ```
 
@@ -111,7 +111,7 @@ cudaFree 函数通过释放设备内存并将其返回到可用内存池来管�
 
 cudaMemcpy 函数是 CUDA 中用于在主机内存和设备内存之间传输数据的核心函数。它允许将数据从主机内存复制到设备内存，或从设备内存复制到主机内存。
 
-```cpp
+```cpp {linenos=true}
 cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind);
 ```
 
@@ -130,13 +130,13 @@ cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind 
 CUDA API 函数返回一个 `cudaError_t` 类型的标志，指示当它们处理请求时是否发生错误。
 在 CUDA 运行时库的头文件 cuda_runtime.h 中，cudaError_t 被定义为一个 int 类型的别名
 
-```cpp
+```cpp {linenos=true}
 typedef int cudaError_t;
 ```
 
 一个例子如下
 
-```cpp
+```cpp {linenos=true}
 // ...
 float *d_a;
 cudaError_t err = cudaMalloc(&d_a, 1024 * sizeof(float));
@@ -149,7 +149,7 @@ if (err != cudaSuccess) {
 
 {{< /details >}}
 
-```cpp
+```cpp {linenos=true}
 void vecAdd(float* A, float* B, float* C, int n)
 {
     int size = n* sizeof(float);
@@ -186,7 +186,7 @@ void vecAdd(float* A, float* B, float* C, int n)
 
 向量加法的核函数定义如下。网格中的每个线程对应于原始循环的一次迭代，这被称为循环并行 (*loop parallel*)，意为原始顺序代码的迭代由线程并行执行。`addVecKernel` 中有一个 `if (i < n)` 语句，因为并非所有的向量长度都可以表示为块大小的倍数。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void vecAddKernel(float* A, float* B, float* C, int n)
 {
@@ -212,7 +212,7 @@ CUDA C 使用了三个可以在函数声明中使用的限定字。下表展示�
 
 实现内核函数之后，剩下的步骤是从主机代码调用该函数来启动网格。当主机代码调用内核时，它通过执行配置参数 (*execution configuration parameters*) 设置网格和线程块大小配置参数在在传统的C函数参数之前由 `<<<...>>>` 之间给出。第一个配置参数给出网格中的块数量。第二个参数指定每个块中的线程数。
 
-```cpp
+```cpp {linenos=true}
 int vectAdd(float* A, float* B, float* C, int n)
 {
     // d_A, d_B, d_C allocations and copies omitted
@@ -226,7 +226,7 @@ int vectAdd(float* A, float* B, float* C, int n)
 
 > 实际上，分配设备内存、从主机到设备的输入数据传输、从设备到主机的输出数据传输以及释放设备内存的开销可能会使生成的代码比原始顺序代码慢，这是因为内核完成的计算量相对于处理或传输的数据量来说很小。
 
-```cpp
+```cpp {linenos=true}
 void vecAdd(float* A, float* B, float* C, int n)
 {
     int size = n * sizeof(float);

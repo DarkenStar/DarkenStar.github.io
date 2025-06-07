@@ -7,7 +7,7 @@
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Fri, 06 Jun 2025 17:38:00 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 07 Jun 2025 16:41:56 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/categories/git-learning/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>How to Use git rebase</title>
@@ -18,28 +18,62 @@
       <content:encoded><![CDATA[<h1 id="what-can-git-rebase-do">What Can git rebase Do</h1>
 <p><code>rebase</code> 的字面意思是“变基”——也就是改变一个分支的“基础”提交点。它的主要目标是：将一系列的提交以更整洁、线性的方式应用到另一个分支上，从而创造一个干净、没有多余合并记录的项目历史。</p>
 <p>假设你的项目历史是这样的：你在 main 分支上切出了一个 feature 分支，之后 main 分支和你自己的 feature 分支都有了新的 commits.</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">      A---B---C   &lt;-- feature
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">      A---B---C   &lt;-- feature
 </span></span><span class="line"><span class="cl">     /
 </span></span><span class="line"><span class="cl">D---E---F---G   &lt;-- main
-</span></span></code></pre></div><p>如果你在 feature 分支上运行 git rebase main，Git 会做一件非常神奇的事：</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果你在 feature 分支上运行 git rebase main，Git 会做一件非常神奇的事：</p>
 <ol>
 <li>Git 会暂时“收起” feature 分支上的所有提交 (A, B, C).</li>
 <li>将 feature 分支的起点移动到 main 分支的最新提交 G 上。</li>
 <li>把刚才收起的提交 (A, B, C) 依次重新应用到新的起点上，形成新的提交 A&rsquo;, B&rsquo;, C'</li>
 </ol>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">              A&#39;--B&#39;--C&#39;  &lt;-- feature
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">              A&#39;--B&#39;--C&#39;  &lt;-- feature
 </span></span><span class="line"><span class="cl">             /
 </span></span><span class="line"><span class="cl">D---E---F---G   &lt;-- main
-</span></span></code></pre></div><p><strong>A&rsquo; 和 A 的内容虽然一样，但它们的 Commit ID 是不同的，因为它们的父提交变了。rebase 相当于重写了历史。</strong></p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>A&rsquo; 和 A 的内容虽然一样，但它们的 Commit ID 是不同的，因为它们的父提交变了。rebase 相当于重写了历史。</strong></p>
 <p>现在，再切换回 main 分支，执行 <code>git merge feature</code>，由于 main 分支的所有历史现在是 feature 分支历史的子集，Git 只会进行一次 Fast-forward 合并，不会产生新的合并提交。最终结果如下</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">D---E---F---G---A&#39;--B&#39;--C&#39;  &lt;-- main, feature
-</span></span></code></pre></div><p>最终的项目历史是一条完美的直线，非常清晰，就像所有开发都是按顺序发生的一样。rebase 重写了历史，抹去了分支开发的“并行”痕迹。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">D---E---F---G---A&#39;--B&#39;--C&#39;  &lt;-- main, feature
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>最终的项目历史是一条完美的直线，非常清晰，就像所有开发都是按顺序发生的一样。rebase 重写了历史，抹去了分支开发的“并行”痕迹。</p>
 <h1 id="compared-to-merge">Compared to merge</h1>
 <p>要理解 rebase，最好的方法就是和 merge 对比。如果在 main 分支上运行 <code>git merge feature</code>，结果会是这样</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">      A---B---C
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">      A---B---C
 </span></span><span class="line"><span class="cl">     /         \
 </span></span><span class="line"><span class="cl">D---E---F---G---H   &lt;-- main (H 是一个合并提交)
-</span></span></code></pre></div><p><code>merge</code> 做的事情是：</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>merge</code> 做的事情是：</p>
 <ol>
 <li>找到两个分支的共同祖先 E.</li>
 <li>将两个分支的修改整合起来，创建一个全新的 Merge Commit，也就是 H. 该提交有两个父提交点 C 和 G.</li>
@@ -50,9 +84,17 @@
 <ol>
 <li>确保 main 分支处于最新的状态</li>
 </ol>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">git checkout main
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">git checkout main
 </span></span><span class="line"><span class="cl">git pull origin main
-</span></span></code></pre></div><ol start="2">
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="2">
 <li>切换到你正在开发的分支 <code>git checkout feature-login</code></li>
 <li>把 main 分支上的最新修改 rebase 到你当前的 feature-login 分支上 <code>git rebase main</code></li>
 <li>解决冲突 (如果有的话). 因为 rebase 是逐个应用提交，所以可能会在某个提交应用时发生冲突。此时，rebase 会暂停。
@@ -66,9 +108,17 @@
 <li>合并到主分支
 rebase 成功后，你的 feature-login 分支就已经包含了 main 的所有更新，并且<strong>你的提交都在最前面</strong>。现在可以进行一次干净的快进合并。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">git checkout main
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">git checkout main
 </span></span><span class="line"><span class="cl">git merge feature-login
-</span></span></code></pre></div><h1 id="when-not-to-use-rebase">When NOT to Use rebase</h1>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="when-not-to-use-rebase">When NOT to Use rebase</h1>
 <p>**永远不要对一个已经推送到 remote，并且可能被团队其他人使用的公共分支 (如 main, develop)进行 rebase！**因为 rebase 会重写历史。如果你 rebase 了一个公共分支并强制推送 (<code>git push --force</code>)，那么所有团队成员的本地历史记录都将与远程的“新历史”产生严重分歧。</p>
 <p>正确用法是只在你自己的、还未与他人分享的本地分支上使用 rebase，用来整理你自己的提交记录，以便在合并到公共分支前有一个干净的历史。</p>
 <h1 id="advanced-use-git-rebase--i">Advanced Use git rebase -i</h1>
@@ -79,14 +129,32 @@ rebase 成功后，你的 feature-login 分支就已经包含了 main 的所有�
 <li>编辑 Rebase 脚本
 Git 会打开一个文本编辑器，列出这 3 个提交：</li>
 </ol>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">pick a31ab34 complete login UI
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">pick a31ab34 complete login UI
 </span></span><span class="line"><span class="cl">pick 58c34bb fix a button bug
 </span></span><span class="line"><span class="cl">pick 948f2cb add backend verify logic
-</span></span></code></pre></div><p>在文件下方会有指令说明。你可以修改每一行前面的 pick 命令。比如，我们想把后两个提交合并到第一个里面：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">pick a31ab34 complete login UI
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在文件下方会有指令说明。你可以修改每一行前面的 pick 命令。比如，我们想把后两个提交合并到第一个里面：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">pick a31ab34 complete login UI
 </span></span><span class="line"><span class="cl">squash 58c34bb fix a button bug
 </span></span><span class="line"><span class="cl">squash 948f2cb add backend verify logic
-</span></span></code></pre></div><ol start="3">
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
 <li>保存并退出编辑器
 Git 会开始合并提交，并弹出另一个编辑器，让你为这个合并后的新提交编写一个新的 commit message. 整理好后保存退出。现在再用 <code>git log</code> 查看，你会发现原来 3 个凌乱的提交已经变成了一个干净、完整的提交。</li>
 </ol>

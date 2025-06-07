@@ -34,7 +34,7 @@ cover:
 - `test/` 用于存放需要测试的 mlir 文件。
 - `tools/` 存放用于注册 pass 的主文件
 
-```plaintext
+```plaintext {linenos=true}
  ./Ch1-WritingOurFirstPass/
 ├── CMakeLists.txt
 ├── include
@@ -60,7 +60,7 @@ cover:
 
 1. **迭代空间（Iteration Space）** ：程序中的循环嵌套可以被表示为一个多维的迭代空间。例如，对于一个双层嵌套循环：
 
-```C
+```C {linenos=true}
 for (i = 0; i < N; i++) {
     for (j = 0; j < M; j++) {
         A[i][j] = A[i][j] + 1;
@@ -78,7 +78,7 @@ for (i = 0; i < N; i++) {
 一个简单的对数组求和的函数如下: `affine.for` 定义一个循环，迭代变量为 `%i`，范围 `[0,4)`，即循环 4 次。
 `iter_args(%sum_iter = %sum_0)` 表示循环维护一个迭代变量 `%sum_iter`，初始值为 `%sum_0`.
 
-```mlir
+```mlir {linenos=true}
 func.func @sum_buffer(%buffer: memref<4xi32>) -> i32 {
     %sum_0 = arigh.constant 0 : i32
     %sum = affine.for %i = 0 to 4 iter_args(%sum_iter = %sum_0) -> (i32) {
@@ -102,7 +102,7 @@ MLIR 的表示基于 SSA 的 IR，例如 LLVM core IR，通过适当选择 Opera
 
 MLIR 提供了一个方法 [loopUnrollFull](https://github.com/llvm/llvm-project/blob/dea01f5e00e45dec4319475a001024c6ee882283/mlir/include/mlir/Dialect/Affine/LoopUtils.h#L46) 来进行循环展开，因此我们的 pass 将是对这个函数调用的一个包装，直接调用 C++ API 实现。
 
-```C++
+```C {linenos=true}++
 // include/mlir-learning/Transform/Affine/AffineFullUnroll.h
 class  AffineFullUnrollPass 
     : public PassWrapper<AffineFullUnrollPass, OperationPass<mlir::FuncOp>> {
@@ -145,7 +145,7 @@ void AffineFullUnrollPass::runOnOperation() {
 
 在这个例子中，`invokeCallback` 函数接收到 `printMessage` 函数的地址，并在 `main` 函数中调用它。
 
-```c++
+```c {linenos=true}++
 #include <iostream>
 
 // 回调函数的定义
@@ -168,7 +168,7 @@ int main() {
 
 在现代 C++ 中，回调函数通常通过 lambda 表达式传递。下面的例子中 `invokeCallback` 函数接受一个 `std::function<void()>` 类型的回调函数参数。在 `main` 函数中，传入了一个 Lambda 表达式作为回调函数。
 
-```c++
+```c {linenos=true}++
 #include <iostream>
 
 void invokeCallback(std::function<void()> callback) {
@@ -190,7 +190,7 @@ int main() {
 
 接下来我们需要在 tutorial.cpp 中注册这个 Pass。
 
-```c++
+```c {linenos=true}++
 #include "mlir-learning/Transform/Affine/AffineFullUnroll.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Pass/PassManager.h"
@@ -220,7 +220,7 @@ int main(int argc, char** argv) {
 
 我们写一个 .mlir 来测试我们的 Pass，这是一个对数组进行累加的函数。FileCheck 检查经过 Pass 后函数中不会存在 `affine.for` 指令。
 
-```mlir
+```mlir {linenos=true}
 // RUN: /leaning/build/chapter2/tools/02-tutorial-opt %s --affine-full-unroll > %t
 // RUN: FileCheck %s < %t
 
@@ -238,7 +238,7 @@ func.func @test_single_nested_loop(%buffer: memref<4xi32>) -> (i32) {
 
 经过优化后的函数如下
 
-```mlir
+```mlir {linenos=true}
 #map = affine_map<(d0) -> (d0 + 1)>
 #map1 = affine_map<(d0) -> (d0 + 2)>
 #map2 = affine_map<(d0) -> (d0 + 3)>
@@ -266,7 +266,7 @@ module {
 
 当想要对一个给定的 IR 子结构重复应用相同的变换子集，直到该子结构被完全去除时，需要写一个重写模式引擎。重写模式是 `OpRewritePattern` 的子类，它有一个名为 `matchAndRewrite` 的方法来执行转换。
 
-```c++
+```c {linenos=true}++
 // chapter2/lib/Transform/Affine/AffineFullUnroll.cpp
 struct AffineFullUnrollPattern : public mlir::OpRewritePattern<AffineForOp>
 {
@@ -294,7 +294,7 @@ struct AffineFullUnrollPattern : public mlir::OpRewritePattern<AffineForOp>
 
 我们同样要像上一节一样在头文件中声明一个 `AffineFullUnrollPassAsPatternRewrite` 类，然后实现其 `runOnOperation` 方法。
 
-```c++
+```c {linenos=true}++
 // chapter2/lib/Transform/Affine/AffineFullUnroll.cpp
 void AffineFullUnrollPassAsPatternRewrite::runOnOperation() {
     mlir::RewritePatternSet patterns(&getContext());
@@ -316,7 +316,7 @@ void AffineFullUnrollPassAsPatternRewrite::runOnOperation() {
 * **左值 (Lvalue)** ：表示可以取地址的对象，可以理解为拥有持久生命周期的对象。它通常是变量、数组元素、对象成员等。
 * **右值 (Rvalue)** ：表示临时对象、非持久生命周期的对象，通常是返回值、字面常量等。
 
-```c++
+```c {linenos=true}++
 #include <iostream>
 #include <vector>
 #include <utility>  // std::move
@@ -366,7 +366,7 @@ int main() {
   * 计算新的乘法 `lhs * newConstant`，并将其加倍（通过 `AddIOp` 来实现 `lhs * value`）。
   * 最终用新的加法替代原来的乘法。
 
-```c++
+```c {linenos=true}++
 struct PowerOfTwoExpand : public OpRewritePattern<MulIOp>
 {
     PowerOfTwoExpand(MLIRContext* context)
@@ -412,7 +412,7 @@ struct PowerOfTwoExpand : public OpRewritePattern<MulIOp>
 * 用 `lhs * newConstant` 进行计算，并将结果加上 `lhs`（即 `lhs * value` 转化为 `(lhs * (value - 1)) + lhs`）。
 * 最终用新的加法替代原来的乘法。
 
-```c++
+```c {linenos=true}++
 struct PeelFromMul : public OpRewritePattern<MulIOp>
 {
     PeelFromMul(MLIRContext* context) : OpRewritePattern<MulIOp>(context, 1) {
@@ -447,7 +447,7 @@ struct PeelFromMul : public OpRewritePattern<MulIOp>
 
 之后我们同样在 `runOnOperation` 方法中注册 `PowerOfTwoExpand` 和 `PeelFromMul` 两个模式。
 
-```c++
+```c {linenos=true}++
 void MulToAddPass::runOnOperation() {
     mlir::RewritePatternSet patterns(&getContext());
     patterns.add<PowerOfTwoExpand>(&getContext());
@@ -463,7 +463,7 @@ LLVM 和 MLIR 使用的是同一个测试框架，分为两个测试步骤。
 1. [lit](https://llvm.org/docs/CommandGuide/lit.html) (LLVM Integratesd Tester) 负责发现、组织和运行测试，并报告测试结果。测试文件中通常包含 RUN: 指令，告诉 lit 如何运行测试。
 2. [FileCheck](https://llvm.org/docs/CommandGuide/FileCheck.html) 通过模式匹配的方式，验证输出是否包含特定的字符串或结构。
 
-```python
+```python {linenos=true}
 # lit.cfg.py
 # CMD: llvm-lit -v path/to/test_files
 import os
@@ -487,7 +487,7 @@ config.environment["PATH"] = (
 
 我们同样创建一个 .mlir 文件来测试我们的 Pass. 我们希望 Pass 能够将递归地将乘法转化为加法形式，
 
-```mlir
+```mlir {linenos=true}
 // RUN: /leaning/build/chapter2/tools/02-tutorial-opt %s --mul-to-add > %t
 // RUN: FileCheck %s < %t
 
@@ -525,7 +525,7 @@ func.func @power_of_two_plus_one(%arg: i32) -> i32 {
 
 经过优化后的代码如下：
 
-```mlir
+```mlir {linenos=true}
 module {
   func.func @just_power_of_two(%arg0: i32) -> i32 {
     %0 = arith.addi %arg0, %arg0 : i32

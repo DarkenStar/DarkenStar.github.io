@@ -33,7 +33,7 @@ My notebook of MLC: [https://mlc.ai/summer22-zh](https://mlc.ai/summer22-zh)
 
 该函数实现了简单的向量加法 (vector add) 操作, 两个输入向量 `A` 和 `B` 相加，并将结果存储到输出向量 `C` 中。
 
-```python
+```python {linenos=true}
 import tvm
 from tvm.ir.module import IRModule
 from tvm.script import tir as T
@@ -56,7 +56,7 @@ class MyModule:
 
 **1. 模块定义:**
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class MyModule:
 # ...
@@ -69,7 +69,7 @@ class MyModule:
 
 在 Python 中，装饰器 (Decorator) 是一种特殊的函数，它可以用来修改其他函数的行为，而无需直接修改被装饰的函数代码。
 
-```python
+```python {linenos=true}
 def decorator_function(func):
     def wrapper(*args, **kwargs):
         # 在调用被装饰的函数之前执行的操作
@@ -98,7 +98,7 @@ def my_function(x, y):
 {{< /details >}}
 **2. 计算函数定义:**
 
-```python
+```python {linenos=true}
     @T.prim_func
     def main(A: T.Buffer[128, "float32"], 
             B: T.Buffer[128, "float32"], 
@@ -114,7 +114,7 @@ def my_function(x, y):
 
 **3. 函数属性:**
 
-```python
+```python {linenos=true}
         T.func_attr({"global_symbol": "main", "tir.noalias": True})
 ```
 
@@ -124,7 +124,7 @@ def my_function(x, y):
 
 **4. 计算循环:**
 
-```python
+```python {linenos=true}
 for i inrange(128):
     with T.block("C"):
     # ...
@@ -137,7 +137,7 @@ for i inrange(128):
 
 **5. 迭代器定义:**
 
-```python
+```python {linenos=true}
 vi = T.axis.spatial(128, i)
 ```
 
@@ -147,7 +147,7 @@ vi = T.axis.spatial(128, i)
 
 **6. 计算操作:**
 
-```python
+```python {linenos=true}
 C[vi] = A[vi] + B[vi]
 ```
 
@@ -155,7 +155,7 @@ C[vi] = A[vi] + B[vi]
 
 我们可以通过 `MyModule.show()` 来显示构建的IRModule.
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class Module:
     @T.prim_func
@@ -176,7 +176,7 @@ class Module:
 
 我们可以通过 `tvm.build`函数将一个IRModule转变成可以运行的函数，通过定义的函数名可以获取想要的函数。然后我们可以定义三个 `NDArray` 数组来调用函数。
 
-```python
+```python {linenos=true}
 rt_mod = tvm.build(MyModule, target="llvm")
 func = rt_mod["main"]
 a = tvm.nd.array(np.arange(128, dtype="float32"))
@@ -201,7 +201,7 @@ func(a, b, c)
 * **循环重排序:** 按照 `i_0`、`i_2` 和 `i_1` 这个顺序执行。
 * **并行化:** 将 `i_0` 并行化，可以利用多核 CPU 或 GPU 的计算能力，提高计算速度
 
-```python
+```python {linenos=true}
 sch = tvm.tir.Schedule(MyModule)
 # Get block by its name
 block_c = sch.get_block("C")
@@ -217,7 +217,7 @@ sch.mod.show()
 
 优化后的计算图如下
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class Module:
     @T.prim_func
@@ -243,7 +243,7 @@ Tensor Expression 指的是一种用于描述张量计算的数学表达式。
 
 我们可以通过以下方式来创建和 [上一节](#Vector-Add-Example) 一样的IRModule.
 
-```python
+```python {linenos=true}
 # namespace for tensor expression utility
 from tvm import te
 
@@ -305,7 +305,7 @@ ir_mod_from_te.show()
 
 下面代码展示了两个 $1024 \times 1024$ 矩阵相乘的IRModule创建流程。
 
-```python
+```python {linenos=true}
 M = 1024
 K = 1024
 N = 1024
@@ -345,7 +345,7 @@ print("Baseline: %f" % evaluator(a, b, c).mean)
 
 {{< details title="time evaluator" >}}
 
-```python
+```python {linenos=true}
 IRModule.time_evaluator(func, args, number=1, repeat=1, min_repeat_ms=0, f_type=0)
 ```
 
@@ -402,7 +402,7 @@ IRModule.time_evaluator(func, args, number=1, repeat=1, min_repeat_ms=0, f_type=
 
 
 {{< details title="te.sum" >}}
-```python
+```python {linenos=true}
 te.sum(expr, axis=None, keepdims=False, where=None)
 ```
 **参数解释:**
@@ -416,7 +416,7 @@ te.sum(expr, axis=None, keepdims=False, where=None)
 
 创建的IRModule如下所示。
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class Module:
     @T.prim_func
@@ -437,7 +437,7 @@ class Module:
 
 我们可以将循环拆分成外层循环和内层循环可以提高数据局部性。内层循环访问的数据更接近，可以有效利用缓存。下面代码的 `block_size` 参数控制了内层循环的大小，选择合适的块大小可以最大程度地利用缓存。
 
-```python
+```python {linenos=true}
 sch = tvm.tir.Schedule(ir_module)
 block_c = sch.get_block("C")
 # Get loops surronding the block
@@ -460,7 +460,7 @@ print("after transformation: %f" % evaluator(a, b, c).mean)
 
 创建的IRModule如下所示。实际中我们会测试很多不同 `block_size`对应的执行时间来选择最合适的。
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class Module:
     @T.prim_func

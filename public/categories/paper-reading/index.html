@@ -10,7 +10,7 @@
 <meta name="description" content="">
 <meta name="author" content="">
 <link rel="canonical" href="http://localhost:1313/categories/paper-reading/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.fb932412828c9f2d49266af65be261a7367e82206ad4a3b92eab398b3f348294.css" integrity="sha256-&#43;5MkEoKMny1JJmr2W&#43;JhpzZ&#43;giBq1KO5Lqs5iz80gpQ=" rel="preload stylesheet" as="style">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
@@ -66,6 +66,8 @@
     }
   };
 </script>
+
+
 <meta property="og:url" content="http://localhost:1313/categories/paper-reading/">
   <meta property="og:site_name" content="WITHER">
   <meta property="og:title" content="Paper Reading">
@@ -124,43 +126,43 @@
         </div>
         <ul id="menu">
             <li>
-                <a href="http://localhost:1313/" title="Home">
-                    <span>Home</span>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/about_me/" title="About Me">
-                    <span>About Me</span>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/blogs/" title="Blogs">
-                    <span>Blogs</span>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/categories/" title="Categories">
-                    <span>Categories</span>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/tags/" title="Tags">
-                    <span>Tags</span>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/archives/" title="Archive">
-                    <span>Archive</span>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/search/" title="Search (Alt &#43; /)" accesskey=/>
-                    <span>Search</span>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/friends/" title="Friends">
-                    <span>Friends</span>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
                 </a>
             </li>
         </ul>
@@ -175,29 +177,98 @@
 
 <article class="post-entry tag-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">All2All Communication Cost
+    <h2 class="entry-hint-parent">Transformer Family
     </h2>
   </header>
   <div class="entry-content">
-    <p>在 All2All 通信中，每个设备给其他设备发送大小为 m 的不同的消息。此操作相当于使用一维数组分区对分布在 p 个进程中的二维数据数组进行转置，因此也被称作全交换 (total exchange)
-...</p>
+    <p>Introduction of Transformer Family</p>
   </div>
-  <footer class="entry-footer">5 min&nbsp;·&nbsp;2482 words</footer>
-  <a class="entry-link" aria-label="post link to All2All Communication Cost" href="http://localhost:1313/posts/all2all-communication-cost/"></a>
+  <footer class="entry-footer"><span title='2025-06-07 21:24:13 +0800 CST'>Jun-07-2025</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;2392 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to Transformer Family" href="http://localhost:1313/blogs/transformerfamily/"></a>
 </article>
 
 <article class="post-entry tag-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">Broadcasting on Meshes with Wormhole Routing
+    <h2 class="entry-hint-parent">ZeRO, ZeRO-Offload, ZeRO-Infinity
     </h2>
   </header>
   <div class="entry-content">
-    <p>Minimum Spanning Tree Broadcasting 最流行的广播算法是形成基于从发出广播的节点 (root) 的最小生成树。
-Naive Hypercube-Like Mesh Algorithm 假设 mesh 的行数目 (r) 和列数目 (c) 都是二的整数幂 (因此节点数 p 也是). 将节点的索引用二进制表示。最初，只有 root 拥有消息。对于 i=1,…,log(p)，在算法的第 i 步 ，所有已经拥有消息的节点 Pj 将消息发送给节点 Pk，其中 k 与 j 仅在节点索引的第 i 位上不同。记通信的启动时间为 α s，带宽为 1/β B/s，则总共需要 log(p) 步。如下图所示该算法的传播路径会造成链路冲突，因此总时间为
-...</p>
+    <p>Paper reading of ZeRO.</p>
   </div>
-  <footer class="entry-footer">5 min&nbsp;·&nbsp;2226 words</footer>
-  <a class="entry-link" aria-label="post link to Broadcasting on Meshes with Wormhole Routing" href="http://localhost:1313/posts/broadcasting-on-meshes-with-wormhole-routing/"></a>
+  <footer class="entry-footer"><span title='2025-06-07 21:11:32 +0800 CST'>Jun-07-2025</span>&nbsp;·&nbsp;19 min&nbsp;·&nbsp;9049 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to ZeRO, ZeRO-Offload, ZeRO-Infinity" href="http://localhost:1313/blogs/zero/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">All2All Communication Cost
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Introduction of Transformer Family</p>
+  </div>
+  <footer class="entry-footer"><span title='2025-01-12 16:05:23 +0800 CST'>Jan-12-2025</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;2374 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to All2All Communication Cost" href="http://localhost:1313/blogs/all2allcommcost/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">DistriFusion
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Paper reading about DistriFusion.</p>
+  </div>
+  <footer class="entry-footer"><span title='2024-10-23 14:28:37 +0800 CST'>Oct-23-2024</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;3170 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to DistriFusion" href="http://localhost:1313/blogs/distrifusion/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">DeepSpeedUlysses
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Paper reading of Deepseed Ulysses.</p>
+  </div>
+  <footer class="entry-footer"><span title='2024-10-21 11:09:12 +0800 CST'>Oct-21-2024</span>&nbsp;·&nbsp;2 min&nbsp;·&nbsp;678 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to DeepSpeedUlysses" href="http://localhost:1313/blogs/deepspeedulysses/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Efficient Large-Scale Language Model Training on GPU
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Paper reading about Efficient Large-Scale Language Model Training on GPU Clusters.</p>
+  </div>
+  <footer class="entry-footer"><span title='2024-10-05 10:09:35 +0800 CST'>Oct-05-2024</span>&nbsp;·&nbsp;9 min&nbsp;·&nbsp;4182 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to Efficient Large-Scale Language Model Training on GPU" href="http://localhost:1313/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Megatron-LM
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Paper reading about Megatron-LM</p>
+  </div>
+  <footer class="entry-footer"><span title='2024-10-02 15:51:50 +0800 CST'>Oct-02-2024</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;1867 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to Megatron-LM" href="http://localhost:1313/blogs/megatronlm/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Ring Attention Principle
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>This is a brief introduction to the Ring Attention Principle.</p>
+  </div>
+  <footer class="entry-footer"><span title='2024-09-26 22:59:35 +0800 CST'>Sep-26-2024</span>&nbsp;·&nbsp;6 min&nbsp;·&nbsp;2551 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to Ring Attention Principle" href="http://localhost:1313/blogs/ringattention/"></a>
 </article>
 
 <article class="post-entry tag-entry"> 
@@ -206,113 +277,11 @@ Naive Hypercube-Like Mesh Algorithm 假设 mesh 的行数目 (r) 和列数目 (c
     </h2>
   </header>
   <div class="entry-content">
-    <p>Basic Transformer Block 符号含义表示如下
-Symbol Description Symbol Description a 注意力头数 n 并行度大小 b batchsize s 序列长度 h 隐藏层维度 v 词汇表大小 L tranformer layer 层数数 基本 transformer block 结构如下，输入是形状为 (b, s, h) 的三维张量，其中 b 为 batchsize. 每个变压器层由一个具有注意头的自注意块组成，随后是一个具有两层的 MLP，第一层将隐藏维度增加到 4h，然第二层将其减少到 h. 每个变压器层的输入和输出具有相同的形状.
-...</p>
+    <p>Paper reading of</p>
   </div>
-  <footer class="entry-footer">14 min&nbsp;·&nbsp;6567 words</footer>
-  <a class="entry-link" aria-label="post link to Comparsion of Parallelsim Metods in ViT" href="http://localhost:1313/posts/comparsion-of-parallelsim-metods-in-vit/"></a>
+  <footer class="entry-footer"><span title='2023-11-13 16:05:23 +0800 CST'>Nov-13-2023</span>&nbsp;·&nbsp;14 min&nbsp;·&nbsp;6732 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to Comparsion of Parallelsim Metods in ViT" href="http://localhost:1313/blogs/comparsion-of-parallelsim-metods-in-vit/"></a>
 </article>
-
-<article class="post-entry tag-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">CUDA GEMM Programming
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>GPU Architectures GPU 宏观来看 由许多流式处理器 (SMs), 片上 L2 Cache 和 DRAM 组成。算术和其他指令由 SMs 执行；数据和代码通过 L2 Cache 从 DRAM 访问。例如，NVIDIA A100 GPU包含 108 SMs，40MB L2 Cache，80GB HBM2 (带宽 2039GB/s).
-...</p>
-  </div>
-  <footer class="entry-footer">7 min&nbsp;·&nbsp;3108 words</footer>
-  <a class="entry-link" aria-label="post link to CUDA GEMM Programming" href="http://localhost:1313/posts/bank_conflict/"></a>
-</article>
-
-<article class="post-entry tag-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">DSP-Dynamic Sequence Parallelism For Multidimensional Transformers
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>Abstract 克服多维 Transformer 缩放成长序列的大内存需求和慢推理速度的缺点需要序列并行。所有现有的方法都属于嵌入式序列并行的范畴，这些方法仅限于沿着单个序列维进行分片，引入了大量的通信开销。动态序列并行 (DSP) 是一种新的序列并行，采用高效的重分片策略，根据计算阶段在各序列之间动态切换并行维度。
-...</p>
-  </div>
-  <footer class="entry-footer">6 min&nbsp;·&nbsp;2563 words</footer>
-  <a class="entry-link" aria-label="post link to DSP-Dynamic Sequence Parallelism For Multidimensional Transformers" href="http://localhost:1313/posts/dsp-dynamic-sequence-parallelism-for-multidimensional-transformers/"></a>
-</article>
-
-<article class="post-entry tag-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">MoE &amp; Expert Parallel
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>参数
-D = 输入和输出维度。 I = 专家网络的中间隐蔵淮度。 N = 总专家数量。 K = 每个 token 激活的专家数量（Top－K 的 K ）。 G = 专家分组数量。 G_topk = 每个 token 路由到的组数量。 W = world＿size：设备数量。 R = rank：当前设备编号。 T ：token 数量（展平后的 token 总数）。 What is Mixture of Experts(MoE) 在 MoE-Transformer 中，FFN 层被替换为 MoE 模块。MoE 通过一个门控网络 (Gating Network) 动态选择哪些专家来处理特定的输入 token. MoE 中每个输入 token 只激活一小部分专家 (通常通过 Top-K 路由选择 K 个专家，K≪N，其中 N 是专家总数)
-...</p>
-  </div>
-  <footer class="entry-footer">3 min&nbsp;·&nbsp;1264 words</footer>
-  <a class="entry-link" aria-label="post link to MoE & Expert Parallel" href="http://localhost:1313/posts/moe_ep/"></a>
-</article>
-
-<article class="post-entry tag-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">Object Detection and Classification using R-CNNs
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>Image Pre-Processing 在将图像送入神经网络之前，会应用以下预处理步骤。这些步骤在训练和推理阶段必须完全相同。首先减去均值向量 (3×1，每个颜色通道对应一个) 不是当前图像像素值的均值，而是一个在所有训练和测试图像中保持一致的配置值。然后进行缩放操作，使图像较短边达到目标尺寸 (targetSize, 默认 600)，同时确保较长边不超过最大尺寸 (maxSize, 默认 1000) ，具体通过计算缩放比例scale (targetSize / minDim) ，并在必要时调整比例以满足最大尺寸限制，最后按比例缩放图像。
-...</p>
-  </div>
-  <footer class="entry-footer">15 min&nbsp;·&nbsp;7182 words</footer>
-  <a class="entry-link" aria-label="post link to Object Detection and Classification using R-CNNs" href="http://localhost:1313/posts/object-detection-and-classification-using-r-cnns/"></a>
-</article>
-
-<article class="post-entry tag-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">OpenSora Inference Sumamry
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>Model Architecture OpenSora 的整体结构如下，Embedding Layer 包括 5 个
-PatchEmbedding3D: 对输入隐藏层的噪声进行 3D 卷积 Conv3d(4, 1152, kernel_size=(1, 2, 2), stride=(1, 2, 2)) TimestepEmbedder: 对当前的时间步进行 Sinusoidal Embedding 后经过两个线性层 SizeEmbedder: scalar 版本的 TimestepEmbedder t_block: Linear(in_features=1152, out_features=6912, bias=True) 生成 MHSA 和 MLP 所需要的 shift, scale &amp; gate 参数. CaptionEmbedder: 对编码后的 prompt 经过两个线性层。 主干由 28 个 STDiT3 Block 组成。每个 STDiT3 block 由一个 spatial block &#43; temporal block 组成。spatial/temporal block 由 MHSA &#43; MHCA &#43; FFN 组成。不同的是 spatial block 中的 MHSA 的序列大小为空间维度 (HW)，时间维度 T 被看作 batch_size 处理，temporal block 则是反过来。
-...</p>
-  </div>
-  <footer class="entry-footer">8 min&nbsp;·&nbsp;3578 words</footer>
-  <a class="entry-link" aria-label="post link to OpenSora Inference Sumamry" href="http://localhost:1313/posts/sora_inference_summary/"></a>
-</article>
-
-<article class="post-entry tag-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">PipeFusion-Displaced Patch Pipeline Parallelism for Inference of DiT Models
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>Abstract PipeFusion 是一种利用多 GPU 并行来进行 DiT 模型推理的方法。
-将图像分割成 patch，并将 Transformer Blocks 分布在多个设备上。 通过重用上一步 (one-step stale) 的特征图作为当前步的上下文，消除了流水线中的等待时间。 Introduction 由于 Attention 的计算特性，计算时间与序列长度的平方成正比，使得 DiT 模型生成高分辨率图形 (长视觉序列) 的推理延迟非常高。 DistriFusion 观察到在相邻的扩散时间步中输入和激活存在高度相似性，我们将这种现象称为输入时间冗余 (input temporal redundancy). 它保留所有层 KV 的完整形状。内存开销不会随着计算设备数量的增加而减少，在可扩展性方面表现不佳。
-...</p>
-  </div>
-  <footer class="entry-footer">8 min&nbsp;·&nbsp;3561 words</footer>
-  <a class="entry-link" aria-label="post link to PipeFusion-Displaced Patch Pipeline Parallelism for Inference of DiT Models" href="http://localhost:1313/posts/pipefusion/"></a>
-</article>
-
-<article class="post-entry tag-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">Real-Time Video Generation With Pyramid Attention Broadcast
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>Abstract 我们观察到 Attention 输出差异在扩散过程中呈现 U 型，表明显著的冗余。因此提出了金字塔注意力广播 (Pyramid Attention Broadcast, PAB)，在三种模型中表现出卓越的效果，实现了高达 720p 视频的实时生成。
-...</p>
-  </div>
-  <footer class="entry-footer">5 min&nbsp;·&nbsp;2287 words</footer>
-  <a class="entry-link" aria-label="post link to Real-Time Video Generation With Pyramid Attention Broadcast" href="http://localhost:1313/posts/real-time-video-generation-with-pyramid-attention-broadcast/"></a>
-</article>
-<footer class="page-footer">
-  <nav class="pagination">
-    <a class="next" href="http://localhost:1313/categories/paper-reading/page/2/">Next&nbsp;2/2&nbsp;»
-    </a>
-  </nav>
-</footer>
     </main>
     
 <footer class="footer">

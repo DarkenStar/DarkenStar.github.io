@@ -7,8 +7,21 @@
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Sat, 07 Jun 2025 16:05:12 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/categories/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Paper Reading</title>
+      <link>http://localhost:1313/categories/paper-reading/</link>
+      <pubDate>Sat, 07 Jun 2025 21:24:13 +0800</pubDate>
+      <guid>http://localhost:1313/categories/paper-reading/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Source Code Reading</title>
+      <link>http://localhost:1313/categories/source-code-reading/</link>
+      <pubDate>Sat, 07 Jun 2025 20:44:50 +0800</pubDate>
+      <guid>http://localhost:1313/categories/source-code-reading/</guid>
+      <description></description>
+    </item>
     <item>
       <title>Test</title>
       <link>http://localhost:1313/categories/test/</link>

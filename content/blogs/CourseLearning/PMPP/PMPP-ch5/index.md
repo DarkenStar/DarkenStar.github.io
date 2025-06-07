@@ -102,7 +102,7 @@ Rooline 模型用于评估应用程序相在其所运行的硬件的限制上达
 
 写后读依赖是一种真正依赖 (*true dependence*)，因为读线程确实需要写线程提供的数据，所以它别无选择，只能等待。读后写依赖关系是伪依赖 (*false dependence*) 关系，因为写线程不需要来自读线程的任何数据。这种依赖性是因为它们访问相同的内存地址，如果它们访问不同的地址，则不存在这种依赖性。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void TilingMatrixMulKernel(float* M, float* N, float* P, int width) {
 
@@ -146,7 +146,7 @@ Tiling 技术并不是 GPU 上才能实现。CPU 上的 tiling 依赖缓存来�
 
 ![Calculation of the Matrix Indexes in Tiled Multiplication](https://note.youdao.com/yws/api/personal/file/WEB4072b51d6111b15f740c4efb83237a0f?method=download&shareKey=629c82b8ccd78e137a597b5a3e364c4b "Calculation of the Matrix Indexes in Tiled Multiplication")
 
-```cpp
+```cpp {linenos=true}
 __global__
 void GEMMKernel(float* M, float* N, float* P, int m, int n, int k) {
 
@@ -197,7 +197,7 @@ void GEMMKernel(float* M, float* N, float* P, int m, int n, int k) {
 CUDA 设备提供有限的资源限制了可以同时在给定程序的 SM 中分配的线程数量。上面代码不支持主机代码对共享内存使用情况的任何动态调整，因为共享内存使用的大小是一个常量。
 解决的方法是共享内存声明前添加一个 `extern` 关键字，并在声明中省略数组的大小。当调用内核时，可以根据设备查询结果动态配置每个块要使用的共享内存量，并将其作为第三个执行配置参数提供给内核调用。然后将数组中每个部分的大小作为参数传递给内核函数。
 
-```cpp
+```cpp {linenos=true}
 size = ...;
 matrixMulKernel<<<dimGrid,dimBlock,size>>>(Md，Nd，Pd, Width，size/2，size/2);
 

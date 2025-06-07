@@ -38,3 +38,4 @@ cover:
 ---
 
 <!-- more -->
+<!-- hugo new --kind post path\to\markdown -->    

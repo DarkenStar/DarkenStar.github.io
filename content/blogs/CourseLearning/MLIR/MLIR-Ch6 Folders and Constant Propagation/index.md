@@ -27,7 +27,7 @@ cover:
 
 例如对于如下的函数
 
-```mlir
+```mlir {linenos=true}
 func.func @test_arith_sccp() -> i32 {
   %0 = arith.constant 7 : i32
   %1 = arith.constant 8 : i32
@@ -40,7 +40,7 @@ func.func @test_arith_sccp() -> i32 {
 
 `-sccp` 优化后的结果如下：
 
-```mlir
+```mlir {linenos=true}
 func.func @test_arith_sccp() -> i32 {
   %c63_i32 = arith.constant 63 : i32
   %c49_i32 = arith.constant 49 : i32
@@ -55,7 +55,7 @@ func.func @test_arith_sccp() -> i32 {
 
 一个相关的概念是 canonicalization，`--canonicalize` pass 隐藏了 MLIR 中的许多繁重工作。它与 sccp 有一点重叠，因为它也计算常量并在 IR 中具体化它们。例如，在上面的 IR 上使用 `——canonicalize` pass 的结果如下
 
-```mlir
+```mlir {linenos=true}
 func.func @test_arith_sccp() -> i32 {
   %c14_i32 = arith.constant 14 : i32
   return %c14_i32 : i32
@@ -76,14 +76,14 @@ func.func @test_arith_sccp() -> i32 {
 
 我们目前只支持通过 `from_tensor`  op 从 `arith.constant` 创建常量。
 
-```mlir
+```mlir {linenos=true}
 %0 = arith.constant dense<[1, 2, 3]> : tensor<3xi32>
 %p0 = poly.from_tensor %0 : tensor<3xi32> -> !poly.poly<10>
 ```
 
 一个常量 op 可以将上述两个操作简化成一个 op. `from_tensor` op 还可以用于根据数据 (而不仅仅是常数) 构建一个多项函数，因此即使在我们实现了 `poly.constant` 之后，它也应该保留。
 
-```mlir
+```mlir {linenos=true}
 %0 = poly.constant dense<[2, 8, 20, 24, 18]> : !poly.poly<10>
 ```
 
@@ -111,7 +111,7 @@ Attribute 类的核心作用是：
 - 跨方言的通用接口：Attribute 是一个抽象接口，允许不同方言 (dialects) 定义自己的常量表示，同时通过统一的 API 进行操作。
 - 轻量级和高效：Attribute 是一个值类型 (passed by value) ，内部仅存储指向底层存储的指针，依赖 MLIRContext 的唯一化机制 (uniquing) 确保内存效率和一致性。
 
-```c++
+```c {linenos=true}++
 using FoldAdaptor = GenericAdaptor<::llvm::ArrayRef<::mlir::Attribute>>;
 
 ::mlir::OpFoldResult fold(FoldAdaptor adaptor);
@@ -121,7 +121,7 @@ using FoldAdaptor = GenericAdaptor<::llvm::ArrayRef<::mlir::Attribute>>;
 
 对于 `poly.constant` 我们只需要返回输入的 attribute.
 
-```c++
+```c {linenos=true}++
 OpFoldResult ConstantOp::fold(ConstantOp::FoldAdaptor adaptor) {
   return adaptor.getCoefficients();
 }
@@ -129,7 +129,7 @@ OpFoldResult ConstantOp::fold(ConstantOp::FoldAdaptor adaptor) {
 
 对于 from_tensor 我们需要有一个额外的强制转换作为断言，因为张量可能是用我们不希望作为输入的奇怪类型构造的。如果 `dyn_cast` 结果是 `nullptr`， MLIR 将其强制转换为失败的 `OpFoldResult`.
 
-```c++
+```c {linenos=true}++
 OpFoldResult FromTensorOp::fold(FromTensorOp::FoldAdaptor adaptor) {
   // Returns null if the cast failed, which corresponds to a failed fold.
   return dyn_cast<DenseIntElementsAttr>(adaptor.getInput());
@@ -140,7 +140,7 @@ BinOp 稍微复杂一些，因为这些 fold 方法中的每一个 op 都接受�
 
 对于 elementwise op 的 add/sub，我们可以使用现有的方法 `constFoldBinaryOp`，它通过一些模板元编程技巧，允许我们只指定元素 op 本身。
 
-```c++
+```c {linenos=true}++
 OpFoldResult AddOp::fold(AddOp::FoldAdaptor adaptor) {
   return constFoldBinaryOp<IntegerAttr, APInt>(
       adaptor.getOperands(), [&](APInt a, APInt b) { return a + b; });
@@ -149,7 +149,7 @@ OpFoldResult AddOp::fold(AddOp::FoldAdaptor adaptor) {
 
 对于 mul，我们手动的通过循环计算每个系数。`getResult()` 方法来自于 `OneTypedResult` 类模板及其内部类 `Impl` 是一个 MLIR Trait，它主要用于那些返回单一特定类型结果的 op 。
 
-```c++
+```c {linenos=true}++
 OpFoldResult MulOp::fold(MulOp::FoldAdaptor adaptor) {
     auto lhs = llvm::dyn_cast<DenseIntElementsAttr>(adaptor.getOperands()[0]);
     auto rhs = llvm::dyn_cast<DenseIntElementsAttr>(adaptor.getOperands()[1]);
@@ -188,7 +188,7 @@ OpFoldResult MulOp::fold(MulOp::FoldAdaptor adaptor) {
 
 最后我们添加常量实例化函数，这是一个 dialect 级别的特性，我们在 `PolyDialect.td` 中添加 `let hasConstantMaterializer = 1;` 则会在 .hpp.inc 中添加如下形式的声明。
 
-```c++
+```c {linenos=true}++
 ::mlir::Operation *materializeConstant(::mlir::OpBuilder &builder,
                                          ::mlir::Attribute value,
                                          ::mlir::Type type,
@@ -197,7 +197,7 @@ OpFoldResult MulOp::fold(MulOp::FoldAdaptor adaptor) {
 
 该函数作用是将给定 Attribute (上面每个折叠步骤的结果) 的单个常量 op 实例化为所需的结果 Type.
 
-```c++
+```c {linenos=true}++
 Operation *PolyDialect::materializeConstant(
     OpBuilder &builder, Attribute value, Type type, Location loc) {
   auto coeffs = dyn_cast<DenseIntElementsAttr>(value);

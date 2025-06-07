@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Ring Attention Principle | WITHER</title>
+<meta name="keywords" content="RingAttention">
+<meta name="description" content="This is a brief introduction to the Ring Attention Principle.">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/ringattention/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/ringattention/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+
+<meta property="og:url" content="http://localhost:1313/blogs/ringattention/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="Ring Attention Principle">
+  <meta property="og:description" content="This is a brief introduction to the Ring Attention Principle.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2024-09-26T22:59:35+08:00">
+    <meta property="article:modified_time" content="2024-09-26T22:59:35+08:00">
+    <meta property="article:tag" content="Distributed Training">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ring Attention Principle">
+<meta name="twitter:description" content="This is a brief introduction to the Ring Attention Principle.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Ring Attention Principle",
+      "item": "http://localhost:1313/blogs/ringattention/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Ring Attention Principle",
+  "name": "Ring Attention Principle",
+  "description": "This is a brief introduction to the Ring Attention Principle.",
+  "keywords": [
+    "RingAttention"
+  ],
+  "articleBody": "Background 如今 LLM 的 token 长度显著增加，从 GPT-3.5 的 16k 到 Claude 2 的 200k，现在 Gemini 1.5 Pro 甚至有 1M 的 token 长度。如此长的 token 在计算 attention 时对显存的需求非常大。Ring Attention 便是为了并行计算 attention 而提出的一种方法1。\nRing Attention 和 Flash Attention 可以同时使用。\nAttention and Memory 要计算 attention， 我们需要三个大小为 (s, d) 的矩阵：Q (query)、K (key)、V (value)，其中 s 为序列长度，d 为模型维度。attention 的计算公式为\n$$\rAttention(Q, K, V) = softmax(QK^T / \\sqrt{d})V\r$$忽略 sqrt(d) 项，我们记 Score Matrix 为 S = QK^T / \\sqrt{d}，然后对 S 进行 softmax 归一化，得到 Attention Matrix. 可以发现它们占用显存大小是 O(s*s) 数量级。即使使用 Flash Attention，显存占用量也是 O(s) 数量级。\nAttention Compute Process\n我们希望如果在 N 个设备上并行计算 attention，每个设备的显存占用量为整个的 1/N, 因此就需要对 Q、K、V 的 sequence 长度进行切分。但是如果得到的最终 attention 矩阵需要在设备间进行集合通信组装每个的计算结果，通信量也和 sequence 长度成正比。Ring Attention 提出了一个巧妙的解决方案：在设备之间进行轮转，并行化所有计算而且完全隐藏通信的开销。\nWe will rotate between devices to parallelize all computation and hide the communication overhead completely.\nSplitting the Query 假设我们有 N 个设备，我们将 Q 沿着 sequence 维度切分为 N 份，每份大小为 (s/N, d). 由于计算 Score 和 Attention 需要完整的 K 和 V，这样它们也被切分成 N 份，每份大小为 (s/N, d). 计算示意图如下。\nSplit Q\nSplitting the Key and Value 对 K 和 V 的切分并不能像 Q 那样直接。因为 softmax 的计算公式如下，要得到分母的值意味着我们需要对每一行进行计算。\n$$\rsoftmax(s_i) = \\frac{\\exp(s_i)}{\\sum_{j=i}^d{\\exp(s_j)}}\r$$如果我们能对 K 和 V 进行切分并正确计算 softmax，那么计算过程可以由下图所示的那样完成 (忽略 softmax). 外循环遍历 Q 的所有分块，内循环遍历 K 和 V 的所有分块，一次计算一部分的 attention. Ring Attention 示意图如下所示，顾名思义所有设备组成一个环状，每个设备存储 Q 的一部分，每次迭代过程会传递 K 和 V 到下一个设备，最终每个设备将得到计算自己 Q 部分的 attention 矩阵所需要的 K 和 V. 每个设备被分配 Q 的一部分 (即一个外层循环索引)，并迭代计算每个 K 和 V 的分块 (内循环)。每个设备只需要跟踪形状为 (s/N, s/N) 的累积和 A_j。\nAttention Parallel Computation\nOnline Softmax 在内循环的每次迭代中我们可以更新部分和为 $l^j = l^{j-1} + \\sum_{k_t\\in K_j}{\\exp(Q_ik_t^T)}$. 在内循环结束后我们就可以获得每一行的指数和。归一化和与 V 的相乘顺序不会影响结果，我们可以先累加总和，并在所有其他计算完成后再执行实际的归一化操作。\n因此，设备 i 除了计算当前的累计和 $A^j = A^{j-1} + \\exp(Q_i K_j^T) V_j$ 外，还需要在内循环每次迭代中更新部分和 $l^j \\in \\mathbb{R}^{B_q}$ ，其中 $B_q$ 为 Q 的分块大小。\nSafe softmax 由于指数运算经常容易出现溢出，我们通常减去 max(s_i) 后进行指数运算，公式如下，这样并不会影响结果。\n$$\r\\mathrm{softmax}(s_{1:N})=\\frac{\\exp(s_{1:N})}{\\sum_i\\exp(s_i)}\\cdot\\frac{\\exp(-s_{max})}{\\exp(-s_{max})}=\\frac{\\exp(s_{1:N}-s_{max})}{\\sum_i\\exp(s_i-s_{max})}\r$$所以我们在内循环每次迭代中需要先更新当前的最大值 $m^{j+1}=\\max(m^j,\\max(Q_iK_{j+1}^T))$，然后更新之前迭代的计算结果 A_j 和 部分和 l_j. 最后再计算本次迭代的结果。\n$$\rA^{j+1}=A^j\\cdot\\exp(m^j-m^{j+1})+\\exp(Q_iK_{j+1}^T-m^{j+1})\\cdot V_j\r$$更新部分和\n$$\rl^{j+1}=l^j\\cdot\\exp(m^j-m^{j+1})+\\exp(Q_iK_{j+1}^T-m^{j+1})\r$$Putting it Together Ring Attention 计算步骤如下：\n沿着 Q 的 sequence 长度拆分为一个独立的外循环。 应用 Online Safe Softmax，以便沿着 K 和 V 的sequence 长度拆分，从而在内层循环中累积计算注意力。 这种并行化的方式是通过将每个设备分配一个 Q_i 块来实现的。因此，我们需要将 Q 拆分为 N 个相等的部分 (B_Q=N). 每个设备将分别计算它的输出块 $\\text{Output}(Qi,K,V)= \\text{softmax}(Q_i K^T)V ，通过在 K 和 V 块上执行内循环来迭代计算。难点挑战在于设备无法一次存储完整的 K 和 V 矩阵。\n如果我们有 4 个 GPU，那么我们将把每个设备的 Q 按序列维度分成 4 个块，K 和 V 被分割成 B_K=B_Q=N 个块，并对设备进行初始化，使每个设备都持有一个 Qi 块、 一个 Kj 块和 一个 Vj 块。为简单起见，我们可以假设设备 i 在开始时持有 Qi, Ki 和 Vj 块。在设备计算完与其当前 vj kj 相对应的一个内循环步骤后，每个设备都需要接收下一个 Key 和 Value 块，以继续内循环。 我们将 N 个设备围成一个环，其中设备 i 可以向设备 i+1 以此类推，如图所示：\nKV-overlap\n如果在设备 i 上计算内循环的一个步骤 Qi,Vj,Kj 的这段时间内，设备 i 还能向设备 i+1 发送其当前 Kj Vj，并同时从设备 i-1 接收 V_j-1,K_j-1，那么只要发送和接收密钥和值块的时间低于计算时间，那么发送和接收 Key 和 Value 块的延迟就会隐藏在执行实际计算时间之内。一个例子如下图所示。\nKV-rotate\nMemory and Arithmetic Complexity 以深度学习中常用的 bfloat16 数据类型为例。GPU 或 TPU 等并行处理加速器通常以 FLOP:=F 来衡量，即设备理论上每秒可执行的浮点运算次数。我们假设硬件被完全利用。此外，我们设不同设备之间的连接带宽为:=B (Bytes/sec).\n内存复杂度: 为了同时进行接收发送和计算，我们需要有用于接收新 KV 块的寄存器器。存储当前 KV 值块需要 2dc 浮点数或 4dc 字节。用于接收新的 KV 块的内存大小也是 2dc 浮点数或 4dc 字节。假设计算本身不需要更多内存 (利用 Flash Attention 或 Blockwise Attention)，计算当前步骤的输出需要 dc 个浮点数或 2dc 字节。此外，每个设备还需要存储其 Qi 块，这也需要 dc 个浮点数或 2dc 字节。总共需要 6dc 个浮点或 12dc 字节。\nNote\nRing Attention 与 Flash Attention 是正交的，可以一起使用 (Flash Attention 实际上用于 Ring Attention 的内循环). Flash Attention 目标是不将整个 Score Matrix 加载到全局内存中，从而在序列长度上获得线性内存复杂度。Ring Attention 将 原始注意力方法和 Flash Attention 的内存复杂度至少降低了 N 倍，使用 N 个设备的内存复杂度至少降低 N 倍，因为它将所有矩阵都拆分为至少 N 个或更多部分 (将 QKV 分别分成 N 份，并将 Score Matrix 分成 N^2 分). 无论内存复杂度是由 QKV，还是由 Score Matrix 主导，Ring Attention 都能将内存成本降低至少 N 倍。\n通信开销: 在内循环每一步中，每个设备需要通过带宽为 B 的信道向下一个设备发送 2⋅c_Q⋅d 浮点数。每个 bf16 大小为 2字节，因此，所需的时间约为 4⋅c⋅d/B.\n运算强度： 一个内循环步骤，计算局部注意力需要 2⋅d⋅c^2 次浮点计算，计算 softmax，归一化向量和最大值向量需要 2⋅c⋅d 次浮点计算，计算局部注意力与 Vj 块的乘积需 2⋅d⋅c^2 次浮点计算。因此，总计算所需时间≈4⋅d⋅c^2/F.\n为了重叠通信和计算 (隐藏通信开销)，我们需要 KV 块的传输时间小于等于计算本地 QKV 所需的时间：\n$$\r4\\cdot c\\cdot d/B\\leq4\\cdot d\\cdot c^2/F\\iff B\\geq F/c\\iff s/N\\geq F/B $$Futher Optimization Ring Attention 的一个应用是用于因果 Transformal 模型时，加上三角形掩码用于注意力计算。这意味着有些 GPU 不需要对整个序列进行计算，导致它们大部分时间处于闲置状态。作为 Ring Attention 的扩展，Stripe Attention 解决了这一问题，并提供了一种分配计算更均匀的方案，从而使 Ring Attention 的计算速度更快。\n除了 Ring Attention 和 Flash Attention 等使标准 Transformer 架构能有更长的上下文长度的技术外，人们还尝试使用 Mamba 等具有线性注意力的状态空间模型（SSM）等模型架构。\nReferences https://coconut-mode.com/posts/ring-attention/ ↩︎\n",
+  "wordCount" : "2551",
+  "inLanguage": "en",
+  "datePublished": "2024-09-26T22:59:35+08:00",
+  "dateModified": "2024-09-26T22:59:35+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/ringattention/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Ring Attention Principle
+    </h1>
+    <div class="post-description">
+      This is a brief introduction to the Ring Attention Principle.
+    </div>
+    <div class="post-meta"><span title='2024-09-26 22:59:35 +0800 CST'>Sep-26-2024</span>&nbsp;·&nbsp;6 min&nbsp;·&nbsp;2551 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#background" aria-label="Background">Background</a></li>
+                    <li>
+                        <a href="#attention-and-memory" aria-label="Attention and Memory">Attention and Memory</a></li>
+                    <li>
+                        <a href="#splitting-the-query" aria-label="Splitting the Query">Splitting the Query</a></li>
+                    <li>
+                        <a href="#splitting-the-key-and-value" aria-label="Splitting the Key and Value">Splitting the Key and Value</a></li>
+                    <li>
+                        <a href="#online-softmax" aria-label="Online Softmax">Online Softmax</a></li>
+                    <li>
+                        <a href="#safe-softmax" aria-label="Safe softmax">Safe softmax</a></li>
+                    <li>
+                        <a href="#putting-it-together" aria-label="Putting it Together">Putting it Together</a></li>
+                    <li>
+                        <a href="#memory-and-arithmetic-complexity" aria-label="Memory and Arithmetic Complexity">Memory and Arithmetic Complexity</a></li>
+                    <li>
+                        <a href="#futher-optimization" aria-label="Futher Optimization">Futher Optimization</a></li>
+                    <li>
+                        <a href="#references" aria-label="References">References</a>
+                    </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    window.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+         
+         activeElement = elements[0];
+         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+     }, false);
+
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+
+    window.addEventListener('scroll', () => {
+        
+        activeElement = Array.from(elements).find((element) => {
+            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
+                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
+                return element;
+            }
+        }) || activeElement
+
+        elements.forEach(element => {
+             const id = encodeURI(element.getAttribute('id')).toLowerCase();
+             if (element === activeElement){
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+             } else {
+                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
+             }
+         })
+     }, false);
+
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+</script>
+  <div class="post-content"><h1 id="background">Background<a hidden class="anchor" aria-hidden="true" href="#background">#</a></h1>
+<p>如今 LLM 的 token 长度显著增加，从 GPT-3.5 的 16k 到 Claude 2 的 200k，现在 Gemini 1.5 Pro 甚至有 1M 的 token 长度。如此长的 token 在计算 attention 时对显存的需求非常大。<a href="https://arxiv.org/abs/2310.01889">Ring Attention</a> 便是为了并行计算 attention 而提出的一种方法<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>。</p>
+<blockquote>
+<p>Ring Attention 和 Flash Attention 可以同时使用。</p></blockquote>
+<h1 id="attention-and-memory">Attention and Memory<a hidden class="anchor" aria-hidden="true" href="#attention-and-memory">#</a></h1>
+<p>要计算 attention， 我们需要三个大小为 (s, d) 的矩阵：Q (query)、K (key)、V (value)，其中 s 为序列长度，d 为模型维度。attention 的计算公式为</p>
+$$
+Attention(Q, K, V) = softmax(QK^T / \sqrt{d})V
+$$<p>忽略 sqrt(d) 项，我们记 Score Matrix 为 S = QK^T / \sqrt{d}，然后对 S 进行 softmax 归一化，得到 Attention Matrix. 可以发现它们占用显存大小是 O(s*s) 数量级。即使使用 <a href="https://arxiv.org/abs/2205.14135">Flash Attention</a>，显存占用量也是 O(s) 数量级。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBe66e94e161b89a4ba25d05b67a47e393?method=download&amp;shareKey=742185dd412edbdb3266fa16ab91d787" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBe66e94e161b89a4ba25d05b67a47e393?method=download&amp;shareKey=742185dd412edbdb3266fa16ab91d787" alt="Attention Compute Process">
+    </a><figcaption>Attention Compute Process</figcaption></figure></p>
+<p>我们希望如果在 N 个设备上并行计算 attention，每个设备的显存占用量为整个的 1/N, 因此就需要对 Q、K、V 的 sequence 长度进行切分。但是如果得到的最终 attention 矩阵需要在设备间进行集合通信组装每个的计算结果，通信量也和 sequence 长度成正比。Ring Attention 提出了一个巧妙的解决方案：在设备之间进行轮转，并行化所有计算而且完全隐藏通信的开销。</p>
+<blockquote>
+<p>We will rotate between devices to parallelize all computation and hide the communication overhead completely.</p></blockquote>
+<h1 id="splitting-the-query">Splitting the Query<a hidden class="anchor" aria-hidden="true" href="#splitting-the-query">#</a></h1>
+<p>假设我们有 N 个设备，我们将 Q 沿着 sequence 维度切分为 N 份，每份大小为 (s/N, d). 由于计算 Score 和 Attention 需要完整的 K 和 V，这样它们也被切分成 N 份，每份大小为 (s/N, d). 计算示意图如下。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB170087e68345309f813b8edee9487b92?method=download&amp;shareKey=f848ff8adb5676443347921c65a3b104" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB170087e68345309f813b8edee9487b92?method=download&amp;shareKey=f848ff8adb5676443347921c65a3b104" alt="Split Q">
+    </a><figcaption>Split Q</figcaption></figure></p>
+<h1 id="splitting-the-key-and-value">Splitting the Key and Value<a hidden class="anchor" aria-hidden="true" href="#splitting-the-key-and-value">#</a></h1>
+<p>对 K 和 V 的切分并不能像 Q 那样直接。因为 softmax 的计算公式如下，要得到分母的值意味着我们需要对每一行进行计算。</p>
+$$
+softmax(s_i) = \frac{\exp(s_i)}{\sum_{j=i}^d{\exp(s_j)}}
+$$<p>如果我们能对 K 和 V 进行切分并正确计算 softmax，那么计算过程可以由下图所示的那样完成 (忽略 softmax). 外循环遍历 Q 的所有分块，内循环遍历 K 和 V 的所有分块，一次计算一部分的 attention. Ring Attention 示意图如下所示，顾名思义所有设备组成一个环状，每个设备存储 Q 的一部分，每次迭代过程会传递 K 和 V 到下一个设备，最终每个设备将得到计算自己 Q 部分的 attention 矩阵所需要的 K 和 V. 每个设备被分配 Q 的一部分 (即一个外层循环索引)，并迭代计算每个 K 和 V 的分块 (内循环)。每个设备只需要跟踪形状为 (s/N, s/N) 的累积和 A_j。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEBbc9ef7d01431fe639ecf44842bce0e1a?method=download&amp;shareKey=03d587a38ca574ed1547f2594a45ab4c" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEBbc9ef7d01431fe639ecf44842bce0e1a?method=download&amp;shareKey=03d587a38ca574ed1547f2594a45ab4c" alt="Attention Parallel Computation">
+    </a><figcaption>Attention Parallel Computation</figcaption></figure></p>
+<h1 id="online-softmax">Online Softmax<a hidden class="anchor" aria-hidden="true" href="#online-softmax">#</a></h1>
+<p>在内循环的每次迭代中我们可以更新部分和为 $l^j = l^{j-1} + \sum_{k_t\in K_j}{\exp(Q_ik_t^T)}$. 在内循环结束后我们就可以获得每一行的指数和。归一化和与 V 的相乘顺序不会影响结果，我们可以先累加总和，并在所有其他计算完成后再执行实际的归一化操作。</p>
+<p>因此，设备 i 除了计算当前的累计和 $A^j = A^{j-1} + \exp(Q_i K_j^T) V_j$ 外，还需要在内循环每次迭代中更新部分和 $l^j \in \mathbb{R}^{B_q}$ ，其中 $B_q$ 为 Q 的分块大小。</p>
+<h1 id="safe-softmax">Safe softmax<a hidden class="anchor" aria-hidden="true" href="#safe-softmax">#</a></h1>
+<p>由于指数运算经常容易出现溢出，我们通常减去 max(s_i) 后进行指数运算，公式如下，这样并不会影响结果。</p>
+$$
+\mathrm{softmax}(s_{1:N})=\frac{\exp(s_{1:N})}{\sum_i\exp(s_i)}\cdot\frac{\exp(-s_{max})}{\exp(-s_{max})}=\frac{\exp(s_{1:N}-s_{max})}{\sum_i\exp(s_i-s_{max})}
+$$<p>所以我们在内循环每次迭代中需要先更新当前的最大值 $m^{j+1}=\max(m^j,\max(Q_iK_{j+1}^T))$，然后更新之前迭代的计算结果 A_j 和 部分和 l_j. 最后再计算本次迭代的结果。</p>
+$$
+A^{j+1}=A^j\cdot\exp(m^j-m^{j+1})+\exp(Q_iK_{j+1}^T-m^{j+1})\cdot V_j
+$$<p>更新部分和</p>
+$$
+l^{j+1}=l^j\cdot\exp(m^j-m^{j+1})+\exp(Q_iK_{j+1}^T-m^{j+1})
+$$<h1 id="putting-it-together">Putting it Together<a hidden class="anchor" aria-hidden="true" href="#putting-it-together">#</a></h1>
+<p>Ring Attention 计算步骤如下：</p>
+<ol>
+<li>沿着 Q 的 sequence 长度拆分为一个独立的外循环。</li>
+<li>应用 Online Safe Softmax，以便沿着 K 和 V 的sequence 长度拆分，从而在内层循环中累积计算注意力。</li>
+</ol>
+<p>这种并行化的方式是通过将每个设备分配一个 Q_i 块来实现的。因此，我们需要将 Q 拆分为 N 个相等的部分 (B_Q=N). 每个设备将分别计算它的输出块 $\text{Output}(Qi,K,V)= \text{softmax}(Q_i K^T)V ，通过在 K 和 V 块上执行内循环来迭代计算。难点挑战在于设备无法一次存储完整的 K 和 V 矩阵。</p>
+<p>如果我们有 4 个 GPU，那么我们将把每个设备的 Q 按序列维度分成 4 个块，K 和 V 被分割成 B_K=B_Q=N 个块，并对设备进行初始化，使每个设备都持有一个 Qi 块、 一个 Kj 块和 一个 Vj 块。为简单起见，我们可以假设设备 i 在开始时持有 Qi, Ki 和 Vj 块。在设备计算完与其当前 vj kj 相对应的一个内循环步骤后，每个设备都需要接收下一个 Key 和 Value 块，以继续内循环。 我们将 N 个设备围成一个环，其中设备 i 可以向设备 i+1 以此类推，如图所示：</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB5d0930a41cedf1d4e46af9baa5071f78?method=download&amp;shareKey=0e898be310f92f54f0b065a38771eb5f" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB5d0930a41cedf1d4e46af9baa5071f78?method=download&amp;shareKey=0e898be310f92f54f0b065a38771eb5f" alt="KV-overlap">
+    </a><figcaption>KV-overlap</figcaption></figure></p>
+<p>如果在设备 i 上计算内循环的一个步骤 Qi,Vj,Kj 的这段时间内，设备 i 还能向设备 i+1 发送其当前 Kj Vj，并同时从设备 i-1 接收 V_j-1,K_j-1，那么只要发送和接收密钥和值块的时间低于计算时间，那么发送和接收 Key 和 Value 块的延迟就会隐藏在执行实际计算时间之内。一个例子如下图所示。</p>
+<p>
+<figure class="post-figure">
+    <a href="https://note.youdao.com/yws/api/personal/file/WEB935e1d2c0eb43c35c5c828abe8a44612?method=download&amp;shareKey=9ec41a1c178534620d9f7274ff2ce9d0" target="_blank" rel="noopener">
+        <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB935e1d2c0eb43c35c5c828abe8a44612?method=download&amp;shareKey=9ec41a1c178534620d9f7274ff2ce9d0" alt="KV-rotate">
+    </a><figcaption>KV-rotate</figcaption></figure></p>
+<h1 id="memory-and-arithmetic-complexity">Memory and Arithmetic Complexity<a hidden class="anchor" aria-hidden="true" href="#memory-and-arithmetic-complexity">#</a></h1>
+<p>以深度学习中常用的 bfloat16 数据类型为例。GPU 或 TPU 等并行处理加速器通常以 FLOP:=F 来衡量，即设备理论上每秒可执行的浮点运算次数。我们假设硬件被完全利用。此外，我们设不同设备之间的连接带宽为:=B (Bytes/sec).</p>
+<p>内存复杂度: 为了同时进行接收发送和计算，我们需要有用于接收新 KV 块的寄存器器。存储当前 KV  值块需要 2dc 浮点数或 4dc 字节。用于接收新的 KV 块的内存大小也是 2dc 浮点数或 4dc 字节。假设计算本身不需要更多内存 (利用 Flash Attention 或 Blockwise Attention)，计算当前步骤的输出需要 dc 个浮点数或 2dc 字节。此外，每个设备还需要存储其 Qi 块，这也需要 dc 个浮点数或 2dc 字节。总共需要 6dc 个浮点或 12dc 字节。</p>
+<style type="text/css">
+     
+    .notice {
+        --title-color: #fff;
+        --title-background-color: #6be;
+        --content-color: #444;
+        --content-background-color: #e7f2fa;
+    }
+
+    .notice.info {
+        --title-background-color: #fb7;
+        --content-background-color: #fec;
+    }
+
+    .notice.tip {
+        --title-background-color: #5a5;
+        --content-background-color: #efe;
+    }
+
+    .notice.warning {
+        --title-background-color: #c33;
+        --content-background-color: #fee;
+    }
+
+     
+    @media (prefers-color-scheme:dark) {
+        .notice {
+            --title-color: #fff;
+            --title-background-color: #069;
+            --content-color: #ddd;
+            --content-background-color: #023;
+        }
+
+        .notice.info {
+            --title-background-color: #a50;
+            --content-background-color: #420;
+        }
+
+        .notice.tip {
+            --title-background-color: #363;
+            --content-background-color: #121;
+        }
+
+        .notice.warning {
+            --title-background-color: #800;
+            --content-background-color: #400;
+        }
+    }
+
+    body.dark .notice {
+        --title-color: #fff;
+        --title-background-color: #069;
+        --content-color: #ddd;
+        --content-background-color: #023;
+    }
+
+    body.dark .notice.info {
+        --title-background-color: #a50;
+        --content-background-color: #420;
+    }
+
+    body.dark .notice.tip {
+        --title-background-color: #363;
+        --content-background-color: #121;
+    }
+
+    body.dark .notice.warning {
+        --title-background-color: #800;
+        --content-background-color: #400;
+    }
+
+     
+    .notice {
+        padding: 18px;
+        line-height: 24px;
+        margin-bottom: 24px;
+        border-radius: 4px;
+        color: var(--content-color);
+        background: var(--content-background-color);
+    }
+
+    .notice p:last-child {
+        margin-bottom: 0
+    }
+
+     
+    .notice-title {
+        margin: -18px -18px 12px;
+        padding: 4px 18px;
+        border-radius: 4px 4px 0 0;
+        font-weight: 700;
+        color: var(--title-color);
+        background: var(--title-background-color);
+    }
+
+     
+    .icon-notice {
+        display: inline-flex;
+        align-self: center;
+        margin-right: 8px;
+    }
+
+    .icon-notice img,
+    .icon-notice svg {
+        height: 1em;
+        width: 1em;
+        fill: currentColor;
+    }
+
+    .icon-notice img,
+    .icon-notice.baseline svg {
+        top: .125em;
+        position: relative;
+    }
+</style><div class="notice note" >
+    <p class="notice-title">
+        <span class="icon-notice baseline">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 128 300 300">
+  <path d="M150 128c82.813 0 150 67.188 150 150 0 82.813-67.188 150-150 150C67.187 428 0 360.812 0 278c0-82.813 67.188-150 150-150Zm25 243.555v-37.11c0-3.515-2.734-6.445-6.055-6.445h-37.5c-3.515 0-6.445 2.93-6.445 6.445v37.11c0 3.515 2.93 6.445 6.445 6.445h37.5c3.32 0 6.055-2.93 6.055-6.445Zm-.39-67.188 3.515-121.289c0-1.367-.586-2.734-1.953-3.516-1.172-.976-2.93-1.562-4.688-1.562h-42.968c-1.758 0-3.516.586-4.688 1.563-1.367.78-1.953 2.148-1.953 3.515l3.32 121.29c0 2.734 2.93 4.882 6.64 4.882h36.134c3.515 0 6.445-2.148 6.64-4.883Z"/>
+</svg>
+
+        </span>Note</p><p>Ring Attention 与 Flash Attention 是正交的，可以一起使用 (Flash Attention 实际上用于 Ring Attention 的内循环). Flash Attention 目标是不将整个 Score Matrix 加载到全局内存中，从而在序列长度上获得线性内存复杂度。Ring Attention 将 原始注意力方法和 Flash Attention 的内存复杂度至少降低了 N 倍，使用 N 个设备的内存复杂度至少降低 N 倍，因为它将所有矩阵都拆分为至少 N 个或更多部分 (将 QKV 分别分成 N 份，并将 Score Matrix 分成 N^2 分). 无论内存复杂度是由 QKV，还是由 Score Matrix 主导，Ring Attention 都能将内存成本降低至少 N 倍。</p></div>
+
+<p>通信开销: 在内循环每一步中，每个设备需要通过带宽为 B 的信道向下一个设备发送 2⋅c_Q⋅d 浮点数。每个 bf16 大小为 2字节，因此，所需的时间约为 4⋅c⋅d/B.</p>
+<p>运算强度： 一个内循环步骤，计算局部注意力需要 2⋅d⋅c^2 次浮点计算，计算 softmax，归一化向量和最大值向量需要 2⋅c⋅d 次浮点计算，计算局部注意力与 Vj 块的乘积需 2⋅d⋅c^2 次浮点计算。因此，总计算所需时间≈4⋅d⋅c^2/F.</p>
+<p>为了重叠通信和计算 (隐藏通信开销)，我们需要 KV 块的传输时间小于等于计算本地 QKV 所需的时间：</p>
+$$
+4\cdot c\cdot d/B\leq4\cdot d\cdot c^2/F\iff B\geq F/c\iff s/N\geq F/B 
+$$<h1 id="futher-optimization">Futher Optimization<a hidden class="anchor" aria-hidden="true" href="#futher-optimization">#</a></h1>
+<p>Ring Attention 的一个应用是用于因果 Transformal 模型时，加上三角形掩码用于注意力计算。这意味着有些 GPU 不需要对整个序列进行计算，导致它们大部分时间处于闲置状态。作为 Ring Attention 的扩展，<a href="https://arxiv.org/pdf/2311.09431.pdf">Stripe Attention</a> 解决了这一问题，并提供了一种分配计算更均匀的方案，从而使 Ring Attention 的计算速度更快。</p>
+<p>除了 Ring Attention 和 Flash Attention 等使标准 Transformer 架构能有更长的上下文长度的技术外，人们还尝试使用 <a href="https://arxiv.org/abs/2312.00752">Mamba</a> 等具有线性注意力的状态空间模型（SSM）等模型架构。</p>
+<h1 id="references">References<a hidden class="anchor" aria-hidden="true" href="#references">#</a></h1>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p><a href="https://coconut-mode.com/posts/ring-attention/">https://coconut-mode.com/posts/ring-attention/</a>&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/distributed-training/">Distributed Training</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/megatronlm/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>Megatron-LM</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch15/">
+    <span class="title">Next »</span>
+    <br>
+    <span>PMPP Learning-Chapter 15 Graph traversal</span>
+  </a>
+</nav>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

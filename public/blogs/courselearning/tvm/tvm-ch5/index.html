@@ -10,7 +10,7 @@
 <meta name="description" content="Personal notebook 5.">
 <meta name="author" content="WITHER">
 <link rel="canonical" href="http://localhost:1313/blogs/courselearning/tvm/tvm-ch5/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.a3afc927e13c8d8d72138af4254aadf37b5653f96e325fea8d50c85abdca381a.css" integrity="sha256-o6/JJ&#43;E8jY1yE4r0JUqt83tWU/luMl/qjVDIWr3KOBo=" rel="preload stylesheet" as="style">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
@@ -66,9 +66,8 @@
   };
 </script>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/courselearning/tvm/tvm-ch5/">
+
+<meta property="og:url" content="http://localhost:1313/blogs/courselearning/tvm/tvm-ch5/">
   <meta property="og:site_name" content="WITHER">
   <meta property="og:title" content="TVM Learning (6)-Exercise of End to End Model Execution">
   <meta property="og:description" content="Personal notebook 5.">
@@ -76,7 +75,7 @@
   <meta property="og:type" content="article">
     <meta property="article:section" content="blogs">
     <meta property="article:published_time" content="2024-08-20T12:45:00+08:00">
-    <meta property="article:modified_time" content="2024-08-20T12:45:00+08:00">
+    <meta property="article:modified_time" content="2025-06-07T16:41:56+08:00">
     <meta property="article:tag" content="Autotuning">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TVM Learning (6)-Exercise of End to End Model Execution">
@@ -125,11 +124,11 @@
   "keywords": [
     "TVM"
   ],
-  "articleBody": "Model Preparation 我们采用Pytorch框架先定一个模型，该模型接受一批图像为输入，然后对它们依次作用卷积层，激活层，池化层和全连接层，得到分类结果。并从训练好的模型里加载权重，输入图像来自FashionMNIST数据集，shape为(1, 28, 28)，我们设置batch size=4.\n# Load the weight map from file. weight_map = pkl.load(open(\"fasionmnist_mlp_assignment_params.pkl\", \"rb\")) class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot'] def pytorch_model(): list = [] list.append(nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3), bias=True)) list.append(nn.ReLU()) list.append(nn.MaxPool2d(kernel_size=(2, 2))) list.append(nn.Flatten()) list.append(nn.Linear(in_features=5408, out_features=100, bias=True)) list.append(nn.ReLU()) list.append(nn.Linear(in_features=100, out_features=10, bias=True)) list.append(nn.Softmax(dim=1)) model = nn.Sequential(*list).cuda() name_map = { \"0.weight\": \"conv2d_weight\", \"0.bias\": \"conv2d_bias\", \"4.weight\": \"linear0_weight\", \"4.bias\": \"linear0_bias\", \"6.weight\": \"linear1_weight\", \"6.bias\": \"linear1_bias\", } for name, param in model.named_parameters(): param.data = torch.from_numpy(weight_map[name_map[name]]).cuda() return model Ingest Model From Pytorch 之前我们都是手写T.prim_func来实现神经网络的每一层，这样很容易出错并且不易于调试。TVM提供了 relax.BlockBuilder类可以从头开始一步步构造端到端模型，其中有一个名为 emit_te的API，它可以将一个张量表达式的算子描述转变成一个对应TensorIR函数的 call_tir操作。\n在下面的代码中，为了构建一个执行单个ReLU算子的Relax函数，在 emit_te_example中我们首先定义了一个 BlockBuilder实例 bb。同样定义了一个 128x128大小的张量变量 x，它将作为ReLU操作的输入（同时也是Relax函数的输入）。\n在这之后，我们用 with bb.function(name, [*input]) API构建一个以 x为输入的Relax函数 main。然后我们构建一个dataflow block。在这个dataflow block里，我们首先用 emit_te生成一个调用ReLU算子的 call_tir。 emit_te会在IRModule中生成一个名字为 relu的TensorIR函数，然后在dataflow block中生成 call_tir(relu, (x,), (128, 128), dtype=\"float32\")操作。call_tir之后是函数返回。在这一构造之后，BlockBuilder实例 bb包含构建完的IRModule，可以通过 bb.get()得到。\nemit_te 的作用是将一个 TVM 张量表达式（TE）函数转换为 Relax 中的调用节点（Call Node）。它允许你在 Relax 中使用 TE 函数来进行计算，并生成相应的 TVM Script 代码。该函数首先将 Relax 表达式的参数转换为 TE 张量。然后，它调用 TE 函数，并将转换后的 TE 张量作为参数传递给它。TE 函数执行计算并返回一个 TE 张量或 TE 张量列表。该函数将返回的 TE 张量转换为 Relax 中的 Call Node. 最后，它使用 self.emit 方法将调用节点添加到 Relax BlockBuilder 中，并返回一个新的 Relax 变量，该变量绑定到 Call Node.\n函数参数：\nfunc: 一个可调用对象，它代表一个 TE 函数，该函数接受 Relax 张量作为参数，并返回一个 TE 张量或 TE 张量列表。 *args: func输入的位置参数 (relax Tensor)。 **kwargs: func输入的的关键字参数 (relax Tensor)。 name_hint: 可选参数，用于指定生成的 PrimFunc 的名称。 def relu(A): B = te.compute(shape=(128, 128), fcompute=lambda i, j: te.max(A[i, j], 0), name=\"B\") return B def emit_te_example(): # relax.BlockBuilder can construct e2e models # step by step in an IRModule that starts empty. bb =relax.BlockBuilder() # relax.DynTensorType is the type assigned to tensors with a known dtype and unknown shape. x = relax.Var(\"x\", relax.TensorStructInfo((128, 128), \"float32\")) with bb.function(\"main\", [x]): # construct a Relax function main with x as input with bb.dataflow(): # Emit a call node according to the te function # which should return a te tensor or a list of te tensors. lv0 = bb.emit_te(relu, x) gv = bb.emit_output(lv0) # mark the dataflow output bb.emit_func_output(gv) # mark the function output return bb.get() # return the constructed IRModule 可以看到通过BlockBuilder生成的IRModule包含了ReLU的TensorIR实现和一个含有调用ReLU实现的 call_tir的Relax函数\n@I.ir_module class Module: @T.prim_func(private=True) def relu(x: T.Buffer((T.int64(128), T.int64(128)), \"float32\"), B: T.Buffer((T.int64(128), T.int64(128)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for i, j in T.grid(T.int64(128), T.int64(128)): with T.block(\"B\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(x[v_i, v_j]) T.writes(B[v_i, v_j]) B[v_i, v_j] = T.max(x[v_i, v_j], T.float32(0.0)) @R.function def main(x: R.Tensor((128, 128), dtype=\"float32\")) -\u003e R.Tensor((128, 128), dtype=\"float32\"): cls = Module with R.dataflow(): lv = R.call_tir(cls.relu, (x,), out_sinfo=R.Tensor((128, 128), dtype=\"float32\")) gv: R.Tensor((128, 128), dtype=\"float32\") = lv R.output(gv) return gv Construct IRModule Equals to Pytorch 我们可以用 BlockBuilder和 emit_te来创建一个和之前定义的PyTorch模型等价的IRModule。首先我们要实现这些算子的张量表达式运算函数。\n在加上bias的时候要和reduction操作分开进行，即不能在一个te.compute里面进行 te.sum+bias[...]的操作，否则会报错\nTVMError Traceback (most recent call last): File \"D:\\Work\\tvm\\tvm0.18\\tvm\\src\\te\\operation\\compute_op.cc\", line 566 InternalError: Check failed: (0 == level_) is false: Reductions are only allowed at the top level of compute. Please create another tensor for further composition. def my_conv2d(X, K, B): # No padding, stride = 1 N, CI, H, W = X.shape CO, _, KH, KW = K.shape k = te.reduce_axis((0, CI), name=\"k\") r = te.reduce_axis((0, KH), name=\"r\") s = te.reduce_axis((0, KW), name=\"s\") OH = (H - KH) + 1 OW = (W - KW) + 1 conv2d_te = te.compute(shape=(N, CO, OH, OW), fcompute=lambda n, co, oh, ow: te.sum( X[n, k, oh + r, ow + s] * K[co, k, r, s], axis=[k, r, s]), name=\"conv2d\") out = te.compute(shape=(N, CO, OH, OW), fcompute=lambda n, co, oh, ow: conv2d_te[n, co, oh, ow] + B[0, co, 0, 0]) return out def my_relu(X): return te.compute(shape=X.shape, fcompute=lambda *i: te.max(X(*i), 0)) def my_maxpool2d(X, S): N, C, H, W = X.shape i = te.reduce_axis((0, S), name=\"i\") j = te.reduce_axis((0, S), name=\"j\") maxpool2d_te = te.compute(shape=(N, C, H//2, W//2), fcompute=lambda n, co, oh, ow: te.max( X[n, co, oh*S+i, ow*S+j], axis=[i, j]), name=\"maxpool2d\") return maxpool2d_te def my_flatten(X): N, C, H, W = X.shape flatten_te = te.compute(shape=(N, C*H*W), fcompute=lambda n, i: X[n, i//(H*W), i//(W)%(H), i%(W)]) return flatten_te def my_linear(X, W, B=None): FO, FI = W.shape N, _ = X.shape fi = te.reduce_axis((0, FI), name=\"FI\") linear_te = te.compute(shape=(N, FO), fcompute=lambda i, j: te.sum( X[i, fi] * W[j, fi], axis=fi)) if B is not None: out = te.compute(shape=(N, FO), fcompute=lambda i, j: B[0, j] + linear_te[i, j]) else: out = linear_te return out def my_softmax(X): N, C = X.shape c = te.reduce_axis((0, C), name=\"c\") max_val = te.compute(shape=(N, ), fcompute=lambda i: te.max(X[i, c], axis=c)) exp_te = te.compute(shape=(N, C), fcompute=lambda i, j: te.exp(X[i, j] - max_val[i])) sum_exp_te = te.compute(shape=(N, ), fcompute=lambda i: te.sum(exp_te[i, c], axis=c)) softmax_te = te.compute(shape=(N, C), fcompute=lambda i, j: exp_te[i, j] / sum_exp_te[i]) return softmax_te 然后我们就可以利用 BlockBuilder构建IRModule\ndef create_model_via_emit_te(): batch_size = 4 input_shape = (batch_size, 1, 28, 28) # BCHW bb = relax.BlockBuilder() x = relax.Var(\"x\", relax.TensorStructInfo(input_shape, \"float32\")) conv2d_weight = relax.const(weight_map[\"conv2d_weight\"], \"float32\") conv2d_bias = relax.const(weight_map[\"conv2d_bias\"].reshape(1, 32, 1, 1), \"float32\") linear0_weight = relax.const(weight_map[\"linear0_weight\"], \"float32\") linear0_bias = relax.const(weight_map[\"linear0_bias\"].reshape(1, 100), \"float32\") linear1_weight = relax.const(weight_map[\"linear1_weight\"], \"float32\") linear1_bias = relax.const(weight_map[\"linear1_bias\"].reshape(1, 10), \"float32\") # Build the model using BlockBuilder with bb.function(\"main\", [x]): with bb.dataflow(): gv_conv = bb.emit_te(my_conv2d, x, conv2d_weight, conv2d_bias) gv_relu1 = bb.emit_te(my_relu, gv_conv) gv_pool = bb.emit_te(my_maxpool2d, gv_relu1, 2) gv_flatten = bb.emit_te(my_flatten, gv_pool) gv_dense1 = bb.emit_te(my_linear, gv_flatten, linear0_weight, linear0_bias) gv_relu2 = bb.emit_te(my_relu, gv_dense1) gv_dense2 = bb.emit_te(my_linear, gv_relu2, linear1_weight, linear1_bias) gv_softmax = bb.emit_te(my_softmax, gv_dense2) out = bb.emit_output(gv_softmax) bb.emit_func_output(out) return bb.get() 得到的IRModule的TensorIR如下\nmod = create_model_via_emit_te() exec = relax.build(mod, \"llvm\") dev = tvm.cpu() vm = relax.VirtualMachine(exec, dev) print(mod.script()) mod.script @I.ir_module class Module: @T.prim_func(private=True) def my_conv2d(x: T.Buffer((T.int64(4), T.int64(1), T.int64(28), T.int64(28)), \"float32\"), B: T.Buffer((T.int64(32), T.int64(1), T.int64(3), T.int64(3)), \"float32\"), C: T.Buffer((T.int64(1), T.int64(32), T.int64(1), T.int64(1)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): conv2d = T.alloc_buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26))) for n, co, oh, ow, k, r, s in T.grid(T.int64(4), T.int64(32), T.int64(26), T.int64(26), T.int64(1), T.int64(3), T.int64(3)): with T.block(\"conv2d\"): v_n, v_co, v_oh, v_ow, v_k, v_r, v_s = T.axis.remap(\"SSSSRRR\", [n, co, oh, ow, k, r, s]) T.reads(x[v_n, v_k, v_oh + v_r, v_ow + v_s], B[v_co, v_k, v_r, v_s]) T.writes(conv2d[v_n, v_co, v_oh, v_ow]) with T.init(): conv2d[v_n, v_co, v_oh, v_ow] = T.float32(0.0) conv2d[v_n, v_co, v_oh, v_ow] = conv2d[v_n, v_co, v_oh, v_ow] + x[v_n, v_k, v_oh + v_r, v_ow + v_s] * B[v_co, v_k, v_r, v_s] for n, co, oh, ow in T.grid(T.int64(4), T.int64(32), T.int64(26), T.int64(26)): with T.block(\"compute\"): v_n, v_co, v_oh, v_ow = T.axis.remap(\"SSSS\", [n, co, oh, ow]) T.reads(conv2d[v_n, v_co, v_oh, v_ow], C[T.int64(0), v_co, T.int64(0), T.int64(0)]) T.writes(compute[v_n, v_co, v_oh, v_ow]) compute[v_n, v_co, v_oh, v_ow] = conv2d[v_n, v_co, v_oh, v_ow] + C[T.int64(0), v_co, T.int64(0), T.int64(0)] @T.prim_func(private=True) def my_flatten(lv2: T.Buffer((T.int64(4), T.int64(32), T.int64(13), T.int64(13)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(5408)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for n, i in T.grid(T.int64(4), T.int64(5408)): with T.block(\"compute\"): v_n, v_i = T.axis.remap(\"SS\", [n, i]) T.reads(lv2[v_n, v_i // T.int64(169), v_i % T.int64(169) // T.int64(13), v_i % T.int64(13)]) T.writes(compute[v_n, v_i]) compute[v_n, v_i] = lv2[v_n, v_i // T.int64(169), v_i % T.int64(169) // T.int64(13), v_i % T.int64(13)] @T.prim_func(private=True) def my_linear(lv3: T.Buffer((T.int64(4), T.int64(5408)), \"float32\"), B: T.Buffer((T.int64(100), T.int64(5408)), \"float32\"), C: T.Buffer((T.int64(1), T.int64(100)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(100)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): compute_1 = T.alloc_buffer((T.int64(4), T.int64(100))) for i, j, FI in T.grid(T.int64(4), T.int64(100), T.int64(5408)): with T.block(\"compute\"): v_i, v_j, v_FI = T.axis.remap(\"SSR\", [i, j, FI]) T.reads(lv3[v_i, v_FI], B[v_j, v_FI]) T.writes(compute_1[v_i, v_j]) with T.init(): compute_1[v_i, v_j] = T.float32(0.0) compute_1[v_i, v_j] = compute_1[v_i, v_j] + lv3[v_i, v_FI] * B[v_j, v_FI] for i, j in T.grid(T.int64(4), T.int64(100)): with T.block(\"compute_1\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(C[T.int64(0), v_j], compute_1[v_i, v_j]) T.writes(compute[v_i, v_j]) compute[v_i, v_j] = C[T.int64(0), v_j] + compute_1[v_i, v_j] @T.prim_func(private=True) def my_linear1(lv5: T.Buffer((T.int64(4), T.int64(100)), \"float32\"), B: T.Buffer((T.int64(10), T.int64(100)), \"float32\"), C: T.Buffer((T.int64(1), T.int64(10)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(10)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): compute_1 = T.alloc_buffer((T.int64(4), T.int64(10))) for i, j, FI in T.grid(T.int64(4), T.int64(10), T.int64(100)): with T.block(\"compute\"): v_i, v_j, v_FI = T.axis.remap(\"SSR\", [i, j, FI]) T.reads(lv5[v_i, v_FI], B[v_j, v_FI]) T.writes(compute_1[v_i, v_j]) with T.init(): compute_1[v_i, v_j] = T.float32(0.0) compute_1[v_i, v_j] = compute_1[v_i, v_j] + lv5[v_i, v_FI] * B[v_j, v_FI] for i, j in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute_1\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(C[T.int64(0), v_j], compute_1[v_i, v_j]) T.writes(compute[v_i, v_j]) compute[v_i, v_j] = C[T.int64(0), v_j] + compute_1[v_i, v_j] @T.prim_func(private=True) def my_maxpool2d(lv1: T.Buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26)), \"float32\"), maxpool2d: T.Buffer((T.int64(4), T.int64(32), T.int64(13), T.int64(13)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for n, co, oh, ow, i, j in T.grid(T.int64(4), T.int64(32), T.int64(13), T.int64(13), T.int64(2), T.int64(2)): with T.block(\"maxpool2d\"): v_n, v_co, v_oh, v_ow, v_i, v_j = T.axis.remap(\"SSSSRR\", [n, co, oh, ow, i, j]) T.reads(lv1[v_n, v_co, v_oh * T.int64(2) + v_i, v_ow * T.int64(2) + v_j]) T.writes(maxpool2d[v_n, v_co, v_oh, v_ow]) with T.init(): maxpool2d[v_n, v_co, v_oh, v_ow] = T.float32(-340282346638528859811704183484516925440.0) maxpool2d[v_n, v_co, v_oh, v_ow] = T.max(maxpool2d[v_n, v_co, v_oh, v_ow], lv1[v_n, v_co, v_oh * T.int64(2) + v_i, v_ow * T.int64(2) + v_j]) @T.prim_func(private=True) def my_relu(lv: T.Buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for i0, i1, i2, i3 in T.grid(T.int64(4), T.int64(32), T.int64(26), T.int64(26)): with T.block(\"compute\"): v_i0, v_i1, v_i2, v_i3 = T.axis.remap(\"SSSS\", [i0, i1, i2, i3]) T.reads(lv[v_i0, v_i1, v_i2, v_i3]) T.writes(compute[v_i0, v_i1, v_i2, v_i3]) compute[v_i0, v_i1, v_i2, v_i3] = T.max(lv[v_i0, v_i1, v_i2, v_i3], T.float32(0.0)) @T.prim_func(private=True) def my_relu1(lv4: T.Buffer((T.int64(4), T.int64(100)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(100)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for i0, i1 in T.grid(T.int64(4), T.int64(100)): with T.block(\"compute\"): v_i0, v_i1 = T.axis.remap(\"SS\", [i0, i1]) T.reads(lv4[v_i0, v_i1]) T.writes(compute[v_i0, v_i1]) compute[v_i0, v_i1] = T.max(lv4[v_i0, v_i1], T.float32(0.0)) @T.prim_func(private=True) def my_softmax(lv6: T.Buffer((T.int64(4), T.int64(10)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(10)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): compute_1 = T.alloc_buffer((T.int64(4),)) compute_2 = T.alloc_buffer((T.int64(4), T.int64(10))) compute_3 = T.alloc_buffer((T.int64(4),)) for i, c in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute\"): v_i, v_c = T.axis.remap(\"SR\", [i, c]) T.reads(lv6[v_i, v_c]) T.writes(compute_1[v_i]) with T.init(): compute_1[v_i] = T.float32(-340282346638528859811704183484516925440.0) compute_1[v_i] = T.max(compute_1[v_i], lv6[v_i, v_c]) for i, j in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute_1\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(lv6[v_i, v_j], compute_1[v_i]) T.writes(compute_2[v_i, v_j]) compute_2[v_i, v_j] = T.exp(lv6[v_i, v_j] - compute_1[v_i]) for i, c in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute_2\"): v_i, v_c = T.axis.remap(\"SR\", [i, c]) T.reads(compute_2[v_i, v_c]) T.writes(compute_3[v_i]) with T.init(): compute_3[v_i] = T.float32(0.0) compute_3[v_i] = compute_3[v_i] + compute_2[v_i, v_c] for i, j in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute_3\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(compute_2[v_i, v_j], compute_3[v_i]) T.writes(compute[v_i, v_j]) compute[v_i, v_j] = compute_2[v_i, v_j] / compute_3[v_i] @R.function def main(x: R.Tensor((4, 1, 28, 28), dtype=\"float32\")) -\u003e R.Tensor((4, 10), dtype=\"float32\"): cls = Module with R.dataflow(): lv = R.call_tir(cls.my_conv2d, (x, metadata[\"relax.expr.Constant\"][0], metadata[\"relax.expr.Constant\"][1]), out_sinfo=R.Tensor((4, 32, 26, 26), dtype=\"float32\")) lv1 = R.call_tir(cls.my_relu, (lv,), out_sinfo=R.Tensor((4, 32, 26, 26), dtype=\"float32\")) lv2 = R.call_tir(cls.my_maxpool2d, (lv1,), out_sinfo=R.Tensor((4, 32, 13, 13), dtype=\"float32\")) lv3 = R.call_tir(cls.my_flatten, (lv2,), out_sinfo=R.Tensor((4, 5408), dtype=\"float32\")) lv4 = R.call_tir(cls.my_linear, (lv3, metadata[\"relax.expr.Constant\"][2], metadata[\"relax.expr.Constant\"][3]), out_sinfo=R.Tensor((4, 100), dtype=\"float32\")) lv5 = R.call_tir(cls.my_relu1, (lv4,), out_sinfo=R.Tensor((4, 100), dtype=\"float32\")) lv6 = R.call_tir(cls.my_linear1, (lv5, metadata[\"relax.expr.Constant\"][4], metadata[\"relax.expr.Constant\"][5]), out_sinfo=R.Tensor((4, 10), dtype=\"float32\")) lv7 = R.call_tir(cls.my_softmax, (lv6,), out_sinfo=R.Tensor((4, 10), dtype=\"float32\")) gv: R.Tensor((4, 10), dtype=\"float32\") = lv7 R.output(gv) return gv 我们可以与Pytorch模型的执行结果进行比较来验证正确性。\ndef build_mod(mod): exec = relax.vm.build(mod, \"llvm\") dev = tvm.cpu() vm = relax.VirtualMachine(exec, dev) return vm def check_equivalence(mod, torch_model, test_loader): torch_model.eval() with torch.no_grad(): rt_mod = build_mod(mod) for data, label in test_loader: data, label = data.cpu(), label.cpu() output_from_pytorch = torch_model(data).numpy() output_from_relax = rt_mod[\"main\"](tvm.nd.array(data, tvm.cpu())).numpy() tvm.testing.assert_allclose(output_from_pytorch, output_from_relax, rtol=1e-4) test_data = torchvision.datasets.FashionMNIST( \"./data\", download=True, train=False, transform=transforms.Compose([transforms.ToTensor()]) ) test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False) mod = create_model_via_emit_te() torch_model = pytorch_model() check_equivalence(mod, torch_model, test_loader) ",
-  "wordCount" : "2923",
+  "articleBody": "Model Preparation 我们采用Pytorch框架先定一个模型，该模型接受一批图像为输入，然后对它们依次作用卷积层，激活层，池化层和全连接层，得到分类结果。并从训练好的模型里加载权重，输入图像来自FashionMNIST数据集，shape为(1, 28, 28)，我们设置batch size=4.\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 # Load the weight map from file. weight_map = pkl.load(open(\"fasionmnist_mlp_assignment_params.pkl\", \"rb\")) class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot'] def pytorch_model(): list = [] list.append(nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(3, 3), bias=True)) list.append(nn.ReLU()) list.append(nn.MaxPool2d(kernel_size=(2, 2))) list.append(nn.Flatten()) list.append(nn.Linear(in_features=5408, out_features=100, bias=True)) list.append(nn.ReLU()) list.append(nn.Linear(in_features=100, out_features=10, bias=True)) list.append(nn.Softmax(dim=1)) model = nn.Sequential(*list).cuda() name_map = { \"0.weight\": \"conv2d_weight\", \"0.bias\": \"conv2d_bias\", \"4.weight\": \"linear0_weight\", \"4.bias\": \"linear0_bias\", \"6.weight\": \"linear1_weight\", \"6.bias\": \"linear1_bias\", } for name, param in model.named_parameters(): param.data = torch.from_numpy(weight_map[name_map[name]]).cuda() return model Ingest Model From Pytorch 之前我们都是手写T.prim_func来实现神经网络的每一层，这样很容易出错并且不易于调试。TVM提供了 relax.BlockBuilder类可以从头开始一步步构造端到端模型，其中有一个名为 emit_te的API，它可以将一个张量表达式的算子描述转变成一个对应TensorIR函数的 call_tir操作。\n在下面的代码中，为了构建一个执行单个ReLU算子的Relax函数，在 emit_te_example中我们首先定义了一个 BlockBuilder实例 bb。同样定义了一个 128x128大小的张量变量 x，它将作为ReLU操作的输入（同时也是Relax函数的输入）。\n在这之后，我们用 with bb.function(name, [*input]) API构建一个以 x为输入的Relax函数 main。然后我们构建一个dataflow block。在这个dataflow block里，我们首先用 emit_te生成一个调用ReLU算子的 call_tir。 emit_te会在IRModule中生成一个名字为 relu的TensorIR函数，然后在dataflow block中生成 call_tir(relu, (x,), (128, 128), dtype=\"float32\")操作。call_tir之后是函数返回。在这一构造之后，BlockBuilder实例 bb包含构建完的IRModule，可以通过 bb.get()得到。\nemit_te 的作用是将一个 TVM 张量表达式（TE）函数转换为 Relax 中的调用节点（Call Node）。它允许你在 Relax 中使用 TE 函数来进行计算，并生成相应的 TVM Script 代码。该函数首先将 Relax 表达式的参数转换为 TE 张量。然后，它调用 TE 函数，并将转换后的 TE 张量作为参数传递给它。TE 函数执行计算并返回一个 TE 张量或 TE 张量列表。该函数将返回的 TE 张量转换为 Relax 中的 Call Node. 最后，它使用 self.emit 方法将调用节点添加到 Relax BlockBuilder 中，并返回一个新的 Relax 变量，该变量绑定到 Call Node.\n函数参数：\nfunc: 一个可调用对象，它代表一个 TE 函数，该函数接受 Relax 张量作为参数，并返回一个 TE 张量或 TE 张量列表。 *args: func输入的位置参数 (relax Tensor)。 **kwargs: func输入的的关键字参数 (relax Tensor)。 name_hint: 可选参数，用于指定生成的 PrimFunc 的名称。 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 def relu(A): B = te.compute(shape=(128, 128), fcompute=lambda i, j: te.max(A[i, j], 0), name=\"B\") return B def emit_te_example(): # relax.BlockBuilder can construct e2e models # step by step in an IRModule that starts empty. bb =relax.BlockBuilder() # relax.DynTensorType is the type assigned to tensors with a known dtype and unknown shape. x = relax.Var(\"x\", relax.TensorStructInfo((128, 128), \"float32\")) with bb.function(\"main\", [x]): # construct a Relax function main with x as input with bb.dataflow(): # Emit a call node according to the te function # which should return a te tensor or a list of te tensors. lv0 = bb.emit_te(relu, x) gv = bb.emit_output(lv0) # mark the dataflow output bb.emit_func_output(gv) # mark the function output return bb.get() # return the constructed IRModule 可以看到通过BlockBuilder生成的IRModule包含了ReLU的TensorIR实现和一个含有调用ReLU实现的 call_tir的Relax函数\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 @I.ir_module class Module: @T.prim_func(private=True) def relu(x: T.Buffer((T.int64(128), T.int64(128)), \"float32\"), B: T.Buffer((T.int64(128), T.int64(128)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for i, j in T.grid(T.int64(128), T.int64(128)): with T.block(\"B\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(x[v_i, v_j]) T.writes(B[v_i, v_j]) B[v_i, v_j] = T.max(x[v_i, v_j], T.float32(0.0)) @R.function def main(x: R.Tensor((128, 128), dtype=\"float32\")) -\u003e R.Tensor((128, 128), dtype=\"float32\"): cls = Module with R.dataflow(): lv = R.call_tir(cls.relu, (x,), out_sinfo=R.Tensor((128, 128), dtype=\"float32\")) gv: R.Tensor((128, 128), dtype=\"float32\") = lv R.output(gv) return gv Construct IRModule Equals to Pytorch 我们可以用 BlockBuilder和 emit_te来创建一个和之前定义的PyTorch模型等价的IRModule。首先我们要实现这些算子的张量表达式运算函数。\n在加上bias的时候要和reduction操作分开进行，即不能在一个te.compute里面进行 te.sum+bias[...]的操作，否则会报错\n1 2 3 4 TVMError Traceback (most recent call last): File \"D:\\Work\\tvm\\tvm0.18\\tvm\\src\\te\\operation\\compute_op.cc\", line 566 InternalError: Check failed: (0 == level_) is false: Reductions are only allowed at the top level of compute. Please create another tensor for further composition. 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 def my_conv2d(X, K, B): # No padding, stride = 1 N, CI, H, W = X.shape CO, _, KH, KW = K.shape k = te.reduce_axis((0, CI), name=\"k\") r = te.reduce_axis((0, KH), name=\"r\") s = te.reduce_axis((0, KW), name=\"s\") OH = (H - KH) + 1 OW = (W - KW) + 1 conv2d_te = te.compute(shape=(N, CO, OH, OW), fcompute=lambda n, co, oh, ow: te.sum( X[n, k, oh + r, ow + s] * K[co, k, r, s], axis=[k, r, s]), name=\"conv2d\") out = te.compute(shape=(N, CO, OH, OW), fcompute=lambda n, co, oh, ow: conv2d_te[n, co, oh, ow] + B[0, co, 0, 0]) return out def my_relu(X): return te.compute(shape=X.shape, fcompute=lambda *i: te.max(X(*i), 0)) def my_maxpool2d(X, S): N, C, H, W = X.shape i = te.reduce_axis((0, S), name=\"i\") j = te.reduce_axis((0, S), name=\"j\") maxpool2d_te = te.compute(shape=(N, C, H//2, W//2), fcompute=lambda n, co, oh, ow: te.max( X[n, co, oh*S+i, ow*S+j], axis=[i, j]), name=\"maxpool2d\") return maxpool2d_te def my_flatten(X): N, C, H, W = X.shape flatten_te = te.compute(shape=(N, C*H*W), fcompute=lambda n, i: X[n, i//(H*W), i//(W)%(H), i%(W)]) return flatten_te def my_linear(X, W, B=None): FO, FI = W.shape N, _ = X.shape fi = te.reduce_axis((0, FI), name=\"FI\") linear_te = te.compute(shape=(N, FO), fcompute=lambda i, j: te.sum( X[i, fi] * W[j, fi], axis=fi)) if B is not None: out = te.compute(shape=(N, FO), fcompute=lambda i, j: B[0, j] + linear_te[i, j]) else: out = linear_te return out def my_softmax(X): N, C = X.shape c = te.reduce_axis((0, C), name=\"c\") max_val = te.compute(shape=(N, ), fcompute=lambda i: te.max(X[i, c], axis=c)) exp_te = te.compute(shape=(N, C), fcompute=lambda i, j: te.exp(X[i, j] - max_val[i])) sum_exp_te = te.compute(shape=(N, ), fcompute=lambda i: te.sum(exp_te[i, c], axis=c)) softmax_te = te.compute(shape=(N, C), fcompute=lambda i, j: exp_te[i, j] / sum_exp_te[i]) return softmax_te 然后我们就可以利用 BlockBuilder构建IRModule\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 def create_model_via_emit_te(): batch_size = 4 input_shape = (batch_size, 1, 28, 28) # BCHW bb = relax.BlockBuilder() x = relax.Var(\"x\", relax.TensorStructInfo(input_shape, \"float32\")) conv2d_weight = relax.const(weight_map[\"conv2d_weight\"], \"float32\") conv2d_bias = relax.const(weight_map[\"conv2d_bias\"].reshape(1, 32, 1, 1), \"float32\") linear0_weight = relax.const(weight_map[\"linear0_weight\"], \"float32\") linear0_bias = relax.const(weight_map[\"linear0_bias\"].reshape(1, 100), \"float32\") linear1_weight = relax.const(weight_map[\"linear1_weight\"], \"float32\") linear1_bias = relax.const(weight_map[\"linear1_bias\"].reshape(1, 10), \"float32\") # Build the model using BlockBuilder with bb.function(\"main\", [x]): with bb.dataflow(): gv_conv = bb.emit_te(my_conv2d, x, conv2d_weight, conv2d_bias) gv_relu1 = bb.emit_te(my_relu, gv_conv) gv_pool = bb.emit_te(my_maxpool2d, gv_relu1, 2) gv_flatten = bb.emit_te(my_flatten, gv_pool) gv_dense1 = bb.emit_te(my_linear, gv_flatten, linear0_weight, linear0_bias) gv_relu2 = bb.emit_te(my_relu, gv_dense1) gv_dense2 = bb.emit_te(my_linear, gv_relu2, linear1_weight, linear1_bias) gv_softmax = bb.emit_te(my_softmax, gv_dense2) out = bb.emit_output(gv_softmax) bb.emit_func_output(out) return bb.get() 得到的IRModule的TensorIR如下\n1 2 3 4 5 mod = create_model_via_emit_te() exec = relax.build(mod, \"llvm\") dev = tvm.cpu() vm = relax.VirtualMachine(exec, dev) print(mod.script()) mod.script 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 @I.ir_module class Module: @T.prim_func(private=True) def my_conv2d(x: T.Buffer((T.int64(4), T.int64(1), T.int64(28), T.int64(28)), \"float32\"), B: T.Buffer((T.int64(32), T.int64(1), T.int64(3), T.int64(3)), \"float32\"), C: T.Buffer((T.int64(1), T.int64(32), T.int64(1), T.int64(1)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): conv2d = T.alloc_buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26))) for n, co, oh, ow, k, r, s in T.grid(T.int64(4), T.int64(32), T.int64(26), T.int64(26), T.int64(1), T.int64(3), T.int64(3)): with T.block(\"conv2d\"): v_n, v_co, v_oh, v_ow, v_k, v_r, v_s = T.axis.remap(\"SSSSRRR\", [n, co, oh, ow, k, r, s]) T.reads(x[v_n, v_k, v_oh + v_r, v_ow + v_s], B[v_co, v_k, v_r, v_s]) T.writes(conv2d[v_n, v_co, v_oh, v_ow]) with T.init(): conv2d[v_n, v_co, v_oh, v_ow] = T.float32(0.0) conv2d[v_n, v_co, v_oh, v_ow] = conv2d[v_n, v_co, v_oh, v_ow] + x[v_n, v_k, v_oh + v_r, v_ow + v_s] * B[v_co, v_k, v_r, v_s] for n, co, oh, ow in T.grid(T.int64(4), T.int64(32), T.int64(26), T.int64(26)): with T.block(\"compute\"): v_n, v_co, v_oh, v_ow = T.axis.remap(\"SSSS\", [n, co, oh, ow]) T.reads(conv2d[v_n, v_co, v_oh, v_ow], C[T.int64(0), v_co, T.int64(0), T.int64(0)]) T.writes(compute[v_n, v_co, v_oh, v_ow]) compute[v_n, v_co, v_oh, v_ow] = conv2d[v_n, v_co, v_oh, v_ow] + C[T.int64(0), v_co, T.int64(0), T.int64(0)] @T.prim_func(private=True) def my_flatten(lv2: T.Buffer((T.int64(4), T.int64(32), T.int64(13), T.int64(13)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(5408)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for n, i in T.grid(T.int64(4), T.int64(5408)): with T.block(\"compute\"): v_n, v_i = T.axis.remap(\"SS\", [n, i]) T.reads(lv2[v_n, v_i // T.int64(169), v_i % T.int64(169) // T.int64(13), v_i % T.int64(13)]) T.writes(compute[v_n, v_i]) compute[v_n, v_i] = lv2[v_n, v_i // T.int64(169), v_i % T.int64(169) // T.int64(13), v_i % T.int64(13)] @T.prim_func(private=True) def my_linear(lv3: T.Buffer((T.int64(4), T.int64(5408)), \"float32\"), B: T.Buffer((T.int64(100), T.int64(5408)), \"float32\"), C: T.Buffer((T.int64(1), T.int64(100)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(100)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): compute_1 = T.alloc_buffer((T.int64(4), T.int64(100))) for i, j, FI in T.grid(T.int64(4), T.int64(100), T.int64(5408)): with T.block(\"compute\"): v_i, v_j, v_FI = T.axis.remap(\"SSR\", [i, j, FI]) T.reads(lv3[v_i, v_FI], B[v_j, v_FI]) T.writes(compute_1[v_i, v_j]) with T.init(): compute_1[v_i, v_j] = T.float32(0.0) compute_1[v_i, v_j] = compute_1[v_i, v_j] + lv3[v_i, v_FI] * B[v_j, v_FI] for i, j in T.grid(T.int64(4), T.int64(100)): with T.block(\"compute_1\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(C[T.int64(0), v_j], compute_1[v_i, v_j]) T.writes(compute[v_i, v_j]) compute[v_i, v_j] = C[T.int64(0), v_j] + compute_1[v_i, v_j] @T.prim_func(private=True) def my_linear1(lv5: T.Buffer((T.int64(4), T.int64(100)), \"float32\"), B: T.Buffer((T.int64(10), T.int64(100)), \"float32\"), C: T.Buffer((T.int64(1), T.int64(10)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(10)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): compute_1 = T.alloc_buffer((T.int64(4), T.int64(10))) for i, j, FI in T.grid(T.int64(4), T.int64(10), T.int64(100)): with T.block(\"compute\"): v_i, v_j, v_FI = T.axis.remap(\"SSR\", [i, j, FI]) T.reads(lv5[v_i, v_FI], B[v_j, v_FI]) T.writes(compute_1[v_i, v_j]) with T.init(): compute_1[v_i, v_j] = T.float32(0.0) compute_1[v_i, v_j] = compute_1[v_i, v_j] + lv5[v_i, v_FI] * B[v_j, v_FI] for i, j in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute_1\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(C[T.int64(0), v_j], compute_1[v_i, v_j]) T.writes(compute[v_i, v_j]) compute[v_i, v_j] = C[T.int64(0), v_j] + compute_1[v_i, v_j] @T.prim_func(private=True) def my_maxpool2d(lv1: T.Buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26)), \"float32\"), maxpool2d: T.Buffer((T.int64(4), T.int64(32), T.int64(13), T.int64(13)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for n, co, oh, ow, i, j in T.grid(T.int64(4), T.int64(32), T.int64(13), T.int64(13), T.int64(2), T.int64(2)): with T.block(\"maxpool2d\"): v_n, v_co, v_oh, v_ow, v_i, v_j = T.axis.remap(\"SSSSRR\", [n, co, oh, ow, i, j]) T.reads(lv1[v_n, v_co, v_oh * T.int64(2) + v_i, v_ow * T.int64(2) + v_j]) T.writes(maxpool2d[v_n, v_co, v_oh, v_ow]) with T.init(): maxpool2d[v_n, v_co, v_oh, v_ow] = T.float32(-340282346638528859811704183484516925440.0) maxpool2d[v_n, v_co, v_oh, v_ow] = T.max(maxpool2d[v_n, v_co, v_oh, v_ow], lv1[v_n, v_co, v_oh * T.int64(2) + v_i, v_ow * T.int64(2) + v_j]) @T.prim_func(private=True) def my_relu(lv: T.Buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(32), T.int64(26), T.int64(26)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for i0, i1, i2, i3 in T.grid(T.int64(4), T.int64(32), T.int64(26), T.int64(26)): with T.block(\"compute\"): v_i0, v_i1, v_i2, v_i3 = T.axis.remap(\"SSSS\", [i0, i1, i2, i3]) T.reads(lv[v_i0, v_i1, v_i2, v_i3]) T.writes(compute[v_i0, v_i1, v_i2, v_i3]) compute[v_i0, v_i1, v_i2, v_i3] = T.max(lv[v_i0, v_i1, v_i2, v_i3], T.float32(0.0)) @T.prim_func(private=True) def my_relu1(lv4: T.Buffer((T.int64(4), T.int64(100)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(100)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): for i0, i1 in T.grid(T.int64(4), T.int64(100)): with T.block(\"compute\"): v_i0, v_i1 = T.axis.remap(\"SS\", [i0, i1]) T.reads(lv4[v_i0, v_i1]) T.writes(compute[v_i0, v_i1]) compute[v_i0, v_i1] = T.max(lv4[v_i0, v_i1], T.float32(0.0)) @T.prim_func(private=True) def my_softmax(lv6: T.Buffer((T.int64(4), T.int64(10)), \"float32\"), compute: T.Buffer((T.int64(4), T.int64(10)), \"float32\")): T.func_attr({\"tir.noalias\": T.bool(True)}) # with T.block(\"root\"): compute_1 = T.alloc_buffer((T.int64(4),)) compute_2 = T.alloc_buffer((T.int64(4), T.int64(10))) compute_3 = T.alloc_buffer((T.int64(4),)) for i, c in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute\"): v_i, v_c = T.axis.remap(\"SR\", [i, c]) T.reads(lv6[v_i, v_c]) T.writes(compute_1[v_i]) with T.init(): compute_1[v_i] = T.float32(-340282346638528859811704183484516925440.0) compute_1[v_i] = T.max(compute_1[v_i], lv6[v_i, v_c]) for i, j in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute_1\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(lv6[v_i, v_j], compute_1[v_i]) T.writes(compute_2[v_i, v_j]) compute_2[v_i, v_j] = T.exp(lv6[v_i, v_j] - compute_1[v_i]) for i, c in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute_2\"): v_i, v_c = T.axis.remap(\"SR\", [i, c]) T.reads(compute_2[v_i, v_c]) T.writes(compute_3[v_i]) with T.init(): compute_3[v_i] = T.float32(0.0) compute_3[v_i] = compute_3[v_i] + compute_2[v_i, v_c] for i, j in T.grid(T.int64(4), T.int64(10)): with T.block(\"compute_3\"): v_i, v_j = T.axis.remap(\"SS\", [i, j]) T.reads(compute_2[v_i, v_j], compute_3[v_i]) T.writes(compute[v_i, v_j]) compute[v_i, v_j] = compute_2[v_i, v_j] / compute_3[v_i] @R.function def main(x: R.Tensor((4, 1, 28, 28), dtype=\"float32\")) -\u003e R.Tensor((4, 10), dtype=\"float32\"): cls = Module with R.dataflow(): lv = R.call_tir(cls.my_conv2d, (x, metadata[\"relax.expr.Constant\"][0], metadata[\"relax.expr.Constant\"][1]), out_sinfo=R.Tensor((4, 32, 26, 26), dtype=\"float32\")) lv1 = R.call_tir(cls.my_relu, (lv,), out_sinfo=R.Tensor((4, 32, 26, 26), dtype=\"float32\")) lv2 = R.call_tir(cls.my_maxpool2d, (lv1,), out_sinfo=R.Tensor((4, 32, 13, 13), dtype=\"float32\")) lv3 = R.call_tir(cls.my_flatten, (lv2,), out_sinfo=R.Tensor((4, 5408), dtype=\"float32\")) lv4 = R.call_tir(cls.my_linear, (lv3, metadata[\"relax.expr.Constant\"][2], metadata[\"relax.expr.Constant\"][3]), out_sinfo=R.Tensor((4, 100), dtype=\"float32\")) lv5 = R.call_tir(cls.my_relu1, (lv4,), out_sinfo=R.Tensor((4, 100), dtype=\"float32\")) lv6 = R.call_tir(cls.my_linear1, (lv5, metadata[\"relax.expr.Constant\"][4], metadata[\"relax.expr.Constant\"][5]), out_sinfo=R.Tensor((4, 10), dtype=\"float32\")) lv7 = R.call_tir(cls.my_softmax, (lv6,), out_sinfo=R.Tensor((4, 10), dtype=\"float32\")) gv: R.Tensor((4, 10), dtype=\"float32\") = lv7 R.output(gv) return gv 我们可以与Pytorch模型的执行结果进行比较来验证正确性。\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 def build_mod(mod): exec = relax.vm.build(mod, \"llvm\") dev = tvm.cpu() vm = relax.VirtualMachine(exec, dev) return vm def check_equivalence(mod, torch_model, test_loader): torch_model.eval() with torch.no_grad(): rt_mod = build_mod(mod) for data, label in test_loader: data, label = data.cpu(), label.cpu() output_from_pytorch = torch_model(data).numpy() output_from_relax = rt_mod[\"main\"](tvm.nd.array(data, tvm.cpu())).numpy() tvm.testing.assert_allclose(output_from_pytorch, output_from_relax, rtol=1e-4) test_data = torchvision.datasets.FashionMNIST( \"./data\", download=True, train=False, transform=transforms.Compose([transforms.ToTensor()]) ) test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False) mod = create_model_via_emit_te() torch_model = pytorch_model() check_equivalence(mod, torch_model, test_loader) ",
+  "wordCount" : "3271",
   "inLanguage": "en",
   "datePublished": "2024-08-20T12:45:00+08:00",
-  "dateModified": "2024-08-20T12:45:00+08:00",
+  "dateModified": "2025-06-07T16:41:56+08:00",
   "author":[{
     "@type": "Person",
     "name": "WITHER"
@@ -250,7 +249,7 @@
     <div class="post-description">
       Personal notebook 5.
     </div>
-    <div class="post-meta"><span title='2024-08-20 12:45:00 +0800 CST'>Aug-20-2024</span>&nbsp;·&nbsp;6 min&nbsp;·&nbsp;2923 words&nbsp;·&nbsp;WITHER
+    <div class="post-meta"><span title='2024-08-20 12:45:00 +0800 CST'>Aug-20-2024</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;3271 words&nbsp;·&nbsp;WITHER
 
 </div>
   </header> <aside id="toc-container" class="toc-container wide">
@@ -334,7 +333,39 @@
 </script>
   <div class="post-content"><h1 id="model-preparation">Model Preparation<a hidden class="anchor" aria-hidden="true" href="#model-preparation">#</a></h1>
 <p>我们采用Pytorch框架先定一个模型，该模型接受一批图像为输入，然后对它们依次作用卷积层，激活层，池化层和全连接层，得到分类结果。并从训练好的模型里加载权重，输入图像来自FashionMNIST数据集，shape为(1, 28, 28)，我们设置batch size=4.</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># Load the weight map from file.</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># Load the weight map from file.</span>
 </span></span><span class="line"><span class="cl"><span class="n">weight_map</span> <span class="o">=</span> <span class="n">pkl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">&#34;fasionmnist_mlp_assignment_params.pkl&#34;</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">))</span>
 </span></span><span class="line"><span class="cl"><span class="n">class_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;T-shirt/top&#39;</span><span class="p">,</span> <span class="s1">&#39;Trouser&#39;</span><span class="p">,</span> <span class="s1">&#39;Pullover&#39;</span><span class="p">,</span> <span class="s1">&#39;Dress&#39;</span><span class="p">,</span> <span class="s1">&#39;Coat&#39;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">               <span class="s1">&#39;Sandal&#39;</span><span class="p">,</span> <span class="s1">&#39;Shirt&#39;</span><span class="p">,</span> <span class="s1">&#39;Sneaker&#39;</span><span class="p">,</span> <span class="s1">&#39;Bag&#39;</span><span class="p">,</span> <span class="s1">&#39;Ankle boot&#39;</span><span class="p">]</span>
@@ -362,7 +393,9 @@
 </span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
 </span></span><span class="line"><span class="cl">        <span class="n">param</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">weight_map</span><span class="p">[</span><span class="n">name_map</span><span class="p">[</span><span class="n">name</span><span class="p">]])</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">model</span>
-</span></span></code></pre></div><h1 id="ingest-model-from-pytorch">Ingest Model From Pytorch<a hidden class="anchor" aria-hidden="true" href="#ingest-model-from-pytorch">#</a></h1>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="ingest-model-from-pytorch">Ingest Model From Pytorch<a hidden class="anchor" aria-hidden="true" href="#ingest-model-from-pytorch">#</a></h1>
 <p>之前我们都是手写T.prim_func来实现神经网络的每一层，这样很容易出错并且不易于调试。TVM提供了 <code>relax.BlockBuilder</code>类可以从头开始一步步构造端到端模型，其中有一个名为 <code>emit_te</code>的API，它可以将一个张量表达式的算子描述转变成一个对应TensorIR函数的 <code>call_tir</code>操作。</p>
 <p>在下面的代码中，为了构建一个执行单个ReLU算子的Relax函数，在 <code>emit_te_example</code>中我们首先定义了一个 <code>BlockBuilder</code>实例 <code>bb</code>。同样定义了一个 <code>128x128</code>大小的张量变量 <code>x</code>，它将作为ReLU操作的输入（同时也是Relax函数的输入）。</p>
 <p>在这之后，我们用 <code>with bb.function(name, [*input])</code> API构建一个以 <code>x</code>为输入的Relax函数 <code>main</code>。然后我们构建一个dataflow block。在这个dataflow block里，我们首先用 <code>emit_te</code>生成一个调用ReLU算子的 <code>call_tir</code>。 <code>emit_te</code>会在IRModule中生成一个名字为 <code>relu</code>的TensorIR函数，然后在dataflow block中生成 <code>call_tir(relu, (x,), (128, 128), dtype=&quot;float32&quot;)</code>操作。<code>call_tir</code>之后是函数返回。在这一构造之后，BlockBuilder实例 <code>bb</code>包含构建完的IRModule，可以通过 <code>bb.get()</code>得到。</p>
@@ -374,7 +407,29 @@
 <li><code>**kwargs</code>: <code>func</code>输入的的关键字参数 (relax Tensor)。</li>
 <li><code>name_hint</code>: 可选参数，用于指定生成的 PrimFunc 的名称。</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">relu</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">relu</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="n">B</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">fcompute</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="n">te</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="mi">0</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;B&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">B</span>
 </span></span><span class="line"><span class="cl">
@@ -392,8 +447,35 @@
 </span></span><span class="line"><span class="cl">            <span class="n">gv</span> <span class="o">=</span> <span class="n">bb</span><span class="o">.</span><span class="n">emit_output</span><span class="p">(</span><span class="n">lv0</span><span class="p">)</span>  <span class="c1"># mark the dataflow output </span>
 </span></span><span class="line"><span class="cl">        <span class="n">bb</span><span class="o">.</span><span class="n">emit_func_output</span><span class="p">(</span><span class="n">gv</span><span class="p">)</span>  <span class="c1"># mark the function output </span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">bb</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>  <span class="c1"># return the constructed IRModule</span>
-</span></span></code></pre></div><p>可以看到通过BlockBuilder生成的IRModule包含了ReLU的TensorIR实现和一个含有调用ReLU实现的 <code>call_tir</code>的Relax函数</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@I.ir_module</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到通过BlockBuilder生成的IRModule包含了ReLU的TensorIR实现和一个含有调用ReLU实现的 <code>call_tir</code>的Relax函数</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@I.ir_module</span>
 </span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Module</span><span class="p">:</span>
 </span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span><span class="p">(</span><span class="n">private</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">relu</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">((</span><span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">128</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">128</span><span class="p">)),</span> <span class="s2">&#34;float32&#34;</span><span class="p">),</span> <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">((</span><span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">128</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">128</span><span class="p">)),</span> <span class="s2">&#34;float32&#34;</span><span class="p">)):</span>
@@ -414,14 +496,85 @@
 </span></span><span class="line"><span class="cl">            <span class="n">gv</span><span class="p">:</span> <span class="n">R</span><span class="o">.</span><span class="n">Tensor</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span> <span class="o">=</span> <span class="n">lv</span>
 </span></span><span class="line"><span class="cl">            <span class="n">R</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">gv</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">gv</span>
-</span></span></code></pre></div><h1 id="construct-irmodule-equals-to-pytorch">Construct IRModule Equals to Pytorch<a hidden class="anchor" aria-hidden="true" href="#construct-irmodule-equals-to-pytorch">#</a></h1>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="construct-irmodule-equals-to-pytorch">Construct IRModule Equals to Pytorch<a hidden class="anchor" aria-hidden="true" href="#construct-irmodule-equals-to-pytorch">#</a></h1>
 <p>我们可以用 <code>BlockBuilder</code>和 <code>emit_te</code>来创建一个和之前定义的PyTorch模型等价的IRModule。首先我们要实现这些算子的张量表达式运算函数。</p>
 <p><strong>在加上bias的时候要和reduction操作分开进行</strong>，即不能在一个te.compute里面进行 <code>te.sum+bias[...]</code>的操作，否则会报错</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">TVMError
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">TVMError
 </span></span><span class="line"><span class="cl">Traceback <span class="o">(</span>most recent call last<span class="o">)</span>:
 </span></span><span class="line"><span class="cl">File <span class="s2">&#34;D:\Work\tvm\tvm0.18\tvm\src\te\operation\compute_op.cc&#34;</span>, line <span class="m">566</span>
 </span></span><span class="line"><span class="cl">InternalError: Check failed: <span class="o">(</span><span class="nv">0</span> <span class="o">==</span> level_<span class="o">)</span> is false: Reductions are only allowed at the top level of compute. Please create another tensor <span class="k">for</span> further composition.
-</span></span></code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">my_conv2d</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">B</span><span class="p">):</span>  <span class="c1"># No padding, stride = 1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">my_conv2d</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">B</span><span class="p">):</span>  <span class="c1"># No padding, stride = 1</span>
 </span></span><span class="line"><span class="cl">    <span class="n">N</span><span class="p">,</span> <span class="n">CI</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
 </span></span><span class="line"><span class="cl">    <span class="n">CO</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">KH</span><span class="p">,</span> <span class="n">KW</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">shape</span>
 </span></span><span class="line"><span class="cl">    <span class="n">k</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">reduce_axis</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">CI</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&#34;k&#34;</span><span class="p">)</span>
@@ -476,8 +629,42 @@
 </span></span><span class="line"><span class="cl">    <span class="n">sum_exp_te</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="p">),</span> <span class="n">fcompute</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">te</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">exp_te</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">c</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="n">c</span><span class="p">))</span>
 </span></span><span class="line"><span class="cl">    <span class="n">softmax_te</span> <span class="o">=</span> <span class="n">te</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">C</span><span class="p">),</span> <span class="n">fcompute</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="n">exp_te</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">sum_exp_te</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">softmax_te</span>
-</span></span></code></pre></div><p>然后我们就可以利用 <code>BlockBuilder</code>构建IRModule</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">create_model_via_emit_te</span><span class="p">():</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>然后我们就可以利用 <code>BlockBuilder</code>构建IRModule</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">create_model_via_emit_te</span><span class="p">():</span>
 </span></span><span class="line"><span class="cl">    <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4</span>
 </span></span><span class="line"><span class="cl">    <span class="n">input_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span>  <span class="c1"># BCHW</span>
 </span></span><span class="line"><span class="cl">    <span class="n">bb</span> <span class="o">=</span> <span class="n">relax</span><span class="o">.</span><span class="n">BlockBuilder</span><span class="p">()</span>
@@ -505,15 +692,191 @@
 </span></span><span class="line"><span class="cl">        <span class="n">bb</span><span class="o">.</span><span class="n">emit_func_output</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">bb</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-</span></span></code></pre></div><p>得到的IRModule的TensorIR如下</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">mod</span> <span class="o">=</span> <span class="n">create_model_via_emit_te</span><span class="p">()</span>   
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>得到的IRModule的TensorIR如下</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">mod</span> <span class="o">=</span> <span class="n">create_model_via_emit_te</span><span class="p">()</span>   
 </span></span><span class="line"><span class="cl"><span class="n">exec</span> <span class="o">=</span> <span class="n">relax</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s2">&#34;llvm&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="n">dev</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
 </span></span><span class="line"><span class="cl"><span class="n">vm</span> <span class="o">=</span> <span class="n">relax</span><span class="o">.</span><span class="n">VirtualMachine</span><span class="p">(</span><span class="n">exec</span><span class="p">,</span> <span class="n">dev</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">mod</span><span class="o">.</span><span class="n">script</span><span class="p">())</span>
-</span></span></code></pre></div><details class="custom-details">
+</span></span></code></pre></td></tr></table>
+</div>
+</div><details class="custom-details">
     <summary class="custom-summary">mod.script</summary>
-    <div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@I.ir_module</span>
+    <div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span><span class="lnt">144
+</span><span class="lnt">145
+</span><span class="lnt">146
+</span><span class="lnt">147
+</span><span class="lnt">148
+</span><span class="lnt">149
+</span><span class="lnt">150
+</span><span class="lnt">151
+</span><span class="lnt">152
+</span><span class="lnt">153
+</span><span class="lnt">154
+</span><span class="lnt">155
+</span><span class="lnt">156
+</span><span class="lnt">157
+</span><span class="lnt">158
+</span><span class="lnt">159
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@I.ir_module</span>
 </span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Module</span><span class="p">:</span>
 </span></span><span class="line"><span class="cl">    <span class="nd">@T.prim_func</span><span class="p">(</span><span class="n">private</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">my_conv2d</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">((</span><span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">28</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">28</span><span class="p">)),</span> <span class="s2">&#34;float32&#34;</span><span class="p">),</span> <span class="n">B</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">((</span><span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">3</span><span class="p">)),</span> <span class="s2">&#34;float32&#34;</span><span class="p">),</span> <span class="n">C</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">((</span><span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span> <span class="s2">&#34;float32&#34;</span><span class="p">),</span> <span class="n">compute</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Buffer</span><span class="p">((</span><span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">26</span><span class="p">),</span> <span class="n">T</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="mi">26</span><span class="p">)),</span> <span class="s2">&#34;float32&#34;</span><span class="p">)):</span>
@@ -672,10 +1035,46 @@
 </span></span><span class="line"><span class="cl">            <span class="n">gv</span><span class="p">:</span> <span class="n">R</span><span class="o">.</span><span class="n">Tensor</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span> <span class="o">=</span> <span class="n">lv7</span>
 </span></span><span class="line"><span class="cl">            <span class="n">R</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">gv</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">gv</span>
-</span></span></code></pre></div></div>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></div>
 </details><br>
 <p>我们可以与Pytorch模型的执行结果进行比较来验证正确性。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_mod</span><span class="p">(</span><span class="n">mod</span><span class="p">):</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_mod</span><span class="p">(</span><span class="n">mod</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="n">exec</span> <span class="o">=</span> <span class="n">relax</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s2">&#34;llvm&#34;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="n">dev</span> <span class="o">=</span> <span class="n">tvm</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
 </span></span><span class="line"><span class="cl">    <span class="n">vm</span> <span class="o">=</span> <span class="n">relax</span><span class="o">.</span><span class="n">VirtualMachine</span><span class="p">(</span><span class="n">exec</span><span class="p">,</span> <span class="n">dev</span><span class="p">)</span>
@@ -705,7 +1104,9 @@
 </span></span><span class="line"><span class="cl"><span class="n">torch_model</span> <span class="o">=</span> <span class="n">pytorch_model</span><span class="p">()</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="n">check_equivalence</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">torch_model</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">)</span>
-</span></span></code></pre></div>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
 
   </div>
 

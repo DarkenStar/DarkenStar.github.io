@@ -29,7 +29,7 @@ TableGen 也可以用来定义 dialect. 本文将定义一个单未知数多项�
 
 我们首先用 TableGen 定义一个空的 dialect. 它和上一章定义 Pass 没什么不同，只不过 include 的是 DialectBase.td 文件。同时也定义了命名空间为 `::mlir::tutorial::poly`.
 
-```tablegen
+```tablegen {linenos=true}
 include "mlir/IR/DialectBase.td"
 
 def Poly_Dialect : Dialect {
@@ -46,7 +46,7 @@ def Poly_Dialect : Dialect {
 
 我们需要在 include 目录下的 CMakeLists.txt 文件中添加
 
-```cmake
+```cmake {linenos=true}
 set(TARGET_NAME "${PROJECT_TARGET_PREFIX}-Dialect-PolyDialect-IncGen")
 set(LLVM_TARGET_DEFINITIONS mlir-learning/Dialect/Poly/PolyDialect.td)
 mlir_tablegen(mlir-learning/Dialect/Poly/PolyDialect.hpp.inc --gen-dialect-decls)
@@ -56,7 +56,7 @@ add_public_tablegen_target(${TARGET_NAME})
 
 然后在 tutorial-opt.cpp 中注册所有 mlir 自带的所有 dialect 后进行构建，我们可以查看生成的 .hpp.inc 和.cpp.inc 文件。
 
-```cpp
+```cpp {linenos=true}
 namespace mlir {
 namespace tutorial {
 
@@ -78,7 +78,7 @@ MLIR_DECLARE_EXPLICIT_TYPE_ID(::mlir::tutorial::PolyDialect)
 
 编译器会报错，因为 inc 不会包含 Dialect 等类所在的头文件。这需要我们自己在 PolyDialect.h 文件中进行 include，这样 当重新构建的时候该文件注入变不会报错
 
-```cpp
+```cpp {linenos=true}
 // include/mlir-learning/Dialect/Poly/PolyDialect.h
 #ifndef LIB_DIALECT_POLY_POLYDIALECT_H
 #define LIB_DIALECT_POLY_POLYDIALECT_H
@@ -92,7 +92,7 @@ MLIR_DECLARE_EXPLICIT_TYPE_ID(::mlir::tutorial::PolyDialect)
 
 生成的 .cpp.inc 如下，他只包含了该类基本的构造函数和析构函数。
 
-```cpp
+```cpp {linenos=true}
 MLIR_DEFINE_EXPLICIT_TYPE_ID(::mlir::tutorial::poly::PolyDialect)
 namespace mlir {
 namespace tutorial {
@@ -115,7 +115,7 @@ PolyDialect::~PolyDialect() = default;
 
 然后我们可以在 tutorial-opt.cpp 中注册该 dialect.
 
-```cpp
+```cpp {linenos=true}
 /* other includes */
 #include "mlir-learning/Dialect/Poly/PolyDialect.h"
 
@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
 
 下面我们需要定义自己的 poly.poly 类型.
 
-```tablegen
+```tablegen {linenos=true}
 // poly_types.td
 #ifndef LIB_DIALECT_POLY_POLYTYPES_TD_
 #define LIB_DIALECT_POLY_POLYTYPES_TD_
@@ -168,7 +168,7 @@ def Polynomial: Poly_Type<"Polynomial", "poly"> {
 
 生成的 .hpp.inc 文件如下。生成的类 `PolynomialType` 就是在我们的 TableGen 文件中定义的 `Polynomial` 类型后面加上了 Type.
 
-```cpp
+```cpp {linenos=true}
 #ifdef GET_TYPEDEF_CLASSES
 #undef GET_TYPEDEF_CLASSES
 
@@ -209,7 +209,7 @@ MLIR_DECLARE_EXPLICIT_TYPE_ID(::mlir::tutorial::poly::PolynomialType)
 * **`generatedTypePrinter`** 函数为 `PolynomialType` 提供了打印功能。当类型为 `PolynomialType` 时，打印其助记符（`poly`），否则返回失败。`TypeSwitch` 用于检查 `def` 类型是否是 `PolynomialType`。如果是，打印助记符；否则返回失败，表示该类型不属于此方言。
 * `PolyDialect::parseType` 和 `PolyDialect::printType` 作为方言接口调用这两个函数，从而实现类型的解析和打印功能。
 
-```cpp
+```cpp {linenos=true}
 #ifdef GET_TYPEDEF_LIST
 #undef GET_TYPEDEF_LIST
 
@@ -284,7 +284,7 @@ void PolyDialect::printType(::mlir::Type type,
 - `PolyTypes.cpp.inc` 文件包含了 TableGen 为 `PolyDialect` 中的类型生成的实现。我们需要在 `PolyDialect.cpp` 中将其包含进去，以确保所有实现都能在该方言的主文件中使用。
 - `PolyTypes.cpp` 文件应该包含 `PolyTypes.h`，以便访问类型声明，并在该文件中实现所有需要的额外功能。
 
-```plaintexxt
+```plaintexxt {linenos=true}
 ./Ch3-DefiningANewDialect/
 ├── CMakeLists.txt
 ├── include
@@ -307,7 +307,7 @@ void PolyDialect::printType(::mlir::Type type,
 
 为了让类型解析器和打印器能够正确编译和运行，需要最后在方言的 TableGen 文件中添加 `let useDefaultTypePrinterParser = 1`;，这个指令告诉 TableGen 使用默认的类型解析和打印器。当这个选项启用后，TableGen 会生成相应的解析和打印代码，并将这些实现作为 `PolyDialect` 类的成员函数。
 
-```cpp
+```cpp {linenos=true}
 /// Parse a type registered to this dialect.
   ::mlir::Type parseType(::mlir::DialectAsmParser &parser) const override;
 
@@ -318,7 +318,7 @@ void PolyDialect::printType(::mlir::Type type,
 
 我们可以写一个 .mlir 来测试属性是是否获取正确。在 MLIR 中自定义的 dialect 前都需要加上 `!`.
 
-```mlir
+```mlir {linenos=true}
     // CHECK-LABEL: test_type_syntax
     func.func @test_type_syntax(%arg0: !poly.poly<10>) -> !poly.poly<10> {
         // CHECK: poly.poly
@@ -346,7 +346,7 @@ let assemblyFormat = "`<` $degreeBound `>`";
 
 MLIR会自动生成简单类型的 storage 类，因为它们不需要复杂的内存管理。如果参数更复杂，就需要开发者手动编写 storage 类来定义构造、析构和其他语义。复杂的 storage 类需要实现更多细节，以确保类型能够在 MLIR 的 dialect 系统中顺利运行。
 
-```cpp
+```cpp {linenos=true}
 // include/mlir-learning/Dialect/Poly/PolyTypes.hpp.inc
   static ::mlir::Type parse(::mlir::AsmParser &odsParser);
   void print(::mlir::AsmPrinter &odsPrinter) const;
@@ -397,7 +397,7 @@ def Poly_AddOp : Op<Poly_Dialect, "add"> {
 
 和刚才定义 types 非常相近，但基类是 Op，arguments 对应于操作的输入，assemblyFormat 更复杂。生成的 .hpp.inc 和 .cpp.inc 非常复杂。我们可以编写一个 .mlir 来测试。
 
-```mlir
+```mlir {linenos=true}
   // CHECK-LABEL: test_add_syntax
   func.func @test_add_syntax(%arg0: !poly.poly<10>, %arg1: !poly.poly<10>) -> !poly.poly<10> {
     // CHECK: poly.add

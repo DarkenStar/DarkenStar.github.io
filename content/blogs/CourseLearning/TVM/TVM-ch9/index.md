@@ -34,7 +34,7 @@ TVMScript 是 IRModule 的 python AST 格式，用于在整套转换过程中检
 
 用 Pytorch 框架实现矩阵乘法一般调用 `torch.matmul` 或者使用 `@` 算子。
 
-```python
+```python {linenos=true}
 import torch 
 a = torch.randn((3, 4))
 b = torch.randn((4, 5))
@@ -49,7 +49,7 @@ tensor([[ 2.5387,  2.2756, -2.2032,  2.5928, -3.6539],
 
 在 Relax 中可以用 IRModule 实现相同的功能。
 
-```python
+```python {linenos=true}
 from tvm.script import ir as I
 from tvm.script import relax as R
 
@@ -77,7 +77,7 @@ class Module:
 
 其对应的 Pytoch 实现如下
 
-```python
+```python {linenos=true}
 class MLP(torch.nn.Module):
     def __init__(self, *args, **kwargs) -> None:
         super(MLP, self).__init__(*args, **kwargs)
@@ -93,7 +93,7 @@ class MLP(torch.nn.Module):
 
 对应的 IRModule 的 TVMScript 表示如下
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @R.function
@@ -120,7 +120,7 @@ class Module:
 
 以下是 2 层 MLP 模型的编译流程
 
-```python
+```python {linenos=true}
 from tvm import relax
 import tvm
 from tvm.ir.module import IRModule
@@ -161,7 +161,7 @@ optimize_and_deploy(mod)
 构建 IRModule 最直接的方法是手动编写 TVMScript。这种方法适用于小型模型，但 LLM 的 IRModule 非常庞大和复杂，手工编写并不现实。TVM Unity 提供了另一个类 nn.Module，可以像 pytorch 模块一样轻松构建 IRModule.
 用 Pytorch 手动编写的一个 Linear 层如下
 
-```python
+```python {linenos=true}
 class TorchLinear(torch.nn.Module):
     def __init__(self, in_features, out_features, bias=True):
         super().__init__()
@@ -179,7 +179,7 @@ class TorchLinear(torch.nn.Module):
 
 在 Relax 中的实现如下
 
-```python
+```python {linenos=true}
 from tvm.relax.testing import nn
 
 class RelaxLinear(nn.Module):
@@ -201,7 +201,7 @@ class RelaxLinear(nn.Module):
 `nn.emit(relax.op.linear(input, self.weight, self.bias))` 表示在构建的 IRModule 中添加高级 linear 算子。
 通过堆叠 1 个线性层、1 个 relu 层和 1 个线性层，就可以构建例子中的 MLP.
 
-```python
+```python {linenos=true}
 class RelaxMLP(nn.Module):
     def __init__(self, in_features, hidden_dims, out_features, dtype="float32") -> None:
         super(RelaxMLP, self).__init__()
@@ -217,7 +217,7 @@ class RelaxMLP(nn.Module):
 
 直接调用 nn.Module 的前向函数就可以代替原先在 `with bb.dataflow():` 下的操作，将 `nn.Module` 构建成 IRModule 的步骤如下
 
-```python
+```python {linenos=true}
 def build_relax(mod: nn.Module):   
     # relax.BlockBuilder can construct end-to-end models step by step in an IRModule that starts empty
     bb = relax.BlockBuilder()
@@ -272,7 +272,7 @@ TVM Unity 在 IRModule TensorIR 中提供了底层张量函数的表示方法，
 `T.prim_func` 采用 destination-passing 约定，即在函数外部明确分配输入和输出空间，并将其作为参数传入。destination-passing 约定可以对内存分配进行精细调度，例如合并两个实时间隔不相交的变量的内存分配，这是在内存有限的设备上运行大型模型的关键。
 {{< /details >}}
 
-```python
+```python {linenos=true}
 from tvm.script import tir as T
 @T.prim_func
 def matmul(rxplaceholder: T.Buffer((T.int64(1), T.int64(784)), "float32"), rxplaceholder_1: T.Buffer((T.int64(784), T.int64(128)), "float32"), matmul: T.Buffer((T.int64(1), T.int64(128)), "float32")):
@@ -301,7 +301,7 @@ def torch_matmul(X: torch.Tensor, W: torch.Tensor):
 为了支持 `T.prim_func`（底层部分）和 `R.function`（高层部分）之间的交互，TVM 引入了 `call_tir`, Relax 中的一个特殊运算符，用于描述计算图中的节点及其张量函数的实现。
 `torch_call_tir` 是一个参考实现，用来说明 call_tir 的含义。实际上，可以有不同的底层方法来优化执行。例如，我们可能会选择提前分配所有输出内存，然后再运行执行。
 
-```python
+```python {linenos=true}
 def torch_call_tir(prim_func, inputs, out_sinfo):
     res = torch.zeros(*out_sinfo.shape, dtype=out_sinfo.dtype)
     prim_func(*inputs, res)
@@ -310,7 +310,7 @@ def torch_call_tir(prim_func, inputs, out_sinfo):
 
 下面是 2 层 MLP 的 IRModule，我们使用 `call_tir` 和张量原语函数 `matmul` 来替换 Relax 运算符 `R.matmul` 
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @T.prim_func
@@ -352,7 +352,7 @@ class Module:
 
 创建 TE 表达式的方法如下
 
-```python
+```python {linenos=true}
 te.compute(out_shape, f_compute)
 ```
 
@@ -363,7 +363,7 @@ te.compute(out_shape, f_compute)
 `product` 函数接受一个或多个可迭代对象作为参数，并返回一个迭代器，该迭代器生成所有可能的组合，其中每个组合包含来自每个输入可迭代对象的单个元素。
 
 
-```python
+```python {linenos=true}
 import itertools
 
 letters = ['a', 'b']
@@ -384,7 +384,7 @@ for item in itertools.product(letters, numbers):
 `product` 函数还支持重复元素，可以使用 repeat 参数指定每个可迭代对象需要重复的次数。
 
 
-```python
+```python {linenos=true}
 letters = ['a', 'b']
 
 for item in itertools.product(letters, repeat=3):
@@ -408,7 +408,7 @@ for item in itertools.product(letters, repeat=3):
 {{< /details >}}
 
 
-```python
+```python {linenos=true}
 from itertools import product
 
 for indices in product(range(s) for s in out_shape):
@@ -417,7 +417,7 @@ for indices in product(range(s) for s in out_shape):
 
 用 `emit_te` 实现 Linear 层来构建 IRModule 的代码如下
 
-```python
+```python {linenos=true}
 from tvm import te
 
 class RelaxLinearWithEmitTE(nn.Module):

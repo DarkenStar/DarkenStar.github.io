@@ -31,13 +31,13 @@ cover:
 
 **当前 CUDA 系统中，每个块的总大小限制为 1024 个线程。只要线程总数不超过 1024，这些线程就可以以任何方式分布在三个维度上。**
 
-```cpp
+```cpp {linenos=true}
 function_name<<<gridDim, blockDim>>>(...);
 ```
 
 一个例子如下，dimBlock和dimGrid是由程序员定义的主机代码变量。
 
-```cpp
+```cpp {linenos=true}
 dim3 dimGrid(32, 1, 1);
 dim3 dimBlock(128, 1, 1);
 vecAddKernel<<<dimGrid, dimBlock>>>(...);
@@ -51,7 +51,7 @@ vecAddKernel<<<dimGrid, dimBlock>>>(...);
 
 选择 1D、2D 或 3D 的线程组织通常基于数据的性质。例如图像是一个二维像素数组。使用由 2D 块组成的 2D 网格可以方便地处理图像中的像素。下图展示了处理大小为 `62*76` 1F1F 的图片 P 的一种组织方式。假设使用 `16*16` 大小的块，那么在 y 方向上需要 4 个块，在 x 方向上需要 5 个块。横纵坐标的计算方式为
 
-```plaintext
+```plaintext {linenos=true}
 row coordinate = blockIdx.y * blockDim.y + threadIdx.y
 col coordinate = blockIdx.x * blockDim.x + threadIdx.x
 ```
@@ -65,7 +65,7 @@ col coordinate = blockIdx.x * blockDim.x + threadIdx.x
 
 下面内核代码将每个颜色像素转换为对应的灰度像素。我们计算坐标为 `(row, col)` 的像素对应的 1D 索引 `row * width + col`. 这个 1D 索引 `grayOffset` 就是 `Pout` 的像素索引，因为输出灰度图像中的每个像素都是 1字节 (unsigned char)。每个彩色像素用三个元素(r, g, b)存储，每个元素为1字节。因此 `rgbOffset` 给出了 `Pin` 数组中颜色像素的起始位置。从 `Pin` 数组的三个连续字节位置读取每个通道对应的值，执行灰度像素值的计算，并使用 ` grayOffset` 将该值写入 `Pout` 数组。
 
-```cpp
+```cpp {linenos=true}
 // we have 3 channels corresponding to RGB
 // The input image is encoded as unsigned characters [0, 255]
 __global__
@@ -98,7 +98,7 @@ void colorToGreyscaleConversion(unsigned char * Pout,
 
 图像模糊函数将输出图像像素的值计算为相邻像素 (包括输入图像中像素) 的加权和。简便起见，我们使用相邻像素的平均值来计算结果，对应的代码如下。与 `colorToGrayscaleConversion` 中使用的策略类似，对每个输出像素使用 1 个线程来计算。`col`和 `row` 表示输入像素 patch 的中心像素位置。嵌套的 `for` 循环遍历 patch 中的所有像素。`if` 语句的 `curRow < 0` 和 `curCol < 0` 条件用于跳过执行超出图像范围的部分。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void blurKernel(unsigned char *in, unsigned char *out, int width, int height)
 {
@@ -138,7 +138,7 @@ void blurKernel(unsigned char *in, unsigned char *out, int width, int height)
 
 为了用 CUDA 实现矩阵乘法，我们可以采取与 colorToGrayscaleConversion 相同的方法将网格中的线程映射到输出矩阵 P 的元素，即每个线程负责计算 P 中的一个元素。
 
-```cpp
+```cpp {linenos=true}
 // Assuming square matrices of size Width x Width
 __global__ 
 void MatrixMulKernel(float* M, float* N, float* P, int Width) {

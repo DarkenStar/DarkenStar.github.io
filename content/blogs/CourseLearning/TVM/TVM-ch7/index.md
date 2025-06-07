@@ -25,7 +25,7 @@ cover:
 
 下面用 low-level numpy 写的 python 代码展示了一系列在专用硬件后端可能使用到的操作。
 
-```python
+```python {linenos=true}
 def accel_fill_zero(C):
     C[:] = 0
   
@@ -38,7 +38,7 @@ def accel_dma_copy(reg, dram):
 
 我们假设基础的运算单元可以进行 `16x16`的矩阵乘法 (`accel_tmm_add`)，接收2个寄存器里的 RHS 输入和表示累加中间结果的 LHS 输入，数据拷贝使用的是专用函数 (`accel_dma_copy`).
 
-```python
+```python {linenos=true}
 # The basis unit of computation is a 16*16*16 matrix multiplication
 def lnumpy_tmm(A: np.ndarray, B: np.ndarray, C: np.ndarray):
     # a special accumulator memory
@@ -60,7 +60,7 @@ def lnumpy_tmm(A: np.ndarray, B: np.ndarray, C: np.ndarray):
 
 专用加速器代码的结构并非以标量计算为单位。迄今为止，我们运行的大多数 TensorIR 代码都包含一个 block，用于计算输出张量中的单个元素。许多专用加速器在张量区域内进行计算。TensorIR中的 block 可以帮助我们将这些相关计算分组。
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module   
 class MatmulBlockModule:
     @T.prim_func
@@ -85,14 +85,14 @@ class MatmulBlockModule:
 
 调用 `MatmulBlockModule.show()` 后显示的 TensorIR如下
 
-```python
+```python {linenos=true}
 T.reads(C[vi0 * 16 + vi1, vj0 * 16 + vj1], A[vi0 * 16 + vi1, vk0 * 16 + vk1], B[vj0 * 16 + vj1, vk0 * 16 + vk1])
 T.writes(C[vi0 * 16 + vi1, vj0 * 16 + vj1])
 ```
 
 该代码从 `A` 和 `B` 的 `16x16` 区域读取数据，并写入 `C` 的 `16x16` 区域。在这种情况下，块的内容包含子区域计算的具体实现的进一步细节。我们称这种区块为**张量区块**，因为它们包含跨越张量子区域的计算。
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @T.prim_func
@@ -123,7 +123,7 @@ class Module:
 
 我们可以对张量计算块的循环进行变换，这些循环变换可以重新组织计算该块的迭代方式，得到不同的张量程序。
 
-```python
+```python {linenos=true}
 sch = tvm.tir.Schedule(MatmulBlockModule)
 
 block_mm = sch.get_block("tmm-16x16")
@@ -166,7 +166,7 @@ class Module:
 
 TensorIR 提供了一种变换原语 `blockize` 来将循环的子区域组合在一起以形成张量化的计算 block. 例如我们可以将下面2个的 `1024x1024` 矩阵乘法分解成很多个 `16x16` 的矩阵乘法。
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module 
 class MatmulModule:
     @T.prim_func
@@ -226,7 +226,7 @@ class Module:
 
 调用 `blockize` 后的 TensorIR 如下
 
-```python
+```python {linenos=true}
 block_mm = sch.blockize(ii)
 sch.mod.show()
 
@@ -271,7 +271,7 @@ storage_scope 在这里指的是内存存储范围或存储层次。常见的存
 
 ![Storage Scope](https://mlc.ai/zh/_images/hardware_specialization_abc.png "Storage Scope")
 
-```python
+```python {linenos=true}
 A_reg = sch.cache_read(block_mm, 0, storage_scope="global.A_reg")
 B_reg = sch.cache_read(block_mm, 1, storage_scope="global.B_reg")
 sch.compute_at(A_reg, k)
@@ -338,7 +338,7 @@ class Module:
 
 现在我们已经创建了一组映射到 TensorIR 中相应计算阶段的块。剩下的步骤是映射部分张量块，以使用映射到硬件加速指令的特定实现。这一映射过程称为**张量化**。为了实现张量化，我们首先注册一个 TensorIntrin，其中包含计算和实现的描述。
 
-```python
+```python {linenos=true}
 @T.prim_func
 def tmm16_desc(a: T.handle, b: T.handle, c: T.handle) -> None:
     A = T.match_buffer(a, (16, 16), "float32", offset_factor=16, scope="global.A_reg")
@@ -376,7 +376,7 @@ tvm.tir.TensorIntrin.register("tmm16", tmm16_desc, tmm16_impl)
 
 首先我们用 `decompose_reduction` 将 `C_global_accumulator` 的初始化和更新部分分开成 `T.block("matmul_init")` 和 `T.block("matmul_o_update")`
 
-```python
+```python {linenos=true}
 sch.decompose_reduction(block_mm, k)
 sch.mod.show()
 
@@ -443,7 +443,7 @@ class Module:
 1. 定义 C++ 风格的 `tmm16` 函数: 这个函数实现了一个 16x16 矩阵乘法的计算逻辑。它接受三个输入张量 `aa`、`bb` 和 `cc`，以及对应的步长 `stride_a`、`stride_b` 和 `stride_c`。函数使用三重循环执行矩阵乘法的计算,将结果累加到 `cc` 张量中。
 2. 使用 TVM 的 `clang` 模块将 C++ 代码编译为 LLVM IR 代码: 首先创建一个临时目录 `temp` 用于存储生成的 LLVM IR 文件。然后调用 `clang.create_llvm()` 函数,传入 C++ 代码字符串 `cc_code`。`create_llvm()` 函数会将 C++ 代码编译为 LLVM IR 代码,并保存到 `ll_path` 指定的文件中。最后返回生成的 LLVM IR 代码。
 
-```python
+```python {linenos=true}
 def tmm_kernel():
     cc_code = '''
         extern "C" int tmm16(float *cc, float *aa, float *bb, int stride_a, int stride_b, int stride_c) {
@@ -468,7 +468,7 @@ def tmm_kernel():
 
 调用 `sch.tensorize(block_mm, "tmm16")`报错，原因未知。
 
-```bash
+```bash {linenos=true}
 发生异常: TVMError
 TVMError: invalid unordered_map<K, T> key
   File "C:\Users\17725\Desktop\Machine Learning Compilation\chapter7.py", line 186, in <module>

@@ -7,6 +7,14 @@
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
+    <lastBuildDate>Sun, 12 Jan 2025 16:05:23 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/blog/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>All2All Communication Cost</title>
+      <link>http://localhost:1313/blogs/all2allcommcost/</link>
+      <pubDate>Sun, 12 Jan 2025 16:05:23 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/all2allcommcost/</guid>
+      <description>Introduction of Transformer Family</description>
+    </item>
   </channel>
 </rss>

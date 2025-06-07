@@ -25,7 +25,7 @@ cover:
 
 下面代码中 `MyModule` 包含一个带有两个高级算子 `relax.opmultiply` 和 `relax.op.add` 的 relax 函数。我们的目标是找到这两个算子，并将其替换为对 `relax.ewise_fma` 算子的调用。
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module 
 class MyModule:
     @R.function
@@ -43,13 +43,13 @@ class MyModule:
 抽象语法树（Abstract Syntax Tree，AST）是一种广泛用于编程语言处理的树状数据结构。它是一种对源代码语法结构的抽象表示，去掉了编程语言的具体语法细节，但保留了代码的结构和语义信息。
 AST 是一棵树状结构，其节点表示源代码中的语法结构。例如，变量声明、操作符、函数调用、控制结构（如条件语句、循环）等。每个节点包含与相应语法结构相关的信息，如操作符的类型、变量的名称、常量的值等。
 
-```python
+```python {linenos=true}
 a = b + 1
 ```
 
 这个代码可以转换为如下形式的 AST：
 
-```scss
+```scss {linenos=true}
 Assignment
 ├── Identifier (a)
 └── BinaryOperation
@@ -60,27 +60,27 @@ Assignment
 {% endfold %}
 每个函数都由一个 `relax.expr.Function` 节点表示。
 
-```python
+```python {linenos=true}
 relax_func = MyModule["main"]
 type(relax_func)  # <class 'tvm.relax.expr.Function'>
 ```
 
 该函数包含一系列参数
 
-```python
+```python {linenos=true}
 print(relax_func.params)  # [x, y]
 ```
 
 该函数包含一个返回值表达式，和函数中的一组 binding blocks.
 
-```python
+```python {linenos=true}
 func_body = relax_func.body
 print(type(func_body))  # <class 'tvm.relax.expr.SeqExpr'>
 ```
 
 函数主体 SeqExpr 包含一系列 binding.
 
-```python
+```python {linenos=true}
 print(relax_func.body.blocks) 
 '''
 [x: R.Tensor((3, 4), dtype="float32")
@@ -94,7 +94,7 @@ with R.dataflow():
 
 在 DataflowBlock 中,我们可以访问各个 binding ,包括 value 和 var.
 
-```python
+```python {linenos=true}
 dataflow_block = func_body.blocks[0]
 print(type(dataflow_block))  # <class 'tvm.relax.expr.DataflowBlock'>
 binding = dataflow_block.bindings[0]
@@ -111,7 +111,7 @@ print(binding.value)  # # LHS of binding: R.multiply(x, y)
 
 如果当前节点不是加法操作，直接返回该节点，表示对该节点不进行任何修改。如果加法的第一个操作数不是乘法操作，或者第一个操作数的绑定值不是一个 `relax.Call` 节点，直接返回该加法节点。如果匹配成功，构造一个新的 `ewise_fma` 操作节点，将乘法的两个操作数和加法的第二个操作数作为参数传入。
 
-```python
+```python {linenos=true}
 @relax.expr_functor.mutator
 class EwiseFMARewriter(relax.PyExprMutator):
     def visit_call_(self, op: relax.Call):  # Reloaded
@@ -147,7 +147,7 @@ def main(x: R.Tensor((3, 4), dtype="float32"), y: R.Tensor((3, 4), dtype="float3
 
 使用 `remove_all_unused` 来删除代码中没有用到的 DataflowBlocks 和 VarBindings.
 
-```python
+```python {linenos=true}
 relax.analysis.remove_all_unused(updated_fn).show()
 
 #-------------------------------------------
@@ -163,7 +163,7 @@ def main(x: R.Tensor((3, 4), dtype="float32"), y: R.Tensor((3, 4), dtype="float3
 
 下面在端到端模型上进行计算图的改写。采用的还是之前使用的 FashionMNIST MLP 模型。为了简化过程，直接使用高级运算符构建模型。
 
-```python
+```python {linenos=true}
 import pickle as pkl
 mlp_params = pkl.load(open("fasionmnist_mlp_params.pkl", "rb"))
 
@@ -234,7 +234,7 @@ TVM 中的 `VisitExpr` 流程是一种递归遍历 IR 节点的机制,它是实�
 
 {{< /details >}}
 
-```python
+```python {linenos=true}
 @relax.expr_functor.mutator
 class DenseAddFusor(relax.PyExprMutator):
     def __init__(self, mod: IRModule) -> None:
@@ -317,7 +317,7 @@ MLPFused.show()
 
 > TVM 框架中使用 module_pass 来管理各种优化操作。这种机制允许将不同的优化操作（如图优化、代码生成、算子融合等）组织成一个流水线（pipeline），按顺序对模块进行处理。将 DenseAddFusor 封装为一个 module_pass，使得它能够轻松集成到 TVM 的 Pass 流水线中，与其他 Pass 一起工作，从而保证优化过程的整体性和一致性。
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @R.function
@@ -375,7 +375,7 @@ class Module:
 
 对于 `LowerToTensorIRPass`,它的 `opt_level` 被设置为 0, 说明它是一个基础的 pass, 主要用于将高级的 Relax IR 操作转换为底层的 TensorIR 操作。
 
-```python
+```python {linenos=true}
 @relax.expr_functor.mutator
 class LowerToTensorIR(relax.PyExprMutator):
     def __init__(self, mod: IRModule, op_map: dict) -> None:
@@ -431,7 +431,7 @@ MLPModelTIR.show()
 
 融合后的 TensorIR 如下
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @T.prim_func(private=True)
@@ -529,7 +529,7 @@ class Module:
 
 在上面的 IRModule 中 `fused_matmul_add0` 和 `fused_matmul_add1` 仍然是 relax 函数，它们调用相应的 TensorIR `matmul` 和 `add` 函数。 我们可以将它们变成一个单一的 TensorIR 函数。
 
-```python
+```python {linenos=true}
 MLPModelFinal = relax.transform.FuseTIR()(MLPModelTIR)
 MLPModelFinal.show()
 

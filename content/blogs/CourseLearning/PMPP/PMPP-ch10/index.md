@@ -28,7 +28,7 @@ cover:
 ## 10.1 Background
 
 归约是从输入数组计算出一个数的运算，通常是通过对数组中的元素进行某种二元运算来实现的。如果二元操作符具有定义良好的恒等值 (例如加法中的 0，乘法中的 1)，则可以为基于该操作符进行运算的一个数组中的值定义归约操作。可以通过顺序遍历数组的每个元素来进行归约。下面伪代码为运算符的一般归约形式，它被定义为接受两个输入并返回一个值的函数。
-```cpp
+```cpp {linenos=true}
 acc = IDENTITY;
 for (i = 0; i < n; i++) {
     acc = Operator(acc, input[i]);
@@ -51,7 +51,7 @@ for (i = 0; i < n; i++) {
 
 对应的内核代码如下所示，for 循环中的 __syncthreads() 确保任何一个线程开始下一次迭代之前，所有线程都已经完成了上一次迭代的计算。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void SimpleReductionKernel(float* input, float* output) {  // launch single block with  1/2 #elements threads
 	unsigned int i = threadIdx.x * 2;
@@ -83,7 +83,7 @@ $$\text{active threads} = \frac{N}{64}*(32+16+8+4+2+1)+\frac{N}{64}*\frac{1}{2}*
 
 ![Arrangement with Less Control Divergence](https://note.youdao.com/yws/api/personal/file/WEB284d0ca9febf8b2fdd3644aee218b475?method=download&shareKey=a97e91212ca491a84532186a3398b9a4 "Arrangement with Less Control Divergence")
 
-```cpp
+```cpp {linenos=true}
 __global__
 void ConvergentSumReductionKernel(float* input, float* output) {
 	unsigned int i = threadIdx.x;
@@ -118,7 +118,7 @@ $$((\frac{N}{64}*1+\frac{N}{64}*\frac{1}{2}*1+\frac{N}{64}*\frac{1}{4}*1+\cdots+
 ![Use Shared Memory to Reduce Accesses from the Global Memory](https://note.youdao.com/yws/api/personal/file/WEB73d407923a5daa0e9e69860be0089c98?method=download&shareKey=b6e4d5ed19de5a3712f1ed1eed127674 "Use Shared Memory to Reduce Accesses from the Global Memory")
 对应的代码如下，每个线程从全局内存加载并 2 个输入元素并将部分和写入共享内存。剩下的所有迭代中的计算都在共享内存中进行。
 
-```cpp
+```cpp {linenos=true}
 #define BLOCK_DIM 512
 __global__
 void SharedMemoryReductionKernel(float* input) {
@@ -146,7 +146,7 @@ void SharedMemoryReductionKernel(float* input) {
 ![Segmented Multiblock Reduction Using Atomic Operations](https://note.youdao.com/yws/api/personal/file/WEB857e94f9f4cbf28c1f9a7980fdd83536?method=download&shareKey=29a4f000e0073fa0ae1ee6e4b8e08852 "Segmented Multiblock Reduction Using Atomic Operations")
 对应的内核代码如下。每个线程块处理 `2*blockDim.x` 个元素。在每个线程块内，我们通过线程所属块的段起始位置加上 `threadIdx.x` 为每个线程分配其输入元素的位置。
 
-```cpp
+```cpp {linenos=true}
 __global__
 void SegmentedSumReductionKernel(float* input, float* output) {
 	__shared__ float input_s[BLOCK_DIM];
@@ -175,7 +175,7 @@ void SegmentedSumReductionKernel(float* input, float* output) {
 ![Thread Coarsening in Reduction](https://note.youdao.com/yws/api/personal/file/WEB4358648a96bbd27f045c7beb2f736e73?method=download&shareKey=770c7cecefe849a2acfe2353f538504a "Thread Coarsening in Reduction")
 对应的内核如下，我们乘以 `COARSE_FACTOR` 来表示每个线程块的负责的段的大小是原来的 `COARSE_FACTOR` 倍。部分和累加到局部变量 `sum` 中，并且因为线程是独立运行的，在循环中不会调用 `__syncthreads()`.
 
-```cpp
+```cpp {linenos=true}
 #define COARSE_FACTOR 2
 __global__
 void CoarsenedSumReductionKernel(float* input, float* output) {

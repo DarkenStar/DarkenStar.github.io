@@ -1,0 +1,165 @@
+---
+title: All2All Communication Cost
+date: 2025-01-12T16:05:23+08:00
+lastmod: 2025-01-12T16:05:23+08:00
+author: ["WITHER"]
+
+categories:
+- Paper Reading
+
+tags:
+- Collective Comm
+
+keywords:
+- All2All
+
+description: "Introduction of Transformer Family" # 文章描述，与搜索优化相关
+summary: "Introduction of Transformer Family" # 文章简单描述，会展示在主页
+weight: # 输入1可以顶置文章，用来给文章展示排序，不填就默认按时间排序
+slug: ""
+draft: false # 是否为草稿
+comments: true
+showToc: true # 显示目录
+TocOpen: true # 自动展开目录
+autonumbering: true # 目录自动编号
+hidemeta: false # 是否隐藏文章的元信息，如发布日期、作者等
+disableShare: true # 底部不显示分享栏
+searchHidden: false # 该页面可以被搜索到
+showbreadcrumbs: true #顶部显示当前路径
+mermaid: true
+cover:
+    image: ""
+    caption: ""
+    alt: ""
+    relative: false
+---
+在 All2All 通信中，每个设备给其他设备发送大小为 m 的不同的消息。此操作相当于使用一维数组分区对分布在 p 个进程中的二维数据数组进行转置，因此也被称作全交换 (**total exchange**)
+
+## Ring / Bidirectional Linear Array
+
+线性数组拓扑结构的 All2All 通信中，每个设备需要发送 p-1 份大小为 m 的数据。用 {i,j} 表示消息需要从设备 i 发送到设备 j. 首先，每个节点将所有要发送的数据作为一个大小为 m(p-1) 的合并消息发送给它邻居 (假设所有设备通信方向相同)。当邻居收到这个消息后提取他所需要的那一部分，发送剩下的大小为 m(p-2). 每个设备一共发送 p-1 次，每次要发送的消息大小减少 m.
+
+由此可以得出在 p 个设备组成的线性数组拓扑上进行 All2All 每个设备需要向相邻设备通信 p-1 次，第 i 次通信的消息大小为 m(p-i). 如果向两个方向都进行发送，那么每个方向都只用发送原先一半的数据。
+
+
+$$
+\begin{aligned}T_{ring}&=\quad\sum_{i=1}^{p-1}(t_{s}+t_{w}m(p-i))\\&=\quad t_{s}(p-1)+\sum_{i=1}^{p-1}it_{w}m\\&=\quad(t_{s}+t_{w}mp/2)(p-1).\end{aligned}
+$$
+
+
+环状网络中每份消息的平均传输跳数是 $\frac{\sum_{d=1}^{p-1}i}{p-1} = p/2$，因此 p 个节点总共的通信量之和为  $p\times m(p-1)\times\frac p2$  环状网络中总的链路数目为 p. 因此负载平均的情况下，最少需要的时间为 $\frac{m(p-1)\times\frac p2\times p}p = m(p-1)\frac p2$ ，因此算法时间为最优的。
+
+跳数为 d 的消息数量对应于相距 d 的节点对 (i, j)，其中 |i-j|=d 
+- (0, d),(1, d+1), \ldots,(p-1-d, p-1)，即 i 从 0 到 p-1-d, j=i+d ，共有 p-d 对。
+- (d, 0),(d+1,1), \ldots,(p-1, p-1-d)，即  i  从  d  到  p-1, ~ j=i-d  ，也有 p-d 对。
+总共有 2(p-d) 条消息的跳数为 d
+
+总跳数
+
+$$
+\begin{aligned}
+\text { 总跳数 } & =\sum_{d=1}^{p-1} d \times 2(p-d) \\
+& =2 \sum_{d=1}^{p-1} d(p-d)=2\left(p \sum_{d=1}^{p-1} d-\sum_{d=1}^{p-1} d^{2}\right) \\
+& = p \cdot \frac{(p-1) p}{2}-\frac{(p-1) p(2 p-1)}{6} \\
+& = =\frac{(p-1) p(p+1)}{6}
+\end{aligned}
+$$
+
+因此平均跳数 =$\frac{\text { 总跳数 }}{\text { 总消息数 }}=\frac{\frac{(p-1) p(p+1)}{3}}{p(p-1)}=\frac{p+1}{3}$
+
+## Mesh
+
+若 p 个设备组成大小为 $\sqrt{p} \times \sqrt{p}$ 的 mesh 进行 All2All 通信，每个设备首先将其 p 个数据按照目的设备的列进行分组，即分成 $\sqrt{p}$ 组，每组包含大小为 $m\sqrt{p}$ 的消息。假设 3x3 的 mesh，则第一组消息的目的节点为 {0,3,6}，第二组消息的目的节点为 {1,4,7}，第三组消息的目的节点为 {2,5,8}
+
+首先同时分别在每一行中进行 All2All 通信，每一份数据大小为 $m\sqrt{p}$. 通信结束后每个设备拥有的是该行目的设备为所在列的所有数据。然后将数据按照目的设备所在的行进行分组。即设备 {0,3,6} 第一组消息的目的节点为 0，第二组消息的目的节点为 3，第三组消息的目的节点为 6. 然后同时分别在每一列中进行 All2All 通信。
+
+我们只需要将 Linear Array 拓扑结构中的公式的 p 换成 $\sqrt{p}$ ，m 换成 $m\sqrt{p}$，再乘以 2 就得到在 mesh 上进行 All2All 的时间
+
+$$
+T_{mesh}=(2t_{s}+t_{w}mp)(\sqrt{p}-1).
+$$
+
+## Hypercube
+
+超立方体拓扑在每个维度上都有两个节点，一共有 $\log{p}$ 个维度。在一共有 p 个节点超立方体中，在某个维度 $d$ 上，超立方体可以被划分为两个 (n−1) 维的子立方体，这两个子立方体通过维度 d 上的 p/2 条链路相连。
+
+在 All2All 通信的任何阶段，每个节点都持有 $p$ 个大小为 $m$ 的数据包。当在特定维度上通信时，每个节点发送 $p/2$ 个数据包 (合并为一条消息)。这些数据包的目的地是由当前维度的链路连接的另一个子立方体包含的节点。在上述过程中，节点必须在每个 $\log{p}$ 通信步骤之前在本地重新排列消息。
+
+$\log{p}$ 步中的每一步，每个设备沿当前维度的双向链路交换大小为 mp/2 的数据。因此在 hypercube 上进行 All2All 的时间为
+
+$$
+T_{hcube}=(t_{s}+t_{w}mp/2)\log p.
+$$
+
+
+值得注意的是与 ring 和 mesh 算法不同，超立方体算法不是最优的。每个设备发送和接收大小为 m(p- 1) 的数据，超立方体上任意两个节点之间的平均距离为 $\log{p}/2$ . 因此，网络上的总数据流量为 $p\times m(p - 1)\times(\log{p})/2$. 每个超立方体一共有 $p\log{p}/2$  条双向链路，如果流量能够被平分，则通信用时下界应该为
+
+$$
+\begin{aligned}T_{min}&=\frac{t_{w}pm(p-1)(\log p)/2}{(p\log p)/2}\\&=t_{w}m(p-1).\end{aligned}
+$$
+
+## Optimal Algorithm in Hypercube
+
+在超立方体上，执行 All2All 的最佳方法是让每一对节点彼此直接通信。因此，每个节点只需执行 p-1 次通信，每次与不同设备交换大小为 m 的数据。设备必须在每次通信中选择不会出现拥塞的通信对象。在第 j 次通信中，节点 i 与节点 $i \oplus j$ 交换数据。在超立方体上，从节点 i 到节点 j 的消息必须经过至少 l 条链路，其中 l 是 i 和 j 之间的汉明距离 (即 $i \oplus j$ 的二进制表示中的非零比特数). 我们通过 E-cube 路由来选择路径：
+
+1. 将当前节点地址 C 与目标节点地址 D 进行 XOR 操作，得到 $R=C\oplus D$.
+2. 找到 R 的最低有效非零位，决定下一步跳转的维度。
+3. 沿选定维度跳转到下一个节点，更新当前节点地址。
+4. 重复上述步骤，直到 R=0， 即到达目标节点。
+   对于节点i和节点j之间的消息传输，该算法保证每一步的通信时间为 t_s + t_wm，因为在节点 i 和节点 j 之间的链路上沿着同一方向传播的任何其他消息都不存在竞争，切每一步只切换一个维度，通信距离为 1. 整个 All2All 的总通信时间为
+
+$$T_{xor}=(t_{s}+t_{w}m)(p-1).$$
+
+
+# Bruck Algorithm in Full-connected Network
+
+Bruck是一种存储-转发 (store-and-forward) 算法，需要 log(P) 次通信步骤。这意味着发送缓冲区 S 和接收缓冲区 R 都用于在中间通信轮次中发送、接收和存储数据。因为某些接收到的数据块必须在后续通信步骤中使用。这种存储-转发的特性对通信轮次的顺序提出了约束。与线性步骤实现不同，Bruck 必须保持明确的通信顺序，其中第 i+1 次迭代必须在第 i 次迭代之后物理时间上发生。
+![Bruck](https://note.youdao.com/yws/api/personal/file/WEB1b5aaffb71ec91ead2f725d9249728f1?method=download&shareKey=e4eea75f3b72f77982d47b17590c24b3 "Bruck")
+
+```plaintext {linenos=true}
+Algorithm 2 NCCL Bruck algorithm
+P ← total number of processes.
+for i ∈ [0, P] do
+   R[i] = S[(p+i) % P] // S and R are send and receive buffers, and p is rank id of each process;
+end for
+allocate temporary buffer T with SC × (P+1) / 2 elements; // SC is number of elements per data-block.
+for k = 1; k < P; k <<= 1 do
+   allocate send indexes array SB with (P+1) / 2 integers;
+   number of send data-blocks NB ← 0;
+   for i ∈ [k, P] do
+      if i & k then
+            SB[NB] ← i;
+            copy R[i] into T[NB];
+            NB ← NB + 1;
+      end if
+      sendproc ← (p + k) % P;
+      recvproc ← (p - k + P) % P;
+      ncclGroupStart()
+      send data in T to sendproc;
+      receive data from recvproc into S;
+      ncclGroupEnd()
+      for i ∈ [0, SB] do
+            copy T[i] into R[SB[i]];
+      end for
+   end for
+   for i ∈ [0, P] do
+      R[i] = R[(p - i + P) % P] // final rotation;
+   end for
+end for
+```
+- line(2-4): 将每个设备发送缓冲区 S 中的数据按照 rank 偏移重新排列拷贝到接收缓冲区 R 中。
+- line(5): 为通信阶段准备一个临时缓冲区 T
+- line(6): 通信步开始 k 以指数方式增长 (1, 2, 4, ...)，总共执行 logP 次迭代
+  - line(7-14): 用索引数组 SB，记录需要发送的数据块位置。遍历 k~P-1 同通过对 i&k 判断哪些数据块需要在此轮发送. (若 P 是 2 的指数幂，因为 k 是 2 的指数幂，因此只有一位为 1，那么就是每轮发送 p/2 个数据块) 将接收缓冲区 R 中满足条件的数据拷贝到临时缓冲区 T，并记录索引。
+  - line(15-16): 确定要接收和发送的目标。
+  - line(17-20): 进行通信操作，将数据发送到目标的发送缓冲区。
+  - line(21-23): 更新接收缓冲区。
+  - line(25-27): 反向调整接收缓冲区数据的位置。
+
+总共 log(p) 步骤每步发送 m 消息。
+
+# Tree-based 
+
+![Tree](https://note.youdao.com/yws/api/personal/file/WEB6ed5f5f2681e4f2c3a57bfb7b901515a?method=download&shareKey=7aafd92596dbc981100138525e0f6d09 "Tree")
+
+采用先在行上进行 All-gather, 再在列上进行 Scatter. 也需要 log(p) 步，其中 gather 阶段第一步通信量为 m(p-1)，一共进行 0.5log(p) 步每一步通信量翻倍，跳数也翻倍；scatter阶段则是相反，因此两步的通信时间相同总共 t_s*log(p) + m(p-1)^2/3

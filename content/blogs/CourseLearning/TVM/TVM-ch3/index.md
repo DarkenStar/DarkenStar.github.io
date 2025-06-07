@@ -29,7 +29,7 @@ cover:
 
 利用高级Numpy的实现如下
 
-```python
+```python {linenos=true}
 def numpy_mlp(data, w0, b0, w1, b1):
     lv0 = data @ w0.T + b0
     lv1 = np.maximum(lv0, 0)
@@ -39,7 +39,7 @@ def numpy_mlp(data, w0, b0, w1, b1):
 
 为了方便说明底层计算过程，用 Low-level Numpy 进行重写后如下
 
-```python
+```python {linenos=true}
 def lnumpy_linear0(X: np.ndarray, W: np.ndarray, B: np.ndarray, Z: np.ndarray):
     Y = np.empty((1, 128), dtype="float32")
     for i in range(1):
@@ -89,7 +89,7 @@ def lnumpy_mlp(data, w0, b0, w1, b1):
 
 同样可以用 TVMScript 构建这个网络的 IRModule，只不过这次除了要用 Primitive Tensor Function (`@T.prim_function`) 还要用 Relax Function (`@R.function`) 来抽象神经网络的计算过程。
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class MyModule: 
     @T.prim_func
@@ -187,7 +187,7 @@ class MyModule:
 
 `R.call_tir` 正如名字一样调用一个 `T.prim_func` 并返回计算结果。它的行为用Numpy表示如下，先根据 `shape`和 `dtype`开辟输出数据的内存空间，然后调用函数，最后返回输出结果。`R.call_tir`函数的输入是这种形式的原因是 `T.prim_func`函数的输入需要我们先为输出结果开辟内存，称为 **目标传递 (destination passing)** 。
 
-```python
+```python {linenos=true}
 def lnumpy_call_tir(prim_func, inputs, shape, dtype):
     res = np.empty(shape, dtype=dtype)
     prim_func(*inputs, res)
@@ -196,7 +196,7 @@ def lnumpy_call_tir(prim_func, inputs, shape, dtype):
 
 为了让程序执行具有计算图的性质，我们采用这种方式进行调用
 
-```python
+```python {linenos=true}
 def lnumpy_mlp_with_call_tir(data, w0, b0, w1, b1):
     lv0 = lnumpy_call_tir(lnumpy_linear0, (data, w0, b0), (1, 128), dtype="float32")
     lv1 = lnumpy_call_tir(lnumpy_relu0, (lv0, ), (1, 128), dtype="float32")
@@ -208,7 +208,7 @@ def lnumpy_mlp_with_call_tir(data, w0, b0, w1, b1):
 
 理想情况下，计算图中的操作应为 side-effect free，即一个函数只从其输入中读取并通过其输出返回结果，不会改变程序的其他部分（例如递增全局计数器）。如果要引入包含 side-effect 的操作，就需要定义多个dataflow block，在他们之外或者之间进行操作。
 
-```python
+```python {linenos=true}
 @R.function
 def main(x: Tensor((1, 784), "float32"), 
          w0: Tensor((128, 784), "float32"), 
@@ -233,7 +233,7 @@ def main(x: Tensor((1, 784), "float32"),
 
 该网络对应的TensorIR如下
 
-```python
+```python {linenos=true}
 @I.ir_module
 class Module:
     @T.prim_func
@@ -316,7 +316,7 @@ class Module:
 
 我们可以通过下面方式来构造 virtual machine. `relax.build`返回一个 `tvm.relax.Executable`对象，然后就可以在指定的硬件上创建virtual machine 来执行计算图。
 
-```python
+```python {linenos=true}
 ex = relax.build(MyModule, target="llvm")
 vm = relax.VirtualMachine(ex, tvm.cpu())
 
@@ -339,7 +339,7 @@ nd_res = vm["main"](data_nd,
 
 **示例：**
 
-```python
+```python {linenos=true}
 R.call_dps_packed("env.linear", (x, w0, b0), out_sinfo=R.Tensor((1, 128), dtype="float32"))
 ```
 
@@ -381,7 +381,7 @@ R.call_dps_packed("env.linear", (x, w0, b0), out_sinfo=R.Tensor((1, 128), dtype=
      * 使用 `torch.from_dlpack` 将 TVM 的 `NDArray` 对象转换为 PyTorch 的 `Tensor` 对象。
      * 使用 PyTorch 的 `torch.maximum` 函数计算 `x` 和 0 之间的最大值，并将结果写入 `out`。
 
-```python
+```python {linenos=true}
 @tvm.register_func("env.linear", override=True)
 def torch_linear(x: tvm.nd.NDArray, 
                  w: tvm.nd.NDArray, 
@@ -404,7 +404,7 @@ def lnumpy_relu(x: tvm.nd.NDArray,
 
 然后我们就可以创建IRModule并通过上一节所说方法去 build and run.
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class MyModuleWithExternCall:
     @R.function
@@ -429,7 +429,7 @@ vm = relax.VirtualMachine(ex, tvm.cpu())
 
 我们可以混合使用T.prim_func和 注册的 runtime 函数来创建 RelaxIR.  以下代码展示了一个例子，其中 linear0 仍在 TensorIR 中实现，而其他函数则被重定向到库函数中。
 
-```python
+```python {linenos=true}
 @tvm.script.ir_module
 class MyModuleMixture: 
     @T.prim_func
@@ -472,7 +472,7 @@ class MyModuleMixture:
 
 `metadata["relax.expr.Constant"]`对应的是存储常量的隐式字典（虽然没有显示在脚本中，但仍是 IRModule 的一部分）。构建了转换后的 IRModule，现在只需输入数据就可以调用函数。
 
-```python
+```python {linenos=true}
 MyModuleWithParams = relax.transform.BindParams("main", nd_params)(MyModuleMixture)
 MyModuleWithParams.show()
 

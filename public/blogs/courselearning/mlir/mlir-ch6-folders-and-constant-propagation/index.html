@@ -10,7 +10,7 @@
 <meta name="description" content="Personal MLIR learning notes 6.">
 <meta name="author" content="WITHER">
 <link rel="canonical" href="http://localhost:1313/blogs/courselearning/mlir/mlir-ch6-folders-and-constant-propagation/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.a3afc927e13c8d8d72138af4254aadf37b5653f96e325fea8d50c85abdca381a.css" integrity="sha256-o6/JJ&#43;E8jY1yE4r0JUqt83tWU/luMl/qjVDIWr3KOBo=" rel="preload stylesheet" as="style">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
@@ -66,9 +66,8 @@
   };
 </script>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/courselearning/mlir/mlir-ch6-folders-and-constant-propagation/">
+
+<meta property="og:url" content="http://localhost:1313/blogs/courselearning/mlir/mlir-ch6-folders-and-constant-propagation/">
   <meta property="og:site_name" content="WITHER">
   <meta property="og:title" content="MLIR-Ch6 Folders and Constant Propagation">
   <meta property="og:description" content="Personal MLIR learning notes 6.">
@@ -76,7 +75,7 @@
   <meta property="og:type" content="article">
     <meta property="article:section" content="blogs">
     <meta property="article:published_time" content="2024-11-09T20:51:23+08:00">
-    <meta property="article:modified_time" content="2024-11-09T20:51:23+08:00">
+    <meta property="article:modified_time" content="2025-06-07T16:41:56+08:00">
     <meta property="article:tag" content="Jeremykun MLIR Learning">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MLIR-Ch6 Folders and Constant Propagation">
@@ -125,11 +124,11 @@
   "keywords": [
     "MLIR"
   ],
-  "articleBody": "Constant Propagation vs Canonicalization -sccp Sparse Conditional Constant Propagation 是稀疏条件常数传播，它试图推断 op 何时具有常量输出，然后用常量值替换 op 。重复这个过程，它在程序中尽可能地“传播”这些常量。\n例如对于如下的函数\nfunc.func @test_arith_sccp() -\u003e i32 { %0 = arith.constant 7 : i32 %1 = arith.constant 8 : i32 %2 = arith.addi %0, %0 : i32 %3 = arith.muli %0, %0 : i32 %4 = arith.addi %2, %3 : i32 return %2 : i32 } -sccp 优化后的结果如下：\nfunc.func @test_arith_sccp() -\u003e i32 { %c63_i32 = arith.constant 63 : i32 %c49_i32 = arith.constant 49 : i32 %c14_i32 = arith.constant 14 : i32 %c8_i32 = arith.constant 8 : i32 %c7_i32 = arith.constant 7 : i32 return %c14_i32 : i32 } 需要注意的是：sccp 不会删除死代码；这里没有展示的是 sccp 的主要作用，它可以通过控制流 (if 或者 loop) 传播常量。\n一个相关的概念是 canonicalization，--canonicalize pass 隐藏了 MLIR 中的许多繁重工作。它与 sccp 有一点重叠，因为它也计算常量并在 IR 中具体化它们。例如，在上面的 IR 上使用 ——canonicalize pass 的结果如下\nfunc.func @test_arith_sccp() -\u003e i32 { %c14_i32 = arith.constant 14 : i32 return %c14_i32 : i32 } 中间的常量都被修剪掉了，剩下的只是返回值，没有任何 op. 规范化不能通过控制流传播常量。\n这两者都是通过折叠 (folding) 来支持的，折叠是采取一系列 op 并将它们合并在一起为更简单的 op 的过程。它还要求我们的方言具有某种常量 op ，该 op 与折叠的结果一起插入。\n以这种方式支持折叠所需的大致步骤是：\n添加一个常量 op. 添加实例化钩子。 为每个 op 添加 folders. Making a Constant Operation 我们目前只支持通过 from_tensor op 从 arith.constant 创建常量。\n%0 = arith.constant dense\u003c[1, 2, 3]\u003e : tensor\u003c3xi32\u003e %p0 = poly.from_tensor %0 : tensor\u003c3xi32\u003e -\u003e !poly.poly\u003c10\u003e 一个常量 op 可以将上述两个操作简化成一个 op. from_tensor op 还可以用于根据数据 (而不仅仅是常数) 构建一个多项函数，因此即使在我们实现了 poly.constant 之后，它也应该保留。\n%0 = poly.constant dense\u003c[2, 8, 20, 24, 18]\u003e : !poly.poly\u003c10\u003e fold 可以用于向 sccp 等 pass 传递信号，表明 op 的结果是常量，或者它可以用于说 op 的结果等效于由不同 op 创建的预先存在的值。对于常量的情况，还需要一个 materializeConstant 钩子来告诉 MLIR 如何获取常量结果并将其转化为适当的 IR op. 常量 op 的定义如下\ndef Poly_ConstantOp: Op",
-  "wordCount" : "1919",
+  "articleBody": "Constant Propagation vs Canonicalization -sccp Sparse Conditional Constant Propagation 是稀疏条件常数传播，它试图推断 op 何时具有常量输出，然后用常量值替换 op 。重复这个过程，它在程序中尽可能地“传播”这些常量。\n例如对于如下的函数\n1 2 3 4 5 6 7 8 func.func @test_arith_sccp() -\u003e i32 { %0 = arith.constant 7 : i32 %1 = arith.constant 8 : i32 %2 = arith.addi %0, %0 : i32 %3 = arith.muli %0, %0 : i32 %4 = arith.addi %2, %3 : i32 return %2 : i32 } -sccp 优化后的结果如下：\n1 2 3 4 5 6 7 8 func.func @test_arith_sccp() -\u003e i32 { %c63_i32 = arith.constant 63 : i32 %c49_i32 = arith.constant 49 : i32 %c14_i32 = arith.constant 14 : i32 %c8_i32 = arith.constant 8 : i32 %c7_i32 = arith.constant 7 : i32 return %c14_i32 : i32 } 需要注意的是：sccp 不会删除死代码；这里没有展示的是 sccp 的主要作用，它可以通过控制流 (if 或者 loop) 传播常量。\n一个相关的概念是 canonicalization，--canonicalize pass 隐藏了 MLIR 中的许多繁重工作。它与 sccp 有一点重叠，因为它也计算常量并在 IR 中具体化它们。例如，在上面的 IR 上使用 ——canonicalize pass 的结果如下\n1 2 3 4 func.func @test_arith_sccp() -\u003e i32 { %c14_i32 = arith.constant 14 : i32 return %c14_i32 : i32 } 中间的常量都被修剪掉了，剩下的只是返回值，没有任何 op. 规范化不能通过控制流传播常量。\n这两者都是通过折叠 (folding) 来支持的，折叠是采取一系列 op 并将它们合并在一起为更简单的 op 的过程。它还要求我们的方言具有某种常量 op ，该 op 与折叠的结果一起插入。\n以这种方式支持折叠所需的大致步骤是：\n添加一个常量 op. 添加实例化钩子。 为每个 op 添加 folders. Making a Constant Operation 我们目前只支持通过 from_tensor op 从 arith.constant 创建常量。\n1 2 %0 = arith.constant dense\u003c[1, 2, 3]\u003e : tensor\u003c3xi32\u003e %p0 = poly.from_tensor %0 : tensor\u003c3xi32\u003e -\u003e !poly.poly\u003c10\u003e 一个常量 op 可以将上述两个操作简化成一个 op. from_tensor op 还可以用于根据数据 (而不仅仅是常数) 构建一个多项函数，因此即使在我们实现了 poly.constant 之后，它也应该保留。\n1 %0 = poly.constant dense\u003c[2, 8, 20, 24, 18]\u003e : !poly.poly\u003c10\u003e fold 可以用于向 sccp 等 pass 传递信号，表明 op 的结果是常量，或者它可以用于说 op 的结果等效于由不同 op 创建的预先存在的值。对于常量的情况，还需要一个 materializeConstant 钩子来告诉 MLIR 如何获取常量结果并将其转化为适当的 IR op. 常量 op 的定义如下\ndef Poly_ConstantOp: Op",
+  "wordCount" : "1999",
   "inLanguage": "en",
   "datePublished": "2024-11-09T20:51:23+08:00",
-  "dateModified": "2024-11-09T20:51:23+08:00",
+  "dateModified": "2025-06-07T16:41:56+08:00",
   "author":[{
     "@type": "Person",
     "name": "WITHER"
@@ -250,7 +249,7 @@
     <div class="post-description">
       Personal MLIR learning notes 6.
     </div>
-    <div class="post-meta"><span title='2024-11-09 20:51:23 +0800 CST'>Nov-09-2024</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;1919 words&nbsp;·&nbsp;WITHER
+    <div class="post-meta"><span title='2024-11-09 20:51:23 +0800 CST'>Nov-09-2024</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;1999 words&nbsp;·&nbsp;WITHER
 
 </div>
   </header> <aside id="toc-container" class="toc-container wide">
@@ -337,7 +336,19 @@
   <div class="post-content"><h1 id="constant-propagation-vs-canonicalization">Constant Propagation vs Canonicalization<a hidden class="anchor" aria-hidden="true" href="#constant-propagation-vs-canonicalization">#</a></h1>
 <p><code>-sccp</code> Sparse Conditional Constant Propagation 是稀疏条件常数传播，它试图推断 op 何时具有常量输出，然后用常量值替换 op 。重复这个过程，它在程序中尽可能地“传播”这些常量。</p>
 <p>例如对于如下的函数</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_arith_sccp</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_arith_sccp</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="nv">%0</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">7</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl">  <span class="nv">%1</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">8</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl">  <span class="nv">%2</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%0</span><span class="p">,</span> <span class="nv">%0</span> <span class="p">:</span> <span class="k">i32</span>
@@ -345,8 +356,22 @@
 </span></span><span class="line"><span class="cl">  <span class="nv">%4</span> <span class="p">=</span> arith<span class="p">.</span>addi <span class="nv">%2</span><span class="p">,</span> <span class="nv">%3</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">return</span> <span class="nv">%2</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p><code>-sccp</code> 优化后的结果如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_arith_sccp</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>-sccp</code> 优化后的结果如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_arith_sccp</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="nv">%c63_i32</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">63</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl">  <span class="nv">%c49_i32</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">49</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl">  <span class="nv">%c14_i32</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">14</span> <span class="p">:</span> <span class="k">i32</span>
@@ -354,13 +379,25 @@
 </span></span><span class="line"><span class="cl">  <span class="nv">%c7_i32</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">7</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">return</span> <span class="nv">%c14_i32</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>需要注意的是：sccp 不会删除死代码；这里没有展示的是 sccp 的主要作用，它可以通过控制流 (if 或者 loop) 传播常量。</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>需要注意的是：sccp 不会删除死代码；这里没有展示的是 sccp 的主要作用，它可以通过控制流 (if 或者 loop) 传播常量。</p>
 <p>一个相关的概念是 canonicalization，<code>--canonicalize</code> pass 隐藏了 MLIR 中的许多繁重工作。它与 sccp 有一点重叠，因为它也计算常量并在 IR 中具体化它们。例如，在上面的 IR 上使用 <code>——canonicalize</code> pass 的结果如下</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_arith_sccp</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="kt">func</span><span class="p">.</span><span class="kt">func</span> <span class="nf">@test_arith_sccp</span><span class="p">()</span> <span class="p">-&gt;</span> <span class="k">i32</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="nv">%c14_i32</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> <span class="m">14</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">return</span> <span class="nv">%c14_i32</span> <span class="p">:</span> <span class="k">i32</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>中间的常量都被修剪掉了，剩下的只是返回值，没有任何 op. <strong>规范化不能通过控制流传播常量</strong>。</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>中间的常量都被修剪掉了，剩下的只是返回值，没有任何 op. <strong>规范化不能通过控制流传播常量</strong>。</p>
 <p>这两者都是通过折叠 (folding) 来支持的，折叠是采取一系列 op 并将它们合并在一起为更简单的 op 的过程。它还要求我们的方言具有某种常量 op ，该 op 与折叠的结果一起插入。</p>
 <p>以这种方式支持折叠所需的大致步骤是：</p>
 <ol>
@@ -370,11 +407,26 @@
 </ol>
 <h1 id="making-a-constant-operation">Making a Constant Operation<a hidden class="anchor" aria-hidden="true" href="#making-a-constant-operation">#</a></h1>
 <p>我们目前只支持通过 <code>from_tensor</code>  op 从 <code>arith.constant</code> 创建常量。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="nv">%0</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> dense<span class="p">&lt;[</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">]&gt;</span> <span class="p">:</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">3x</span><span class="k">i32</span><span class="p">&gt;</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="nv">%0</span> <span class="p">=</span> arith<span class="p">.</span><span class="kt">constant</span> dense<span class="p">&lt;[</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">]&gt;</span> <span class="p">:</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">3x</span><span class="k">i32</span><span class="p">&gt;</span>
 </span></span><span class="line"><span class="cl"><span class="nv">%p0</span> <span class="p">=</span> poly<span class="p">.</span>from_tensor <span class="nv">%0</span> <span class="p">:</span> <span class="kt">tensor</span><span class="p">&lt;</span><span class="m">3x</span><span class="k">i32</span><span class="p">&gt;</span> <span class="p">-&gt;</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
-</span></span></code></pre></div><p>一个常量 op 可以将上述两个操作简化成一个 op. <code>from_tensor</code> op 还可以用于根据数据 (而不仅仅是常数) 构建一个多项函数，因此即使在我们实现了 <code>poly.constant</code> 之后，它也应该保留。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="nv">%0</span> <span class="p">=</span> poly<span class="p">.</span><span class="kt">constant</span> dense<span class="p">&lt;[</span><span class="m">2</span><span class="p">,</span> <span class="m">8</span><span class="p">,</span> <span class="m">20</span><span class="p">,</span> <span class="m">24</span><span class="p">,</span> <span class="m">18</span><span class="p">]&gt;</span> <span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
-</span></span></code></pre></div><p><a href="https://mlir.llvm.org/docs/Canonicalization/#canonicalizing-with-the-fold-method">fold</a> 可以用于向 sccp 等 pass 传递信号，表明 op 的结果是常量，或者它可以用于说 op 的结果等效于由不同 op 创建的预先存在的值。对于常量的情况，还需要一个 <code>materializeConstant</code> 钩子来告诉 MLIR 如何获取常量结果并将其转化为适当的 IR  op. 常量 op 的定义如下</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一个常量 op 可以将上述两个操作简化成一个 op. <code>from_tensor</code> op 还可以用于根据数据 (而不仅仅是常数) 构建一个多项函数，因此即使在我们实现了 <code>poly.constant</code> 之后，它也应该保留。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-mlir" data-lang="mlir"><span class="line"><span class="cl"><span class="nv">%0</span> <span class="p">=</span> poly<span class="p">.</span><span class="kt">constant</span> dense<span class="p">&lt;[</span><span class="m">2</span><span class="p">,</span> <span class="m">8</span><span class="p">,</span> <span class="m">20</span><span class="p">,</span> <span class="m">24</span><span class="p">,</span> <span class="m">18</span><span class="p">]&gt;</span> <span class="p">:</span> <span class="p">!</span>poly<span class="p">.</span>poly<span class="p">&lt;</span><span class="m">10</span><span class="p">&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><a href="https://mlir.llvm.org/docs/Canonicalization/#canonicalizing-with-the-fold-method">fold</a> 可以用于向 sccp 等 pass 传递信号，表明 op 的结果是常量，或者它可以用于说 op 的结果等效于由不同 op 创建的预先存在的值。对于常量的情况，还需要一个 <code>materializeConstant</code> 钩子来告诉 MLIR 如何获取常量结果并将其转化为适当的 IR  op. 常量 op 的定义如下</p>
 <pre tabindex="0"><code>def Poly_ConstantOp: Op&lt;Poly_Dialect, &#34;constant&#34;, [Pure, ConstantLike]&gt; {
   let summary = &#34;Define a constant polynomial via an attribute.&#34;;
   let arguments = (ins AnyIntElementsAttr:$coefficients);
@@ -391,40 +443,114 @@
 <li>跨方言的通用接口：Attribute 是一个抽象接口，允许不同方言 (dialects) 定义自己的常量表示，同时通过统一的 API 进行操作。</li>
 <li>轻量级和高效：Attribute 是一个值类型 (passed by value) ，内部仅存储指向底层存储的指针，依赖 MLIRContext 的唯一化机制 (uniquing) 确保内存效率和一致性。</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">using</span> <span class="n">FoldAdaptor</span> <span class="o">=</span> <span class="n">GenericAdaptor</span><span class="o">&lt;::</span><span class="n">llvm</span><span class="o">::</span><span class="n">ArrayRef</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Attribute</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">using</span> <span class="n">FoldAdaptor</span> <span class="o">=</span> <span class="n">GenericAdaptor</span><span class="o">&lt;::</span><span class="n">llvm</span><span class="o">::</span><span class="n">ArrayRef</span><span class="o">&lt;::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Attribute</span><span class="o">&gt;&gt;</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpFoldResult</span> <span class="n">fold</span><span class="p">(</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">);</span>
-</span></span></code></pre></div><p>我们需要在 <code>PolyOps.cpp</code> 中实现这个函数。如果 <code>fold</code> 方法决定 op 应被替换为一个常量，则必须返回一个表示该常量的 <code>Attribute</code>，该属性可以作为 <code>poly.constant</code> 操作的输入。<code>FoldAdaptor</code> 是一个适配器，它具有与操作的 C++ 类实例相同的方法名称，但对于那些已经被折叠的参数，会用表示其折叠结果常量的 <code>Attribute</code> 实例替换。这在折叠加法和乘法操作时尤为重要，因为折叠的实现需要立即计算结果，并且需要访问实际的数值来完成计算。</p>
+</span></span><span class="line"><span class="cl"><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpFoldResult</span> <span class="nf">fold</span><span class="p">(</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">);</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>我们需要在 <code>PolyOps.cpp</code> 中实现这个函数。如果 <code>fold</code> 方法决定 op 应被替换为一个常量，则必须返回一个表示该常量的 <code>Attribute</code>，该属性可以作为 <code>poly.constant</code> 操作的输入。<code>FoldAdaptor</code> 是一个适配器，它具有与操作的 C++ 类实例相同的方法名称，但对于那些已经被折叠的参数，会用表示其折叠结果常量的 <code>Attribute</code> 实例替换。这在折叠加法和乘法操作时尤为重要，因为折叠的实现需要立即计算结果，并且需要访问实际的数值来完成计算。</p>
 <p>对于 <code>poly.constant</code> 我们只需要返回输入的 attribute.</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">OpFoldResult</span> <span class="n">ConstantOp</span><span class="o">::</span><span class="n">fold</span><span class="p">(</span><span class="n">ConstantOp</span><span class="o">::</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">adaptor</span><span class="p">.</span><span class="n">getCoefficients</span><span class="p">();</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">OpFoldResult</span> <span class="n">ConstantOp</span><span class="o">::</span><span class="nf">fold</span><span class="p">(</span><span class="n">ConstantOp</span><span class="o">::</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">adaptor</span><span class="p">.</span><span class="nf">getCoefficients</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>对于 from_tensor 我们需要有一个额外的强制转换作为断言，因为张量可能是用我们不希望作为输入的奇怪类型构造的。如果 <code>dyn_cast</code> 结果是 <code>nullptr</code>， MLIR 将其强制转换为失败的 <code>OpFoldResult</code>.</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">OpFoldResult</span> <span class="n">FromTensorOp</span><span class="o">::</span><span class="n">fold</span><span class="p">(</span><span class="n">FromTensorOp</span><span class="o">::</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">)</span> <span class="p">{</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>对于 from_tensor 我们需要有一个额外的强制转换作为断言，因为张量可能是用我们不希望作为输入的奇怪类型构造的。如果 <code>dyn_cast</code> 结果是 <code>nullptr</code>， MLIR 将其强制转换为失败的 <code>OpFoldResult</code>.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">OpFoldResult</span> <span class="n">FromTensorOp</span><span class="o">::</span><span class="nf">fold</span><span class="p">(</span><span class="n">FromTensorOp</span><span class="o">::</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// Returns null if the cast failed, which corresponds to a failed fold.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">dyn_cast</span><span class="o">&lt;</span><span class="n">DenseIntElementsAttr</span><span class="o">&gt;</span><span class="p">(</span><span class="n">adaptor</span><span class="p">.</span><span class="n">getInput</span><span class="p">());</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">dyn_cast</span><span class="o">&lt;</span><span class="n">DenseIntElementsAttr</span><span class="o">&gt;</span><span class="p">(</span><span class="n">adaptor</span><span class="p">.</span><span class="nf">getInput</span><span class="p">());</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>BinOp 稍微复杂一些，因为这些 fold 方法中的每一个 op 都接受两个 <code>DenseIntElementsAttr</code> 作为输入，并期望我们为结果返回另一个 <code>DenseIntElementsAttr</code>.</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>BinOp 稍微复杂一些，因为这些 fold 方法中的每一个 op 都接受两个 <code>DenseIntElementsAttr</code> 作为输入，并期望我们为结果返回另一个 <code>DenseIntElementsAttr</code>.</p>
 <p>对于 elementwise op 的 add/sub，我们可以使用现有的方法 <code>constFoldBinaryOp</code>，它通过一些模板元编程技巧，允许我们只指定元素 op 本身。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">OpFoldResult</span> <span class="n">AddOp</span><span class="o">::</span><span class="n">fold</span><span class="p">(</span><span class="n">AddOp</span><span class="o">::</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">)</span> <span class="p">{</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">OpFoldResult</span> <span class="n">AddOp</span><span class="o">::</span><span class="nf">fold</span><span class="p">(</span><span class="n">AddOp</span><span class="o">::</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">constFoldBinaryOp</span><span class="o">&lt;</span><span class="n">IntegerAttr</span><span class="p">,</span> <span class="n">APInt</span><span class="o">&gt;</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">      <span class="n">adaptor</span><span class="p">.</span><span class="n">getOperands</span><span class="p">(),</span> <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">APInt</span> <span class="n">a</span><span class="p">,</span> <span class="n">APInt</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">;</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">      <span class="n">adaptor</span><span class="p">.</span><span class="nf">getOperands</span><span class="p">(),</span> <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">APInt</span> <span class="n">a</span><span class="p">,</span> <span class="n">APInt</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">;</span> <span class="p">});</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>对于 mul，我们手动的通过循环计算每个系数。<code>getResult()</code> 方法来自于 <code>OneTypedResult</code> 类模板及其内部类 <code>Impl</code> 是一个 MLIR Trait，它主要用于那些返回单一特定类型结果的 op 。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">OpFoldResult</span> <span class="n">MulOp</span><span class="o">::</span><span class="n">fold</span><span class="p">(</span><span class="n">MulOp</span><span class="o">::</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">lhs</span> <span class="o">=</span> <span class="n">llvm</span><span class="o">::</span><span class="n">dyn_cast</span><span class="o">&lt;</span><span class="n">DenseIntElementsAttr</span><span class="o">&gt;</span><span class="p">(</span><span class="n">adaptor</span><span class="p">.</span><span class="n">getOperands</span><span class="p">()[</span><span class="mi">0</span><span class="p">]);</span>
-</span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">rhs</span> <span class="o">=</span> <span class="n">llvm</span><span class="o">::</span><span class="n">dyn_cast</span><span class="o">&lt;</span><span class="n">DenseIntElementsAttr</span><span class="o">&gt;</span><span class="p">(</span><span class="n">adaptor</span><span class="p">.</span><span class="n">getOperands</span><span class="p">()[</span><span class="mi">1</span><span class="p">]);</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>对于 mul，我们手动的通过循环计算每个系数。<code>getResult()</code> 方法来自于 <code>OneTypedResult</code> 类模板及其内部类 <code>Impl</code> 是一个 MLIR Trait，它主要用于那些返回单一特定类型结果的 op 。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">OpFoldResult</span> <span class="n">MulOp</span><span class="o">::</span><span class="nf">fold</span><span class="p">(</span><span class="n">MulOp</span><span class="o">::</span><span class="n">FoldAdaptor</span> <span class="n">adaptor</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">lhs</span> <span class="o">=</span> <span class="n">llvm</span><span class="o">::</span><span class="n">dyn_cast</span><span class="o">&lt;</span><span class="n">DenseIntElementsAttr</span><span class="o">&gt;</span><span class="p">(</span><span class="n">adaptor</span><span class="p">.</span><span class="nf">getOperands</span><span class="p">()[</span><span class="mi">0</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">rhs</span> <span class="o">=</span> <span class="n">llvm</span><span class="o">::</span><span class="n">dyn_cast</span><span class="o">&lt;</span><span class="n">DenseIntElementsAttr</span><span class="o">&gt;</span><span class="p">(</span><span class="n">adaptor</span><span class="p">.</span><span class="nf">getOperands</span><span class="p">()[</span><span class="mi">1</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">lhs</span> <span class="o">||</span> <span class="o">!</span><span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="k">nullptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">nullptr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">degree</span> <span class="o">=</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mlir</span><span class="o">::</span><span class="n">cast</span><span class="o">&lt;</span><span class="n">PolynomialType</span><span class="o">&gt;</span><span class="p">(</span><span class="n">getResult</span><span class="p">().</span><span class="n">getType</span><span class="p">()).</span><span class="n">getDegreeBound</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">maxIndex</span> <span class="o">=</span> <span class="n">lhs</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">+</span> <span class="n">rhs</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mlir</span><span class="o">::</span><span class="n">cast</span><span class="o">&lt;</span><span class="n">PolynomialType</span><span class="o">&gt;</span><span class="p">(</span><span class="nf">getResult</span><span class="p">().</span><span class="nf">getType</span><span class="p">()).</span><span class="nf">getDegreeBound</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">maxIndex</span> <span class="o">=</span> <span class="n">lhs</span><span class="p">.</span><span class="nf">size</span><span class="p">()</span> <span class="o">+</span> <span class="n">rhs</span><span class="p">.</span><span class="nf">size</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="n">SmallVector</span><span class="o">&lt;</span><span class="n">llvm</span><span class="o">::</span><span class="n">APInt</span><span class="p">,</span> <span class="mi">8</span><span class="o">&gt;</span> <span class="n">results</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">results</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">maxIndex</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">results</span><span class="p">.</span><span class="nf">reserve</span><span class="p">(</span><span class="n">maxIndex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kt">int64_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">maxIndex</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="n">results</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">APInt</span><span class="p">((</span><span class="o">*</span><span class="n">lhs</span><span class="p">.</span><span class="n">begin</span><span class="p">()).</span><span class="n">getBitWidth</span><span class="p">(),</span> <span class="mi">0</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">        <span class="n">results</span><span class="p">.</span><span class="nf">push_back</span><span class="p">(</span><span class="nf">APInt</span><span class="p">((</span><span class="o">*</span><span class="n">lhs</span><span class="p">.</span><span class="nf">begin</span><span class="p">()).</span><span class="nf">getBitWidth</span><span class="p">(),</span> <span class="mi">0</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="kt">int64_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
@@ -438,26 +564,51 @@
 </span></span><span class="line"><span class="cl">        <span class="p">}</span>
 </span></span><span class="line"><span class="cl">        <span class="n">i</span><span class="o">++</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">DenseIntElementsAttr</span><span class="o">::</span><span class="n">get</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">RankedTensorType</span><span class="o">::</span><span class="n">get</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int64_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">results</span><span class="p">.</span><span class="n">size</span><span class="p">()),</span>
-</span></span><span class="line"><span class="cl">                              <span class="n">mlir</span><span class="o">::</span><span class="n">IntegerType</span><span class="o">::</span><span class="n">get</span><span class="p">(</span><span class="n">getContext</span><span class="p">(),</span> <span class="mi">32</span><span class="p">)),</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">DenseIntElementsAttr</span><span class="o">::</span><span class="nf">get</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">RankedTensorType</span><span class="o">::</span><span class="nf">get</span><span class="p">(</span><span class="n">static_cast</span><span class="o">&lt;</span><span class="kt">int64_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">results</span><span class="p">.</span><span class="nf">size</span><span class="p">()),</span>
+</span></span><span class="line"><span class="cl">                              <span class="n">mlir</span><span class="o">::</span><span class="n">IntegerType</span><span class="o">::</span><span class="nf">get</span><span class="p">(</span><span class="nf">getContext</span><span class="p">(),</span> <span class="mi">32</span><span class="p">)),</span>
 </span></span><span class="line"><span class="cl">        <span class="n">results</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><h1 id="adding-a-constant-materializer">Adding a Constant Materializer<a hidden class="anchor" aria-hidden="true" href="#adding-a-constant-materializer">#</a></h1>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="adding-a-constant-materializer">Adding a Constant Materializer<a hidden class="anchor" aria-hidden="true" href="#adding-a-constant-materializer">#</a></h1>
 <p>最后我们添加常量实例化函数，这是一个 dialect 级别的特性，我们在 <code>PolyDialect.td</code> 中添加 <code>let hasConstantMaterializer = 1;</code> 则会在 .hpp.inc 中添加如下形式的声明。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Operation</span> <span class="o">*</span><span class="n">materializeConstant</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpBuilder</span> <span class="o">&amp;</span><span class="n">builder</span><span class="p">,</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Operation</span> <span class="o">*</span><span class="nf">materializeConstant</span><span class="p">(</span><span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">OpBuilder</span> <span class="o">&amp;</span><span class="n">builder</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">                                         <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Attribute</span> <span class="n">value</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">                                         <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Type</span> <span class="n">type</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                         <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Location</span> <span class="n">loc</span><span class="p">)</span> <span class="k">override</span><span class="p">;</span>
-</span></span></code></pre></div><p>该函数作用是将给定 Attribute (上面每个折叠步骤的结果) 的单个常量 op 实例化为所需的结果 Type.</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">Operation</span> <span class="o">*</span><span class="n">PolyDialect</span><span class="o">::</span><span class="n">materializeConstant</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                                         <span class="o">::</span><span class="n">mlir</span><span class="o">::</span><span class="n">Location</span> <span class="n">loc</span><span class="p">)</span> <span class="n">override</span><span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>该函数作用是将给定 Attribute (上面每个折叠步骤的结果) 的单个常量 op 实例化为所需的结果 Type.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">Operation</span> <span class="o">*</span><span class="n">PolyDialect</span><span class="o">::</span><span class="nf">materializeConstant</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">    <span class="n">OpBuilder</span> <span class="o">&amp;</span><span class="n">builder</span><span class="p">,</span> <span class="n">Attribute</span> <span class="n">value</span><span class="p">,</span> <span class="n">Type</span> <span class="n">type</span><span class="p">,</span> <span class="n">Location</span> <span class="n">loc</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">coeffs</span> <span class="o">=</span> <span class="n">dyn_cast</span><span class="o">&lt;</span><span class="n">DenseIntElementsAttr</span><span class="o">&gt;</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">coeffs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="k">nullptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">nullptr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">builder</span><span class="p">.</span><span class="n">create</span><span class="o">&lt;</span><span class="n">ConstantOp</span><span class="o">&gt;</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">type</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
 
   </div>
 

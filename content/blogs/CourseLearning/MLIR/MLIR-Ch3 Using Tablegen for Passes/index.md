@@ -35,7 +35,7 @@ TableGen允许你在定义中嵌入C++代码片段。这些代码片段会被插
 
 下面给出了一个以 tablegen 语法重写上一章的 `AffineFullUnroll `pass 的例子
 
-```cpp
+```cpp {linenos=true}
 // mlir-learning/Transform/Affine/Pass.td
 include "mlir/Pass/PassBase.td"
 
@@ -56,7 +56,7 @@ TableGen 拥有类似的类和继承的概念。`: Pass<...>` 表示一个类继
 
 和上一章不同的是，这次我们也需要在 include 目录下写一个 CMakeLists.txt
 
-```cmake
+```cmake {linenos=true}
 set(TARGET_NAME "${PROJECT_TARGET_PREFIX}-Transform-Affine-Passes-IncGen")
 set(LLVM_TARGET_DEFINITIONS mlir-learning/Transform/Affine/Pass.td)
 mlir_tablegen(mlir-learning/Transform/Affine/Pass.h.inc -gen-pass-decls -name=Affine)
@@ -91,7 +91,7 @@ set_property(
 
 1. 头部保护和条件编译
 
-```c
+```c {linenos=true}
 //===----------------------------------------------------------------------===//
 // AffineFullUnroll
 //===----------------------------------------------------------------------===//
@@ -105,7 +105,7 @@ std::unique_ptr<::mlir::Pass> createAffineFullUnroll();
 
 2. Pass 的实现
 
-```c
+```c {linenos=true}
 #ifdef GEN_PASS_DEF_AFFINEFULLUNROLL
 namespace impl {
   std::unique_ptr<::mlir::Pass> createAffineFullUnroll();
@@ -130,7 +130,7 @@ std::unique_ptr<::mlir::Pass> createAffineFullUnroll() {
 
 3. Pass 注册
 
-```c
+```c {linenos=true}
 #ifdef GEN_PASS_REGISTRATION
 
 //===----------------------------------------------------------------------===//
@@ -165,7 +165,7 @@ registerAffineFullUnroll();
 
 TableGen根据 `.td`文件生成Pass的代码，生成的代码包含注册函数，这些注册函数最终会被调用，将Pass注册到MLIR系统中。 我们可以通过写一个 `Passes.h`文件集中管理所有Pass的注册，简化构建过程。
 
-```c
+```c {linenos=true}
 // include/mlir-learning/Transform/Affine/Pass.h
 #include "mlir-learning/Transform/Affine/AffineFullUnroll.h"
 
@@ -177,7 +177,7 @@ namespace mlir::tutorial {
 
 然后再对应的 AffineFullUnroll.hpp 中定义 `GEN_PASS_DECL_AFFINEFULLUNROLL` 宏，以实现创建 Pass 函数的声明。
 
-```cpp
+```cpp {linenos=true}
 #pragma once 
 
 #include "mlir/Pass/Pass.h"
@@ -198,7 +198,7 @@ namespace mlir::tutorial
 
 具体的实现与上一章相同，这里我们要继承 .inc 文件中生成的类
 
-```cpp
+```cpp {linenos=true}
 #include "mlir-learning/Transform/Affine/AffineFullUnroll.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/LoopUtils.h"
@@ -232,7 +232,7 @@ public:
 
 最后在 `tutorial.cpp` 中使用 .inc 文件生成的 `registerAffinePasses`
 
-```cpp
+```cpp {linenos=true}
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Pass/PassManager.h"
