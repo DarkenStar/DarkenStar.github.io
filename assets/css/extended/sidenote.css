@@ -49,3 +49,58 @@ body {
   /* 添加一个平滑的过渡效果 */
   transition: all 0.2s ease-in-out;
 }
+
+/* ==========================================================================
+   全新优化的 Sidenote 移动端响应式设计
+   ========================================================================== */
+
+   @media (max-width: 1024px) {
+
+    /* 1. 重置父容器的桌面端样式 */
+    .sidenote-container {
+        all: unset; /* 清除所有桌面端样式，如 float, margin-right 等 */
+        display: block; /* 让它变为一个块级元素，独占一行 */
+        margin: 1.5em 0; /* 在注释上下添加一些垂直间距 */
+    }
+
+    /* 2. 让正文中的引用标记 [1] 恢复正常 */
+    .sidenote-ref {
+        all: unset; /* 清除桌面端的绝对定位等 */
+        display: inline; /* 让它像普通文字一样留在正文中 */
+        
+        /* 恢复它的计数器和基本样式 */
+        counter-increment: sidenote-counter;
+        content: "[" counter(sidenote-counter) "]";
+        vertical-align: super;
+        font-size: 0.8em;
+        font-weight: 700;
+        color: var(--accent);
+    }
+
+    /* 3. 将旁注内容变为一个独立的、漂亮的卡片 (关键优化) */
+    .sidenote-content {
+        all: unset; /* 清除所有桌面端样式 */
+        display: block; /* 变为块级元素，独占一行 */
+
+        /* 添加视觉样式，使其像一个注释卡片 */
+        margin-top: 0.8em; /* 与正文之间留出一些间距 */
+        padding: 1em 1.2em; /* 内部留白 */
+        background-color: var(--secondary); /* 使用主题的次要背景色，适配深色模式 */
+        border-left: 4px solid var(--accent); /* 左侧加一条强调色边框 */
+        border-radius: 4px; /* 圆角 */
+        
+        /* 恢复字体样式 */
+        font-size: 0.9rem;
+        line-height: 1.7;
+        color: var(--secondary-text);
+    }
+    
+    /* 解决一个边距问题：如果旁注内容里有段落，去掉第一个段落的顶部外边距 */
+    .sidenote-content > *:first-child {
+        margin-top: 0;
+    }
+
+    .sidenote-content > *:last-child {
+        margin-bottom: 0;
+    }
+}
