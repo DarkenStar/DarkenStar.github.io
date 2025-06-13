@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Transformer on WITHER</title>
-    <link>http://localhost:1313/tags/transformer/</link>
+    <link>http://localhost:57770/tags/transformer/</link>
     <description>Recent content in Transformer on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Sat, 07 Jun 2025 21:24:13 +0800</lastBuildDate>
-    <atom:link href="http://localhost:1313/tags/transformer/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
+    <atom:link href="http://localhost:57770/tags/transformer/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Transformer Family</title>
-      <link>http://localhost:1313/blogs/transformerfamily/</link>
+      <link>http://localhost:57770/blogs/transformerfamily/</link>
       <pubDate>Sat, 07 Jun 2025 21:24:13 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/transformerfamily/</guid>
+      <guid>http://localhost:57770/blogs/transformerfamily/</guid>
       <description>Introduction of Transformer Family</description>
       <content:encoded><![CDATA[<h1 id="origin-of-transformer">Origin of Transformer</h1>
 <p>Transformer 由谷歌研于 2017 年在一篇名为 <a href="https://arxiv.org/abs/1706.03762">Attention is All You Need</a> 的论文中提出。与 RNN 的输入仅为一个 token 不同，Transformer 一次性可以输入一整个完整的序列。总体结构如下图所示，包含一个 Encoder 和一个 Decoder.</p>

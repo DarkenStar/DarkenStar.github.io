@@ -102,7 +102,7 @@ $[Y_1, Y_2]=\begin{bmatrix}\text{GeLU}(XA_1),\text{GeLU}(XA_2)\end{bmatrix}$.
 
 这种切分方式的优点是不需要进行同步操作。
 
-如下图所示，以列并行方式切分第一个 GEMM，并沿着其行切分第二个GEMM。然后，在将输出传递给 dropout 层之前，第二个GEMM 的输出在 GPU 之间进行 all-reduce 操作。这种方法将 FFN 中的两个 GEMM 拆分到多个 GPU 上执行，并且只需要在正向传播 (g 操作符) 和反向传播 (f 操作符) 中分别执行一次 all-reduce 操作。
+如下图所示，以列并行方式切分第一个 GEMM，并沿着行切分第二个GEMM。然后，在将输出传递给 dropout 层之前，第二个GEMM 的输出在 GPU 之间进行 all-reduce 操作。这种方法将 FFN 中的两个 GEMM 拆分到多个 GPU 上执行，并且只需要在正向传播 (g 操作符) 和反向传播 (f 操作符) 中分别执行一次 all-reduce 操作。
 
 ![Parallelism of MLP](https://note.youdao.com/yws/api/personal/file/WEBc1b8e9f509879d5984e2b85db312760f?method=download&shareKey=39a5f19a9a477a8d9c3a80b4c5c3bd0f "Parallelism of MLP")
 

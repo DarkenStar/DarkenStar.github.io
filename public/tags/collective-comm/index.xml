@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Collective Comm on WITHER</title>
-    <link>http://localhost:1313/tags/collective-comm/</link>
+    <link>http://localhost:57770/tags/collective-comm/</link>
     <description>Recent content in Collective Comm on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Sun, 12 Jan 2025 16:05:23 +0800</lastBuildDate>
-    <atom:link href="http://localhost:1313/tags/collective-comm/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
+    <atom:link href="http://localhost:57770/tags/collective-comm/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>All2All Communication Cost</title>
-      <link>http://localhost:1313/blogs/all2allcommcost/</link>
+      <link>http://localhost:57770/blogs/all2allcommcost/</link>
       <pubDate>Sun, 12 Jan 2025 16:05:23 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/all2allcommcost/</guid>
+      <guid>http://localhost:57770/blogs/all2allcommcost/</guid>
       <description>Introduction of Transformer Family</description>
       <content:encoded><![CDATA[<p>在 All2All 通信中，每个设备给其他设备发送大小为 m 的不同的消息。此操作相当于使用一维数组分区对分布在 p 个进程中的二维数据数组进行转置，因此也被称作全交换 (<strong>total exchange</strong>)</p>
 <h2 id="ring--bidirectional-linear-array">Ring / Bidirectional Linear Array</h2>
@@ -68,7 +68,40 @@ $$T_{xor}=(t_{s}+t_{w}m)(p-1).$$<h1 id="bruck-algorithm-in-full-connected-networ
     <a href="https://note.youdao.com/yws/api/personal/file/WEB1b5aaffb71ec91ead2f725d9249728f1?method=download&amp;shareKey=e4eea75f3b72f77982d47b17590c24b3" target="_blank" rel="noopener">
         <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB1b5aaffb71ec91ead2f725d9249728f1?method=download&amp;shareKey=e4eea75f3b72f77982d47b17590c24b3" alt="Bruck">
     </a><figcaption>Bruck</figcaption></figure></p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">Algorithm 2 NCCL Bruck algorithm
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plaintext" data-lang="plaintext"><span class="line"><span class="cl">Algorithm 2 NCCL Bruck algorithm
 </span></span><span class="line"><span class="cl">P ← total number of processes.
 </span></span><span class="line"><span class="cl">for i ∈ [0, P] do
 </span></span><span class="line"><span class="cl">   R[i] = S[(p+i) % P] // S and R are send and receive buffers, and p is rank id of each process;
@@ -97,7 +130,9 @@ $$T_{xor}=(t_{s}+t_{w}m)(p-1).$$<h1 id="bruck-algorithm-in-full-connected-networ
 </span></span><span class="line"><span class="cl">      R[i] = R[(p - i + P) % P] // final rotation;
 </span></span><span class="line"><span class="cl">   end for
 </span></span><span class="line"><span class="cl">end for
-</span></span></code></pre></div><ul>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
 <li>line(2-4): 将每个设备发送缓冲区 S 中的数据按照 rank 偏移重新排列拷贝到接收缓冲区 R 中。</li>
 <li>line(5): 为通信阶段准备一个临时缓冲区 T</li>
 <li>line(6): 通信步开始 k 以指数方式增长 (1, 2, 4, &hellip;)，总共执行 logP 次迭代

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>LLM on WITHER</title>
+    <link>http://localhost:1313/tags/llm/</link>
+    <description>Recent content in LLM on WITHER</description>
+    <generator>Hugo -- 0.147.7</generator>
+    <language>en</language>
+    <copyright>2024-2025 WITHER</copyright>
+    <lastBuildDate>Thu, 12 Jun 2025 13:43:16 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/llm/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Diffusion LLM</title>
+      <link>http://localhost:1313/blogs/diffusionllm/</link>
+      <pubDate>Thu, 12 Jun 2025 13:43:16 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/diffusionllm/</guid>
+      <description>Paper Reading of LLaDA</description>
+      <content:encoded><![CDATA[<h1 id="introduction">Introduction</h1>
+<p>当前，几乎所有我们熟知的大语言模型，从GPT系列到LLaMA系列，都构建在自回归范式之上。这种范式的核心是 <strong>next-token prediction</strong> ，即根据已经生成的文本序列，逐 toekn 地预测下一个最有可能出现的 token. 这种单向、顺序的生成方式虽然被证明极其有效 ，但也带来了一些固有的缺陷，例如，它们在处理需要双向推理的任务时表现不佳，一个典型的例子就是 <strong>Reversal Curse</strong> ——模型知道 A is B，却往往无法推断出 B is A.</p>
+]]></content:encoded>
+    </item>
+  </channel>
+</rss>

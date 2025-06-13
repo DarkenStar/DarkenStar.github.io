@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Diffusion Models on WITHER</title>
-    <link>http://localhost:1313/tags/diffusion-models/</link>
+    <link>http://localhost:57770/tags/diffusion-models/</link>
     <description>Recent content in Diffusion Models on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Wed, 23 Oct 2024 14:28:37 +0800</lastBuildDate>
-    <atom:link href="http://localhost:1313/tags/diffusion-models/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
+    <atom:link href="http://localhost:57770/tags/diffusion-models/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>DistriFusion</title>
-      <link>http://localhost:1313/blogs/distrifusion/</link>
+      <link>http://localhost:57770/blogs/distrifusion/</link>
       <pubDate>Wed, 23 Oct 2024 14:28:37 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/distrifusion/</guid>
+      <guid>http://localhost:57770/blogs/distrifusion/</guid>
       <description>Paper reading about DistriFusion.</description>
       <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
 <p>DistriFusion 将模型输入分割成多个 patch 后分配给 GPU。但是直接实现这样的算法会破坏 patch 之间的交互并失去保真度，而同步 GPU 之间的激活将产生巨大的通信开销。为了克服这一困境，根据观察到的相邻扩散步输入之间的高度相似性提出了 <strong>displaced patch parallelism</strong>，该方法通过重用前一个时间步骤中预先计算的 feature map 来利用扩散过程的顺序性，为当前步提供 context. 该方法支持异步通信，可以通过计算实现流水线化。</p>
@@ -56,7 +56,42 @@ $$<p>同样对二阶矩 $\mathbb{E}[\mathbf{A}^2_t]$ 也采用这种计算方式
     <a href="https://note.youdao.com/yws/api/personal/file/WEB6bd750d9e4b5d582be9d1f41cc267bc5?method=download&amp;shareKey=39d825554b65a9c57f59a1dd9a23fb28" target="_blank" rel="noopener">
         <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB6bd750d9e4b5d582be9d1f41cc267bc5?method=download&amp;shareKey=39d825554b65a9c57f59a1dd9a23fb28" alt="UNet2DConditionModel">
     </a><figcaption>UNet2DConditionModel</figcaption></figure></p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DistriUNetPP</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>  <span class="c1"># for Patch Parallelism</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DistriUNetPP</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>  <span class="c1"># for Patch Parallelism</span>
 </span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">UNet2DConditionModel</span><span class="p">,</span> <span class="n">distri_config</span><span class="p">:</span> <span class="n">DistriConfig</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">UNet2DConditionModel</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">distri_config</span><span class="o">.</span><span class="n">world_size</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">distri_config</span><span class="o">.</span><span class="n">n_device_per_batch</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -87,9 +122,32 @@ $$<p>同样对二阶矩 $\mathbb{E}[\mathbf{A}^2_t]$ 也采用这种计算方式
 </span></span><span class="line"><span class="cl">                        <span class="nb">setattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">subname</span><span class="p">,</span> <span class="n">wrapped_submodule</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">(</span><span class="n">DistriUNetPP</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">distri_config</span><span class="p">)</span>
-</span></span></code></pre></div><h2 id="patchparallelismcommmanager">PatchParallelismCommManager</h2>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="patchparallelismcommmanager">PatchParallelismCommManager</h2>
 <p><a href="https://github.com/mit-han-lab/distrifuser/blob/cfb9ea624ef95020aafcda929a69ba4100f99e9d/distrifuser/utils.py#L112">PatchParallelismCommManager</a> 类主要处理异步通信的部分。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PatchParallelismCommManager</span><span class="p">:</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PatchParallelismCommManager</span><span class="p">:</span>
 </span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distri_config</span><span class="p">:</span> <span class="n">DistriConfig</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">distri_config</span> <span class="o">=</span> <span class="n">distri_config</span>
 </span></span><span class="line"><span class="cl">
@@ -106,7 +164,9 @@ $$<p>同样对二阶矩 $\mathbb{E}[\mathbf{A}^2_t]$ 也采用这种计算方式
 </span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">idx_queue</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># 需要进行通信的张量索引的队列</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">handles</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># 存储每个设备通信操作的句柄的 list, 用于检查通信是否完成</span>
-</span></span></code></pre></div><p>成员函数功能介绍如下</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>成员函数功能介绍如下</p>
 <ol>
 <li>
 <p><code>register_tensor(self, shape: tuple[int, ...] or list[int], torch_dtype: torch.dtype, layer_type: str = None) -&gt; int</code>: 用于注册张量的形状和数据类型，同时计算并记录张量在缓冲区中的起始位置和结束位置。</p>
@@ -159,7 +219,79 @@ $$<p>同样对二阶矩 $\mathbb{E}[\mathbf{A}^2_t]$ 也采用这种计算方式
 <li><code>naive_forward</code>：执行标准的前向传播，不进行任何切片操作。这是单个设备处理时的普通卷积操作。</li>
 <li><code>sliced_forward</code>：处理输入张量的切片操作。根据当前设备索引 (<code>split_idx</code>) 计算输入张量在高度方向的起始和结束位置，并在必要时为切片后的张量添加 padding 后进行卷积操作。</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DistriConv2dPP</span><span class="p">(</span><span class="n">BaseModule</span><span class="p">):</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DistriConv2dPP</span><span class="p">(</span><span class="n">BaseModule</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">,</span> <span class="n">distri_config</span><span class="p">:</span> <span class="n">DistriConfig</span><span class="p">,</span> <span class="n">is_first_layer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">(</span><span class="n">DistriConv2dPP</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">distri_config</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">is_first_layer</span> <span class="o">=</span> <span class="n">is_first_layer</span>
@@ -227,9 +359,66 @@ $$<p>同样对二阶矩 $\mathbb{E}[\mathbf{A}^2_t]$ 也采用这种计算方式
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
 </span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">output</span>
-</span></span></code></pre></div><h2 id="distriselfattentionpp">DistriSelfAttentionPP</h2>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="distriselfattentionpp">DistriSelfAttentionPP</h2>
 <p><a href="https://github.com/mit-han-lab/distrifuser/blob/cfb9ea624ef95020aafcda929a69ba4100f99e9d/distrifuser/modules/pp/attn.py#L107">DistriSelfAttentionPP</a> 只负责计算自己 patch 的输出，需要完整的 KV，将 self attention 运算变成 cross-attention 计算。需要通信自己的 KV.</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DistriSelfAttentionPP</span><span class="p">(</span><span class="n">DistriAttentionPP</span><span class="p">):</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DistriSelfAttentionPP</span><span class="p">(</span><span class="n">DistriAttentionPP</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">Attention</span><span class="p">,</span> <span class="n">distri_config</span><span class="p">:</span> <span class="n">DistriConfig</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">(</span><span class="n">DistriSelfAttentionPP</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">distri_config</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">
@@ -280,9 +469,77 @@ $$<p>同样对二阶矩 $\mathbb{E}[\mathbf{A}^2_t]$ 也采用这种计算方式
 </span></span><span class="line"><span class="cl">        <span class="n">hidden_states</span> <span class="o">=</span> <span class="n">hidden_states</span> <span class="o">/</span> <span class="n">attn</span><span class="o">.</span><span class="n">rescale_output_factor</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">hidden_states</span>
-</span></span></code></pre></div><h2 id="distrigroupnorm">DistriGroupNorm</h2>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="distrigroupnorm">DistriGroupNorm</h2>
 <p><a href="https://github.com/mit-han-lab/distrifuser/blob/cfb9ea624ef95020aafcda929a69ba4100f99e9d/distrifuser/modules/pp/groupnorm.py#L9">DistriGroupNorm</a> 根据上一步全特征图的以及当前步 patch 的均值和二阶矩近似当前步的全特征图均值和方差。需要通信 patch 均值和二阶矩。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl">
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DistriGroupNorm</span><span class="p">(</span><span class="n">BaseModule</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">,</span> <span class="n">distri_config</span><span class="p">:</span> <span class="n">DistriConfig</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">)</span>
@@ -344,7 +601,9 @@ $$<p>同样对二阶矩 $\mathbb{E}[\mathbf{A}^2_t]$ 也采用这种计算方式
 </span></span><span class="line"><span class="cl">            
 </span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
 </span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">output</span>
-</span></span></code></pre></div>]]></content:encoded>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>]]></content:encoded>
     </item>
   </channel>
 </rss>

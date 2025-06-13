@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Distributed Training on WITHER</title>
-    <link>http://localhost:1313/tags/distributed-training/</link>
+    <link>http://localhost:57770/tags/distributed-training/</link>
     <description>Recent content in Distributed Training on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Sat, 07 Jun 2025 21:11:32 +0800</lastBuildDate>
-    <atom:link href="http://localhost:1313/tags/distributed-training/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
+    <atom:link href="http://localhost:57770/tags/distributed-training/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>ZeRO, ZeRO-Offload, ZeRO-Infinity</title>
-      <link>http://localhost:1313/blogs/zero/</link>
+      <link>http://localhost:57770/blogs/zero/</link>
       <pubDate>Sat, 07 Jun 2025 21:11:32 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/zero/</guid>
+      <guid>http://localhost:57770/blogs/zero/</guid>
       <description>Paper reading of ZeRO.</description>
       <content:encoded><![CDATA[<h1 id="zero">ZeRO</h1>
 <p>Zero 用于优化内存，极大地提高了训练速度，同时增加了可以训练的模型大小。ZeRO 消除了数据和模型并行训练中的内存冗余，同时保持了低通信量和高计算粒度，能够以持续的高效率按设备数量等比例扩展可训练模型的大小。</p>
@@ -381,9 +381,9 @@
     </item>
     <item>
       <title>DeepSpeedUlysses</title>
-      <link>http://localhost:1313/blogs/deepspeedulysses/</link>
+      <link>http://localhost:57770/blogs/deepspeedulysses/</link>
       <pubDate>Mon, 21 Oct 2024 11:09:12 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/deepspeedulysses/</guid>
+      <guid>http://localhost:57770/blogs/deepspeedulysses/</guid>
       <description>Paper reading of Deepseed Ulysses.</description>
       <content:encoded><![CDATA[<h1 id="deepspeed-ulysses-core-design">DeepSpeed-Ulysses Core Design</h1>
 <h2 id="system-design">System Design</h2>
@@ -412,9 +412,9 @@
     </item>
     <item>
       <title>Efficient Large-Scale Language Model Training on GPU</title>
-      <link>http://localhost:1313/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</link>
+      <link>http://localhost:57770/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</link>
       <pubDate>Sat, 05 Oct 2024 10:09:35 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</guid>
+      <guid>http://localhost:57770/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</guid>
       <description>Paper reading about Efficient Large-Scale Language Model Training on GPU Clusters.</description>
       <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
 <p>本文展示了如何将张量、流水线和数据并行性组合起来以扩展到数千个gpu。我们提出了一种新的交错流水线调度，可以在内存占用与现有方法相当的同时将吞吐量提高 10%.</p>
@@ -686,9 +686,9 @@ Interleaved schedules 能显著提高GPU的计算效率。</p>
     </item>
     <item>
       <title>Megatron-LM</title>
-      <link>http://localhost:1313/blogs/megatronlm/</link>
+      <link>http://localhost:57770/blogs/megatronlm/</link>
       <pubDate>Wed, 02 Oct 2024 15:51:50 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/megatronlm/</guid>
+      <guid>http://localhost:57770/blogs/megatronlm/</guid>
       <description>Paper reading about Megatron-LM</description>
       <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
 <p>我们的方法不需要新的编译器或更改库，与流水线模型并行 (<em>pipeline model parallelism</em>) 正交互补，并且可以通过在原生 PyTorch 中插入一些通信操作来实现。为了阐述我们的方法，使用 512 个 GPU 将基于 transformer 的模型扩展到 83 亿个参数。与可保持 39 TeraFLOPs (峰值 FLOPs 的 30%) 的强大单 GPU 基准相比，我们在整个应用中保持了 15.1 PetaFLOPs，扩展效率高达 76%.</p>
@@ -750,7 +750,7 @@ $$<p>
         <img loading="lazy" src="https://note.youdao.com/yws/api/personal/file/WEB5732c68a72330d13b288ab3d1828a6d2?method=download&amp;shareKey=01e733100161309cbb283548474f22f7" alt="Column Split of Weight">
     </a><figcaption>Column Split of Weight</figcaption></figure></p>
 <p>这种切分方式的优点是不需要进行同步操作。</p>
-<p>如下图所示，以列并行方式切分第一个 GEMM，并沿着其行切分第二个GEMM。然后，在将输出传递给 dropout 层之前，第二个GEMM 的输出在 GPU 之间进行 all-reduce 操作。这种方法将 FFN 中的两个 GEMM 拆分到多个 GPU 上执行，并且只需要在正向传播 (g 操作符) 和反向传播 (f 操作符) 中分别执行一次 all-reduce 操作。</p>
+<p>如下图所示，以列并行方式切分第一个 GEMM，并沿着行切分第二个GEMM。然后，在将输出传递给 dropout 层之前，第二个GEMM 的输出在 GPU 之间进行 all-reduce 操作。这种方法将 FFN 中的两个 GEMM 拆分到多个 GPU 上执行，并且只需要在正向传播 (g 操作符) 和反向传播 (f 操作符) 中分别执行一次 all-reduce 操作。</p>
 <p>
 <figure class="post-figure">
     <a href="https://note.youdao.com/yws/api/personal/file/WEBc1b8e9f509879d5984e2b85db312760f?method=download&amp;shareKey=39a5f19a9a477a8d9c3a80b4c5c3bd0f" target="_blank" rel="noopener">
@@ -775,9 +775,9 @@ $$<p>
     </item>
     <item>
       <title>Ring Attention Principle</title>
-      <link>http://localhost:1313/blogs/ringattention/</link>
+      <link>http://localhost:57770/blogs/ringattention/</link>
       <pubDate>Thu, 26 Sep 2024 22:59:35 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/ringattention/</guid>
+      <guid>http://localhost:57770/blogs/ringattention/</guid>
       <description>This is a brief introduction to the Ring Attention Principle.</description>
       <content:encoded><![CDATA[<h1 id="background">Background</h1>
 <p>如今 LLM 的 token 长度显著增加，从 GPT-3.5 的 16k 到 Claude 2 的 200k，现在 Gemini 1.5 Pro 甚至有 1M 的 token 长度。如此长的 token 在计算 attention 时对显存的需求非常大。<a href="https://arxiv.org/abs/2310.01889">Ring Attention</a> 便是为了并行计算 attention 而提出的一种方法<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>。</p>
@@ -992,9 +992,9 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
     </item>
     <item>
       <title>Comparsion of Parallelsim Metods in ViT</title>
-      <link>http://localhost:1313/blogs/comparsion-of-parallelsim-metods-in-vit/</link>
+      <link>http://localhost:57770/blogs/comparsion-of-parallelsim-metods-in-vit/</link>
       <pubDate>Mon, 13 Nov 2023 16:05:23 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/comparsion-of-parallelsim-metods-in-vit/</guid>
+      <guid>http://localhost:57770/blogs/comparsion-of-parallelsim-metods-in-vit/</guid>
       <description>Paper reading of .</description>
       <content:encoded><![CDATA[<h1 id="basic-transformer-block">Basic Transformer Block</h1>
 <p>符号含义表示如下</p>
@@ -1374,7 +1374,34 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
     </a><figcaption>Open-Sora</figcaption></figure></p>
 <h2 id="init-pipeline">Init Pipeline</h2>
 <p>我们需要根据配置以及 PipePatch 并行度和 SP 并行度初始化 Pipeline. 这其中会根据 stage_ids 分配每个 Stage 保存模型的哪些层以及对应的 submesh 大小。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">construct_stages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">submeshes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">],</span> <span class="n">stages_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]):</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">construct_stages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">submeshes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">],</span> <span class="n">stages_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]):</span>
 </span></span><span class="line"><span class="cl">    <span class="c1"># construct layers for each stage</span>
 </span></span><span class="line"><span class="cl">    <span class="n">first_part</span><span class="p">,</span> <span class="n">module_list</span><span class="p">,</span> <span class="n">last_part</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="n">modules</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
@@ -1397,9 +1424,47 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
 </span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">            <span class="n">Stage</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">stage_module</span><span class="p">,</span> <span class="n">submesh</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="p">))</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">modules</span>
-</span></span></code></pre></div><h2 id="write-sharding-function">Write Sharding Function</h2>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="write-sharding-function">Write Sharding Function</h2>
 <p>要根据选择的不同的并行策略对每个 Stage 的模型权重，输入，输出进行切分。这里同样我们单独处理 Embedding_blocks, STDiT3_blocks 和 T2IFinalLayer. 让 stage0 包括对 Embedding_blocks 的处理，stage(N-1) 包括对 T2IFinalLayer 的处理。需要注意的是 DS-ulysses 我们需要对 <a href="mailto:Q@K.T">Q@K.T</a> 的结果 和 S@V 的结果也进行切分 SPMD 才会插入正确的 All2All，因此这部分只能放在网络的 forward 里面进行。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">shard_sora_one_stage</span><span class="p">(</span><span class="n">modules</span><span class="p">,</span> <span class="n">shard_strategy</span><span class="p">,</span> <span class="n">mesh</span><span class="p">):</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">shard_sora_one_stage</span><span class="p">(</span><span class="n">modules</span><span class="p">,</span> <span class="n">shard_strategy</span><span class="p">,</span> <span class="n">mesh</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="n">total_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">modules</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="c1"># first 5 modules are embedding layers</span>
 </span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
@@ -1431,11 +1496,76 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
 </span></span><span class="line"><span class="cl">        <span class="n">shard_sora_block</span><span class="p">(</span><span class="n">modules</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">shard_strategy</span><span class="p">,</span> <span class="n">mesh</span><span class="p">)</span>  <span class="c1"># shard temporal</span>
 </span></span><span class="line"><span class="cl">    <span class="c1"># skip norm layer mark sharding</span>
 </span></span><span class="line"><span class="cl">    <span class="n">shard_sora_final</span><span class="p">(</span><span class="n">modules</span><span class="p">[</span><span class="n">total_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">shard_strategy</span><span class="p">,</span> <span class="n">mesh</span><span class="p">)</span>
-</span></span></code></pre></div><h2 id="construct-pipeline">Construct Pipeline</h2>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="construct-pipeline">Construct Pipeline</h2>
 <p>然后为了处理多 stage 的情况，我们需要保存每个 stage 的输入和输出的形状。这一步相当于放到 cuda 上重走一遍整个模型的 forward，记录下每一层输入和输出的形状，保存为 json 一遍。实际上对于每个固定生成大小的视频进行一次就行，下次直接读取这个文件。因为现在都采用 <a href="https://facebookresearch.github.io/xformers/components/ops.html">xformers.ops.memory_efficient_attention</a>，需要输入张量在 cuda 上，我们需要手动在模型的 forward 函数中写一个 navie 的 attention 计算流程好让 torch_xla 能对张量进行跟踪。</p>
 <h2 id="trace-mhlo-graph">Trace mhlo Graph</h2>
 <p>根据上一步得到的每个 Stage 的输入形状，创建输入张量，放入 xla_device 上，执行 forward. 最后导出输出的 mhlo 计算图。这里需要注意第一个 stage 包含多个非连续的模块，因此需要单独处理，最后一个 stage 最后一层的输入与其他 block 不同，因此也要单独处理。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">trace_stage_mhlo_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">check_res</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">trace_stage_mhlo_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">check_res</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;
 </span></span></span><span class="line"><span class="cl"><span class="s2">    trace stage nn modules to mhlo graph
 </span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
@@ -1494,11 +1624,37 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
 </span></span><span class="line"><span class="cl">            <span class="c1"># to eliminate redundant live tensors as ret values</span>
 </span></span><span class="line"><span class="cl">            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;XLA_DUMP_POST_OPTIMIZATIONS&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&#34;true&#34;</span>
 </span></span><span class="line"><span class="cl">            <span class="n">torch_xla</span><span class="o">.</span><span class="n">_XLAC</span><span class="o">.</span><span class="n">_get_xla_tensors_hlo</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
-</span></span></code></pre></div><h2 id="analyze-mhlo-graph">Analyze mhlo Graph</h2>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="analyze-mhlo-graph">Analyze mhlo Graph</h2>
 <p>接下来我们要遍历上一步得出的 mhlo 图。</p>
 <h3 id="opview">OpView</h3>
 <p>从根节点的 ir 开始遍历上一步导出的整个计算图。根据传入 ir 的类型定义调用对应的 visit 函数读取其属性进行操作。主要通过 rsqrt 的位置来划分一个 Transformer block 中第几个 dot 和 dot_general 对应的是什么操作。对于 Sora 来说划分情况如下。这里需要注意的是 mhlo 图记录的是拓扑排序的顺序，不是程序顺序执行的顺序，因此第一个 block 会掺杂着 Embedding_blocks 的一些 dot 操作。因此我们从第二个 block 的第一个 rsqrt 位置开始统计。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">collect_rms_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">collect_rms_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">  <span class="n">rms_collector</span> <span class="o">=</span> <span class="n">RMSCollector</span><span class="p">()</span>
 </span></span><span class="line"><span class="cl">  <span class="n">rms_collector</span><span class="o">.</span><span class="n">visit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_op</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">  <span class="bp">self</span><span class="o">.</span><span class="n">rms_locs</span> <span class="o">=</span> <span class="n">rms_collector</span><span class="o">.</span><span class="n">rms_locs</span>
@@ -1518,7 +1674,9 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
 </span></span><span class="line"><span class="cl">      <span class="k">else</span><span class="p">:</span>
 </span></span><span class="line"><span class="cl">          <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rms_locs</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">]</span>
 </span></span><span class="line"><span class="cl">      <span class="bp">self</span><span class="o">.</span><span class="n">ffn_ranges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">))</span>
-</span></span></code></pre></div><table>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><table>
   <thead>
       <tr>
           <th>module</th>
@@ -1588,7 +1746,58 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
       </tr>
   </tbody>
 </table>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">visit_dot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">visit_dot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">    <span class="n">dot_lineno</span> <span class="o">=</span> <span class="n">_parse_loc_lineno</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_cnt</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spt_attn_ranges</span><span class="p">):</span>
@@ -1635,7 +1844,9 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
 </span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">ffn_block_dots</span> <span class="o">=</span> <span class="p">[]</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="bp">self</span><span class="o">.</span><span class="n">generic_visit</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-</span></span></code></pre></div><p>保存好一个 Transformer block 中每个 dot 或 dotgeneral 对应的是什么操作后，我们便可以访问这个 ir. 这里需要注意只要两个相乘的矩阵有一个是二维张量 (比如线性层的权重)，mhlo 都会将另一个 reshape 成二维张量。dot 算子 (<code>jaxlib.mlir.dialects._mhlo_ops_gen.DotOp</code>) 两个操作数都是二维的张量，qkvLinear 对应的是第一个 dot 操作。左操作数的 shape 为 <code>(BST,3C)</code>. 当两个相乘的矩阵都是 3 维及以上张量的时候就会生成 dot_general 该算子的两个相乘的矩阵都会被 reshape 成三维张量。Self-Attention 的第一个 dot_general 左操作数的 shape 为 <code>(BTN_A,S,C)</code>. 这样我们就可以得到 <code>BT=(BST)/S, N_A=(BTN_A)/(BT)</code>. 同样我们可以得到 OLinear, FFN 中 upLinear 和 downLinear 权重的形状. 以及 Cross-Attention 模块的对应信息。由于之前遍历是从第二个 block 开始的，因此总层数要 ＋1. 最后将得到的参数打包成一个字典返回。</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>保存好一个 Transformer block 中每个 dot 或 dotgeneral 对应的是什么操作后，我们便可以访问这个 ir. 这里需要注意只要两个相乘的矩阵有一个是二维张量 (比如线性层的权重)，mhlo 都会将另一个 reshape 成二维张量。dot 算子 (<code>jaxlib.mlir.dialects._mhlo_ops_gen.DotOp</code>) 两个操作数都是二维的张量，qkvLinear 对应的是第一个 dot 操作。左操作数的 shape 为 <code>(BST,3C)</code>. 当两个相乘的矩阵都是 3 维及以上张量的时候就会生成 dot_general 该算子的两个相乘的矩阵都会被 reshape 成三维张量。Self-Attention 的第一个 dot_general 左操作数的 shape 为 <code>(BTN_A,S,C)</code>. 这样我们就可以得到 <code>BT=(BST)/S, N_A=(BTN_A)/(BT)</code>. 同样我们可以得到 OLinear, FFN 中 upLinear 和 downLinear 权重的形状. 以及 Cross-Attention 模块的对应信息。由于之前遍历是从第二个 block 开始的，因此总层数要 ＋1. 最后将得到的参数打包成一个字典返回。</p>
 <h3 id="communication-view">Communication View</h3>
 <p>我们以同样的方式定义各种集合通信算子的 visit 函数用于评估该算子的通信量，遍历到对应的 ir 后调用它。</p>
 <p>AllReduce 将所有的数据通过规约操作集成到各个设备中。</p>
@@ -1727,15 +1938,57 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
   </tbody>
 </table>
 <p>根据提取出的信息构建的 STDiT 的 spt_blk, tmp_blk, cross_blk 的参数字典如下.</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">spatial_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;B&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;B_spt&#34;</span><span class="p">],</span> <span class="s2">&#34;S_Q&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;S_Q_spt&#34;</span><span class="p">],</span> <span class="s2">&#34;S_KV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;S_KV_spt&#34;</span><span class="p">],</span> <span class="s2">&#34;D_QKV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;D_QKV&#34;</span><span class="p">],</span> 
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">spatial_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;B&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;B_spt&#34;</span><span class="p">],</span> <span class="s2">&#34;S_Q&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;S_Q_spt&#34;</span><span class="p">],</span> <span class="s2">&#34;S_KV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;S_KV_spt&#34;</span><span class="p">],</span> <span class="s2">&#34;D_QKV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;D_QKV&#34;</span><span class="p">],</span> 
 </span></span><span class="line"><span class="cl">                  <span class="s2">&#34;H_QKV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_QKV&#34;</span><span class="p">],</span> <span class="s2">&#34;N_A&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;N_A&#34;</span><span class="p">],</span> <span class="s2">&#34;H_A&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_A&#34;</span><span class="p">],</span> <span class="s2">&#34;D_O&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;D_O_spt&#34;</span><span class="p">],</span> <span class="s2">&#34;H_O&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_O_spt&#34;</span><span class="p">]</span> <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="n">temporal_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;B&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;B_tmp&#34;</span><span class="p">],</span> <span class="s2">&#34;S_Q&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;S_Q_tmp&#34;</span><span class="p">],</span> <span class="s2">&#34;S_KV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;S_KV_tmp&#34;</span><span class="p">],</span> <span class="s2">&#34;D_QKV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;D_QKV&#34;</span><span class="p">],</span> 
 </span></span><span class="line"><span class="cl">                  <span class="s2">&#34;H_QKV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_QKV&#34;</span><span class="p">],</span> <span class="s2">&#34;N_A&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;N_A&#34;</span><span class="p">],</span> <span class="s2">&#34;H_A&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_A&#34;</span><span class="p">],</span> <span class="s2">&#34;D_O&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;D_O_tmp&#34;</span><span class="p">],</span> <span class="s2">&#34;H_O&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_O_tmp&#34;</span><span class="p">]</span> <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="n">cross_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;B&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;B_cro&#34;</span><span class="p">],</span> <span class="s2">&#34;S_Q&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;S_Q_cro&#34;</span><span class="p">],</span> <span class="s2">&#34;S_KV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;S_KV_cro&#34;</span><span class="p">],</span> <span class="s2">&#34;D_QKV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;D_QKV&#34;</span><span class="p">],</span> 
 </span></span><span class="line"><span class="cl">                <span class="s2">&#34;H_QKV&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_QKV&#34;</span><span class="p">],</span><span class="s2">&#34;N_A&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;N_A&#34;</span><span class="p">],</span> <span class="s2">&#34;H_A&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_A&#34;</span><span class="p">],</span> <span class="s2">&#34;D_O&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;D_O_cro&#34;</span><span class="p">],</span> <span class="s2">&#34;H_O&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_O_cro&#34;</span><span class="p">],</span>
 </span></span><span class="line"><span class="cl">                <span class="s2">&#34;D_FU&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;D_FU&#34;</span><span class="p">],</span> <span class="s2">&#34;H_FU&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_FU&#34;</span><span class="p">],</span> <span class="s2">&#34;D_FD&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;D_FD&#34;</span><span class="p">],</span> <span class="s2">&#34;H_FD&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&#34;H_FD&#34;</span><span class="p">]}</span>
-</span></span></code></pre></div><p>根据这些参数再构建每个层的输入输出形状，计算类型和计算量，以 <code>Gate_ResAdd</code> 为例:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">GB</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">30</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>根据这些参数再构建每个层的输入输出形状，计算类型和计算量，以 <code>Gate_ResAdd</code> 为例:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">GB</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">30</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Gate_ResAdd</span><span class="p">():</span>
 </span></span><span class="line"><span class="cl">  <span class="s1">&#39;&#39;&#39;
@@ -1760,8 +2013,49 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
 </span></span><span class="line"><span class="cl">                                          <span class="s2">&#34;wshape&#34;</span><span class="p">:</span> <span class="n">ResAdd_weight_shape</span><span class="p">,</span> 
 </span></span><span class="line"><span class="cl">                                          <span class="s2">&#34;oshape&#34;</span><span class="p">:</span> <span class="n">ResAdd_output_shape</span><span class="p">,</span> 
 </span></span><span class="line"><span class="cl">                                          <span class="s2">&#34;compute&#34;</span><span class="p">:</span> <span class="n">ResAdd_compute</span><span class="p">}</span>
-</span></span></code></pre></div><p>就像这样构建整个 Transformer block 的所有操作</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">STDIT2_block</span><span class="p">():</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>就像这样构建整个 Transformer block 的所有操作</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">STDIT2_block</span><span class="p">():</span>
 </span></span><span class="line"><span class="cl">  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span></span><span class="line"><span class="cl">      <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
 </span></span><span class="line"><span class="cl">      <span class="c1"># {name:{type:&#34;&#34;, size:&#34;&#34;, ishape:[], wshape:[]/None, oshape:[]}}</span>
@@ -1796,8 +2090,79 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
 </span></span><span class="line"><span class="cl">      <span class="k">for</span> <span class="n">op_dict</span> <span class="ow">in</span> <span class="n">op_list</span><span class="p">:</span>
 </span></span><span class="line"><span class="cl">          <span class="bp">self</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">op_dict</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">      <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-</span></span></code></pre></div><p>然后就可以将构建好的 ops 放入 mapper 进行分析。刚才那些操作会被分成 3 类 <code>vector_mapper</code>, <code>gemm_auto_opt_mapper</code> 和 <code>flashatten_mapper</code>. 我们根据操作的类型送入对应的 mapper 进行分析，具体如下</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">STDIT2_mapper</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">arch</span><span class="p">,</span> <span class="n">QKV_fusion</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">preset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">details</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>然后就可以将构建好的 ops 放入 mapper 进行分析。刚才那些操作会被分成 3 类 <code>vector_mapper</code>, <code>gemm_auto_opt_mapper</code> 和 <code>flashatten_mapper</code>. 我们根据操作的类型送入对应的 mapper 进行分析，具体如下</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">STDIT2_mapper</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">arch</span><span class="p">,</span> <span class="n">QKV_fusion</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">preset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">details</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 </span></span><span class="line"><span class="cl">  <span class="n">config</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">config</span>
 </span></span><span class="line"><span class="cl">  <span class="n">Layers</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;L&#39;</span><span class="p">]</span>
 </span></span><span class="line"><span class="cl">  <span class="n">spatial_config</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;B_spt&#39;</span><span class="p">],</span> <span class="s1">&#39;S_Q&#39;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;S_Q_spt&#39;</span><span class="p">],</span> <span class="s1">&#39;S_KV&#39;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;S_KV_spt&#39;</span><span class="p">],</span> <span class="s1">&#39;H_A&#39;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;H_A&#39;</span><span class="p">],</span> <span class="s1">&#39;N_A&#39;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;N_A&#39;</span><span class="p">],</span> <span class="s1">&#39;Q&#39;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;Q&#39;</span><span class="p">]}</span>
@@ -1862,7 +2227,9 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
 </span></span><span class="line"><span class="cl">  <span class="n">mapping_result</span><span class="p">[</span><span class="s1">&#39;FFNdown_2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapping_result</span><span class="p">[</span><span class="s1">&#39;FFNdown&#39;</span><span class="p">]</span>
 </span></span><span class="line"><span class="cl">  <span class="n">mapping_result</span><span class="p">[</span><span class="s1">&#39;mlp_ResAdd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector_mapper</span><span class="p">(</span><span class="n">ops</span><span class="p">[</span><span class="s1">&#39;mlp_ResAdd&#39;</span><span class="p">],</span> <span class="n">arch</span><span class="p">,</span> <span class="n">splits</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">details</span><span class="o">=</span><span class="n">details</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">  <span class="n">mapping_result</span><span class="p">[</span><span class="s1">&#39;mlp_ResAdd_2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapping_result</span><span class="p">[</span><span class="s1">&#39;mlp_ResAdd&#39;</span><span class="p">]</span>
-</span></span></code></pre></div><p>mapper 会遍历所有可能的切分策略放入 tx8 执行并选择最好的那一个。对于 vector 类型的算子只会沿着 sequence 维度切分；对于 GEMM 算子则会沿着 m, k, n 维度都进行切分；对于 flash-attention 的切分则与原算法相同，外循环遍历 K, V 的每一块，内循环遍历 Q 的每一块。这样就可以得到每个 tx8 上最优的切分方式对应的通信用时，计算用时和利用率。再用之前统计出的每个 die 上通信量除以 die2die 带宽得到通信用时，由此得到总的推理用时。</p>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>mapper 会遍历所有可能的切分策略放入 tx8 执行并选择最好的那一个。对于 vector 类型的算子只会沿着 sequence 维度切分；对于 GEMM 算子则会沿着 m, k, n 维度都进行切分；对于 flash-attention 的切分则与原算法相同，外循环遍历 K, V 的每一块，内循环遍历 Q 的每一块。这样就可以得到每个 tx8 上最优的切分方式对应的通信用时，计算用时和利用率。再用之前统计出的每个 die 上通信量除以 die2die 带宽得到通信用时，由此得到总的推理用时。</p>
 ]]></content:encoded>
     </item>
   </channel>

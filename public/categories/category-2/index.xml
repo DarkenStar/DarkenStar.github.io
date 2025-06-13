@@ -7,14 +7,17 @@
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Sat, 07 Jun 2025 09:45:13 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 13 Jun 2025 11:39:32 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/categories/category-2/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>PMPP Ch7</title>
-      <link>http://localhost:1313/blogs/pmpp-ch7/</link>
-      <pubDate>Sat, 07 Jun 2025 09:45:13 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/pmpp-ch7/</guid>
-      <description></description>
+      <title>PipeFusion</title>
+      <link>http://localhost:1313/blogs/pipefusion/</link>
+      <pubDate>Fri, 13 Jun 2025 11:39:32 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/pipefusion/</guid>
+      <description>&lt;!-- more --&gt;
+&lt;!-- hugo new --kind post path\to\markdown --&gt;</description>
+      <content:encoded><![CDATA[<!-- more -->
+<!-- hugo new --kind post path\to\markdown -->    ]]></content:encoded>
     </item>
   </channel>
 </rss>

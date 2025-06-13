@@ -75,7 +75,7 @@
   <meta property="og:type" content="article">
     <meta property="article:section" content="blogs">
     <meta property="article:published_time" content="2024-10-05T10:09:35+08:00">
-    <meta property="article:modified_time" content="2024-10-05T10:09:35+08:00">
+    <meta property="article:modified_time" content="2025-06-07T23:40:58+08:00">
     <meta property="article:tag" content="Distributed Training">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Efficient Large-Scale Language Model Training on GPU">
@@ -116,7 +116,7 @@
   "wordCount" : "4182",
   "inLanguage": "en",
   "datePublished": "2024-10-05T10:09:35+08:00",
-  "dateModified": "2024-10-05T10:09:35+08:00",
+  "dateModified": "2025-06-07T23:40:58+08:00",
   "author":[{
     "@type": "Person",
     "name": "WITHER"
@@ -436,121 +436,7 @@
 <p>如前所述，使用带有周期性冲洗的流水线并行会产生大小为 (p−1)/m 的流水线气泡. 固定 d=1，则 tp=n，气泡大小可以用 t 表示为</p>
 <p>(p−1)/m=(n/t-1)/m.</p>
 <p>GPU 之间的通信量也受 p 和 t 大小的影响。流水线模型并行的特点是更便宜的点对点通信，每个 microbatch 的每对连续设备之间 (前向或后向传递) 需要执行的通信总量为 bsh. 张量模型并行则使用 all-reduce 通信，总大小为 bsh 的张量需要在每层的前向和后向传递中，在 t 个模型副本之间进行两次 all-reduce，因此每个 microbatch 每层每个设备的总通信量为 4bsh(t-1)/t. 每个设备通常有多个层，则每个设备上每个 microbatch 的张量并行通信总量为 l^stage4bsh(t-1)/t, 其中 l^stage 为流水线阶段的层数。</p>
-<style type="text/css">
-     
-    .notice {
-        --title-color: #fff;
-        --title-background-color: #6be;
-        --content-color: #444;
-        --content-background-color: #e7f2fa;
-    }
-
-    .notice.info {
-        --title-background-color: #fb7;
-        --content-background-color: #fec;
-    }
-
-    .notice.tip {
-        --title-background-color: #5a5;
-        --content-background-color: #efe;
-    }
-
-    .notice.warning {
-        --title-background-color: #c33;
-        --content-background-color: #fee;
-    }
-
-     
-    @media (prefers-color-scheme:dark) {
-        .notice {
-            --title-color: #fff;
-            --title-background-color: #069;
-            --content-color: #ddd;
-            --content-background-color: #023;
-        }
-
-        .notice.info {
-            --title-background-color: #a50;
-            --content-background-color: #420;
-        }
-
-        .notice.tip {
-            --title-background-color: #363;
-            --content-background-color: #121;
-        }
-
-        .notice.warning {
-            --title-background-color: #800;
-            --content-background-color: #400;
-        }
-    }
-
-    body.dark .notice {
-        --title-color: #fff;
-        --title-background-color: #069;
-        --content-color: #ddd;
-        --content-background-color: #023;
-    }
-
-    body.dark .notice.info {
-        --title-background-color: #a50;
-        --content-background-color: #420;
-    }
-
-    body.dark .notice.tip {
-        --title-background-color: #363;
-        --content-background-color: #121;
-    }
-
-    body.dark .notice.warning {
-        --title-background-color: #800;
-        --content-background-color: #400;
-    }
-
-     
-    .notice {
-        padding: 18px;
-        line-height: 24px;
-        margin-bottom: 24px;
-        border-radius: 4px;
-        color: var(--content-color);
-        background: var(--content-background-color);
-    }
-
-    .notice p:last-child {
-        margin-bottom: 0
-    }
-
-     
-    .notice-title {
-        margin: -18px -18px 12px;
-        padding: 4px 18px;
-        border-radius: 4px 4px 0 0;
-        font-weight: 700;
-        color: var(--title-color);
-        background: var(--title-background-color);
-    }
-
-     
-    .icon-notice {
-        display: inline-flex;
-        align-self: center;
-        margin-right: 8px;
-    }
-
-    .icon-notice img,
-    .icon-notice svg {
-        height: 1em;
-        width: 1em;
-        fill: currentColor;
-    }
-
-    .icon-notice img,
-    .icon-notice.baseline svg {
-        top: .125em;
-        position: relative;
-    }
-</style><div class="notice tip" >
+<div class="notice tip" >
     <p class="notice-title">
         <span class="icon-notice baseline">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
