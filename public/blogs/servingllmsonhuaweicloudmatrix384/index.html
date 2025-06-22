@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>ServingLLMsOnHuaweiCloudMatrix384 | WITHER</title>
+<meta name="keywords" content="Distributed Training, LLM">
+<meta name="description" content="Paper Reading of Serving Large Language Models on Huawei CloudMatrix384">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.dd3b5b907a50db3238b81d49d094cf1c04a091227797dc9cfde4e2fa3f35df49.css" integrity="sha256-3TtbkHpQ2zI4uB1J0JTPHASgkSJ3l9yc/eTi&#43;j8130k=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+
+
+
+<script src="https://cdn.bootcdn.net/ajax/libs/mermaid/9.1.6/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: localStorage.getItem("pref-theme") === "dark" ? "dark" : "forest" 
+    });
+</script>
+
+<meta property="og:url" content="http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="ServingLLMsOnHuaweiCloudMatrix384">
+  <meta property="og:description" content="Paper Reading of Serving Large Language Models on Huawei CloudMatrix384">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2025-06-17T21:50:16+08:00">
+    <meta property="article:modified_time" content="2025-06-17T21:50:16+08:00">
+    <meta property="article:tag" content="Distributed Training">
+    <meta property="article:tag" content="LLM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ServingLLMsOnHuaweiCloudMatrix384">
+<meta name="twitter:description" content="Paper Reading of Serving Large Language Models on Huawei CloudMatrix384">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "ServingLLMsOnHuaweiCloudMatrix384",
+      "item": "http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "ServingLLMsOnHuaweiCloudMatrix384",
+  "name": "ServingLLMsOnHuaweiCloudMatrix384",
+  "description": "Paper Reading of Serving Large Language Models on Huawei CloudMatrix384",
+  "keywords": [
+    "Distributed Training", "LLM"
+  ],
+  "articleBody": "Abstract CloudMatrix384硬件架构：\n论文提出了一种 peer-to-peer 的硬件设计，包含384个Ascend 910C NPU和192个Kunpeng CPU，通过**Unified Bus (UB) Network **互联。UB 网络支持高带宽（392 GB/s单向带宽）和低延迟（1.9 µs）的全局通信，解决了传统AI集群中跨节点通信的瓶颈问题。 架构特点包括： 资源解耦和池化：计算、存储和网络资源可以动态分配，支持灵活的并行策略（如专家并行EP、数据并行DP）. 三层网络平面：UB平面（超节点内通信）、RDMA平面（跨超节点通信）和VPC平面（数据中心网络接入）。 CloudMatrix-Infer软件优化：\n预填充-解码-缓存（PDC）解耦架构：将LLM推理拆分为Prefill, Decode \u0026 Caching 三个子系统，通过 UB网络实现高效协同。 large-scale expert parallelism (EP) strategy：支持高达EP320的专家并行度，每个NPU芯片承载一个专家，减少MoE模型中的通信开销。 UB驱动的分布式缓存：利用 弹性内存服务（EMS） 构建全局缓存池，支持KV缓存和模型权重的快速访问。 性能优化技术：\n微批次流水线（Microbatch Pipeline）：重叠计算和通信，提升资源利用率。 INT8量化：在Ascend 910C上实现高效的8位推理，保持模型精度。 实验结果 论文使用DeepSeek-R1（671B参数MoE模型）验证了CloudMatrix-Infer的性能：\n预填充吞吐量：6,688 tokens/s/NPU（4.45 tokens/s/TFLOPS），优于NVIDIA H100的SGLang（3.75 tokens/s/TFLOPS）。 解码吞吐量：1,943 tokens/s/NPU（1.29 tokens/s/TFLOPS），在TPOT \u003c50 ms约束下仍能保持高吞吐。 缓存命中率提升：上下文缓存（Context Caching）在90%重用率时，预填充时间减少59%。 ",
+  "wordCount" : "782",
+  "inLanguage": "en",
+  "datePublished": "2025-06-17T21:50:16+08:00",
+  "dateModified": "2025-06-17T21:50:16+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      ServingLLMsOnHuaweiCloudMatrix384
+    </h1>
+    <div class="post-description">
+      Paper Reading of Serving Large Language Models on Huawei CloudMatrix384
+    </div>
+    <div class="post-meta"><span title='2025-06-17 21:50:16 +0800 CST'>Jun-17-2025</span>&nbsp;·&nbsp;2 min&nbsp;·&nbsp;782 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#abstract" aria-label="Abstract">Abstract</a><ul>
+                            <ul>
+                            <ul>
+                            
+                    <li>
+                        <a href="#%e5%ae%9e%e9%aa%8c%e7%bb%93%e6%9e%9c" aria-label="实验结果">实验结果</a>
+                    </li>
+                </ul>
+                </ul>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    
+    document.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+    
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+        if (elements.length > 0) {
+            
+            activeElement = elements[0];
+            const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+            document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+        }
+    
+        
+        const topLink = document.getElementById('top-link');
+        if (topLink) {
+            topLink.addEventListener('click', (event) => {
+                
+                event.preventDefault();
+    
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    }, false);
+    
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+    
+    window.addEventListener('scroll', () => {
+        
+        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
+        
+        if (scrollPosition === 0) {
+            return;
+        }
+    
+        
+        if (elements && elements.length > 0) {
+            
+            activeElement = Array.from(elements).find((element) => {
+                if ((getOffsetTop(element) - scrollPosition) > 0 && 
+                    (getOffsetTop(element) - scrollPosition) < window.innerHeight / 2) {
+                    return element;
+                }
+            }) || activeElement;
+    
+            elements.forEach(element => {
+                const id = encodeURI(element.getAttribute('id')).toLowerCase();
+                const tocLink = document.querySelector(`.inner ul li a[href="#${id}"]`);
+                if (element === activeElement){
+                    tocLink.classList.add('active');
+    
+                    
+                    const tocContainer = document.querySelector('.toc .inner');
+                    const linkOffsetTop = tocLink.offsetTop;
+                    const containerHeight = tocContainer.clientHeight;
+                    const linkHeight = tocLink.clientHeight;
+    
+                    
+                    const scrollPosition = linkOffsetTop - (containerHeight / 2) + (linkHeight / 2);
+                    tocContainer.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+                } else {
+                    tocLink.classList.remove('active');
+                }
+            });
+        }
+    }, false);
+    
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+    
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+    
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+    
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+    
+</script>
+
+  <div class="post-content"><h1 id="abstract">Abstract<a hidden class="anchor" aria-hidden="true" href="#abstract">#</a></h1>
+<ol>
+<li>
+<p><strong>CloudMatrix384硬件架构</strong>：</p>
+<ul>
+<li>论文提出了一种 <strong>peer-to-peer</strong> 的硬件设计，包含384个<strong>Ascend 910C NPU</strong>和192个<strong>Kunpeng CPU</strong>，通过**Unified Bus (UB) Network **互联。UB 网络支持高带宽（392 GB/s单向带宽）和低延迟（1.9 µs）的全局通信，解决了传统AI集群中跨节点通信的瓶颈问题。</li>
+<li>架构特点包括：
+<ul>
+<li><strong>资源解耦和池化</strong>：计算、存储和网络资源可以动态分配，支持灵活的并行策略（如专家并行EP、数据并行DP）.</li>
+<li><strong>三层网络平面</strong>：UB平面（超节点内通信）、RDMA平面（跨超节点通信）和VPC平面（数据中心网络接入）。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>CloudMatrix-Infer软件优化</strong>：</p>
+<ul>
+<li><strong>预填充-解码-缓存（PDC）解耦架构</strong>：将LLM推理拆分为Prefill, Decode &amp; Caching 三个子系统，通过 UB网络实现高效协同。</li>
+<li><strong>large-scale expert parallelism (EP) strategy</strong>：支持高达<strong>EP320</strong>的专家并行度，每个NPU芯片承载一个专家，减少MoE模型中的通信开销。</li>
+<li><strong>UB驱动的分布式缓存</strong>：利用 <strong>弹性内存服务（EMS）</strong> 构建全局缓存池，支持KV缓存和模型权重的快速访问。</li>
+</ul>
+</li>
+<li>
+<p><strong>性能优化技术</strong>：</p>
+<ul>
+<li><strong>微批次流水线（Microbatch Pipeline）</strong>：重叠计算和通信，提升资源利用率。</li>
+<li><strong>INT8量化</strong>：在Ascend 910C上实现高效的8位推理，保持模型精度。</li>
+</ul>
+</li>
+</ol>
+<h4 id="实验结果">实验结果<a hidden class="anchor" aria-hidden="true" href="#实验结果">#</a></h4>
+<p>论文使用<strong>DeepSeek-R1</strong>（671B参数MoE模型）验证了CloudMatrix-Infer的性能：</p>
+<ul>
+<li><strong>预填充吞吐量</strong>：6,688 tokens/s/NPU（4.45 tokens/s/TFLOPS），优于NVIDIA H100的SGLang（3.75 tokens/s/TFLOPS）。</li>
+<li><strong>解码吞吐量</strong>：1,943 tokens/s/NPU（1.29 tokens/s/TFLOPS），在TPOT &lt;50 ms约束下仍能保持高吞吐。</li>
+<li><strong>缓存命中率提升</strong>：上下文缓存（Context Caching）在90%重用率时，预填充时间减少59%。</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/distributed-training/">Distributed Training</a></li>
+      <li><a href="http://localhost:1313/tags/llm/">LLM</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/deepseek/deepseekmla/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>DeepSeekMLA</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/internlm3-8b-instruct/">
+    <span class="title">Next »</span>
+    <br>
+    <span>InternLM3 8B Instruct</span>
+  </a>
+</nav>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

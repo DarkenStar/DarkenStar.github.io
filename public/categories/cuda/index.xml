@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>CUDA on WITHER</title>
-    <link>http://localhost:57770/categories/cuda/</link>
+    <link>http://localhost:1313/categories/cuda/</link>
     <description>Recent content in CUDA on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
     <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
-    <atom:link href="http://localhost:57770/categories/cuda/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/categories/cuda/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>PMPP Learning-Chapter 15 Graph traversal</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch15/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch15/</link>
       <pubDate>Wed, 18 Sep 2024 16:05:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch15/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch15/</guid>
       <description>Personal notebook 15 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="15-graph-traversal">15 Graph Traversal</h1>
 <p>图是一种表示实体之间关系的数据结构。所涉及的实体表示为顶点，关系表示为边。图的遍历是指从一个顶点出发，依次访问图中所有与之相邻的顶点，直到所有顶点都被访问过为止。</p>
@@ -402,9 +402,9 @@
     </item>
     <item>
       <title>PMPP Learning-Chapter 14 Sparse Matrix Computation</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch14/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch14/</link>
       <pubDate>Wed, 18 Sep 2024 11:43:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch14/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch14/</guid>
       <description>Personal notebook 14 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="14-sparse-matrix-computation">14 Sparse Matrix Computation</h1>
 <p>在稀疏矩阵中，大多数元素是零。存储和处理这些零元素在内存容量、内存带宽、时间和能量方面是浪费的。</p>
@@ -767,9 +767,9 @@
     </item>
     <item>
       <title>PMPP Learning-Chapter 13 Sorting</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch13/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch13/</link>
       <pubDate>Sat, 14 Sep 2024 13:36:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch13/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch13/</guid>
       <description>Personal notebook 13 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="13-sorting">13 Sorting</h1>
 <p>排序算法将列表中的数据元素按一定的顺序排列。</p>
@@ -1088,9 +1088,9 @@ $$<p>
     </item>
     <item>
       <title>PMPP Learning-Chapter 12 Merge-An Introduction to Dynamic Input Data Identification</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch12/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/</link>
       <pubDate>Fri, 13 Sep 2024 22:58:03 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch12/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/</guid>
       <description>Personal notebook 12 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="12-merge-an-introduction-to-dynamic-input-data-identification">12 Merge-An Introduction to Dynamic Input Data Identification</h1>
 <p>有序归并操作接受两个有序列表并生成一个合并后的有序列表。</p>
@@ -1559,9 +1559,9 @@ $$<p>
     </item>
     <item>
       <title>PMPP Learning-Chapter 11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch11/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/</link>
       <pubDate>Wed, 11 Sep 2024 23:03:03 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch11/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/</guid>
       <description>Personal notebook 11 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="11-prefix-sum-scan-an-introduction-to-work-efficiency-in-parallel-algorithms">11 Prefix sum (scan)-An Introduction to Work Efficiency in Parallel Algorithms</h1>
 <p>一般来说，如果计算本质上可以被描述为数学递归，即序列中的每一项都是根据前一项定义的，那么它可能被并行化为并行扫描 (<em>parallel scan</em>) 运算。</p>
@@ -1952,9 +1952,9 @@ $$<p>因此，Kogge-Stone 算法的计算复杂度为 $O(N\log_2N)$.</p>
     </item>
     <item>
       <title>PMPP Learning-Chapter 10 Reduction and Minimizing Divergence</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch10/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch10/</link>
       <pubDate>Tue, 10 Sep 2024 21:07:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch10/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch10/</guid>
       <description>Personal notebook 10 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="10-reduction-and-minimizing-divergence">10 Reduction and Minimizing Divergence</h1>
 <p>归约 (<em>Reduction</em>) 是从输入数组计算出一个数的运算。</p>
@@ -2245,9 +2245,9 @@ $$((\frac{N}{64}*1+\frac{N}{64}*\frac{1}{2}*1+\frac{N}{64}*\frac{1}{4}*1+\cdots+
     </item>
     <item>
       <title>PMPP Learning-Chapter 8 Stencil</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch8/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch8/</link>
       <pubDate>Mon, 09 Sep 2024 10:27:42 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch8/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch8/</guid>
       <description>Personal notebook 8 of Programming Massively Parallel Processors.</description>
       <content:encoded><![CDATA[<h1 id="8-stencil">8 Stencil</h1>
 <p>在流体动力学、热传导、燃烧、天气预报、气候模拟和电磁学等应用领域，模板是求解偏微分方程的数值方法的基础。模板方法的基本思想是，将偏微分方程的求解转化为求解一个局部的线性方程组，然后在该局部进行迭代求解，最后得到全局解。由于求解微分问题时对数值精度的要求，模板处理的数据往往是高精度的浮动数据，对于 tiling 技术来说，这需要消耗更多的片上内存。</p>
@@ -2552,9 +2552,9 @@ $$((\frac{N}{64}*1+\frac{N}{64}*\frac{1}{2}*1+\frac{N}{64}*\frac{1}{4}*1+\cdots+
     </item>
     <item>
       <title>PMPP Learning-Chapter 9 Parallel Histogram-An Introduction to Atomic Operations and Privatization</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch9/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch9/</link>
       <pubDate>Mon, 09 Sep 2024 10:27:42 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch9/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch9/</guid>
       <description>Personal notebook 9 of Programming Massively Parallel Processors.</description>
       <content:encoded><![CDATA[<h1 id="9-parallel-histogram-an-introduction-to-atomic-operations-and-privatization">9 Parallel Histogram-An Introduction to Atomic Operations and Privatization</h1>
 <p>本章介绍并行直方图计算模式，其中每个输出元素都可以由任何线程更新。因此，当线程更新输出元素时必须注意线程之间的协调，避免任何可能破坏最终结果的干扰。</p>
@@ -2988,9 +2988,9 @@ $$((\frac{N}{64}*1+\frac{N}{64}*\frac{1}{2}*1+\frac{N}{64}*\frac{1}{4}*1+\cdots+
     </item>
     <item>
       <title>PMPP Learning-Chapter 7 Convolution-An Introduction to Constant Memory and Caching</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch7/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch7/</link>
       <pubDate>Fri, 06 Sep 2024 10:50:42 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch7/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch7/</guid>
       <description>Personal notebook 7 of Programming Massively Parallel Processors.</description>
       <content:encoded><![CDATA[<h1 id="7-convolution-an-introduction-to-constant-memory-and-caching">7 Convolution-An Introduction to Constant Memory and Caching</h1>
 <p>卷积的每个输出数据元素可以相互独立地计算，这是并行计算的理想特性。另一方面，在处理具有边界条件的输出数据元素时，有大量的输入数据共享。这使得卷积可以实现复杂的 tiling 方法和输入数据分段方法。</p>
@@ -3327,9 +3327,9 @@ $$P_{y,x}=\sum_{j=-r_y}^{r_y}\sum_{k=-r_x}^{r_x}f_{y+j,x+k}\times N_{y,x}$$<h2 i
     </item>
     <item>
       <title>PMPP Learning-Chapter 6 Performance Considerations</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch6/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch6/</link>
       <pubDate>Thu, 05 Sep 2024 22:22:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch6/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch6/</guid>
       <description>Personal notebook 6 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="6-performance-considerations">6 Performance Considerations</h1>
 <p>并行程序的执行速度根据程序的资源需求和硬件的资源约束之间的相互制约会有很大的变化。管理并行代码和硬件资源约束之间的交互对于在几乎所有并行编程模型中实现高性能非常重要。</p>
@@ -3486,9 +3486,9 @@ cell 的读取依靠小电容充放电，电容充放电导致位线产生电压
     </item>
     <item>
       <title>PMPP Learning-Chapter 4 Compute Architecture and Scheduling</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch4/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch4/</link>
       <pubDate>Thu, 05 Sep 2024 09:18:11 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch4/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch4/</guid>
       <description>Personal notebook 3 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="compute-architecture-and-scheduling">Compute Architecture and Scheduling</h1>
 <p>本章介绍 GPU 计算架构，并说明灵活资源分配、块调度和占用的概念。然后将深入讨论线程调度、延迟容忍、控制发散和同步。</p>
@@ -3600,9 +3600,9 @@ SM 中的执行资源包括寄存器、共享内存线程块槽 (每个 SM 最�
     </item>
     <item>
       <title>PMPP Learning-Chapter 5 Memory Architecture and Data Locality</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch5/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch5/</link>
       <pubDate>Thu, 05 Sep 2024 09:18:11 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch5/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch5/</guid>
       <description>Personal notebook 5 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="5-memory-architecture-and-data-locality">5 Memory Architecture and Data Locality</h1>
 <p>之前章节所写的 CUDA 内核只能达到底层硬件峰值算里的一小部分。因为全局内存 (通常使用片外 DRAM 实现) 往往具有较长的访问延迟 (数百个时钟周期) 和有限的访问带宽。</p>
@@ -3925,9 +3925,9 @@ SM 中的执行资源包括寄存器、共享内存线程块槽 (每个 SM 最�
     </item>
     <item>
       <title>PMPP Learning-Chapter 3 Multidimensional Grids and Data</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch3/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch3/</link>
       <pubDate>Wed, 04 Sep 2024 21:57:11 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch3/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch3/</guid>
       <description>Personal notebook 3 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="3-multidimensional-grids-and-data">3 Multidimensional Grids and Data</h1>
 <p>本章将更广泛地介绍线程是如何组织的和如何使用线程和块来处理多维数组。</p>
@@ -4159,9 +4159,9 @@ SM 中的执行资源包括寄存器、共享内存线程块槽 (每个 SM 最�
     </item>
     <item>
       <title>PMPP Learning-Chapter 2 Heterogeneous Data Parallel</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch2/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch2/</link>
       <pubDate>Tue, 03 Sep 2024 22:48:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch2/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch2/</guid>
       <description>Personal notebook 2 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="2-heterogeneous-data-parallel-computing">2 Heterogeneous Data Parallel Computing</h1>
 <p>数据并行 (<em>Data Parallel</em>) 是指在数据集的不同部分上执行的计算工作可以彼此独立地完成，从而可以并行执行的现象。</p>
@@ -4563,9 +4563,9 @@ CUDA程序的执行流程如下图所示。执行从主机代码 (CPU 串行代�
     </item>
     <item>
       <title>PMPP Learning-Chapter 1 Introduction</title>
-      <link>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch1/</link>
+      <link>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch1/</link>
       <pubDate>Tue, 03 Sep 2024 21:20:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch1/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch1/</guid>
       <description>Personal notebook 1 of Programming Massively Parallel</description>
       <content:encoded><![CDATA[<h1 id="1-introduction">1 Introduction</h1>
 <p>基于单个中央处理器 (Central Processor Unit, CPU) 的微处理器外部看起来是按顺序执行指令，例如英特尔和 AMD 的 x86 处理器，随着时钟频率和硬件资源的快速增长，在20世纪80年代和90年代推动了计算机应用程序的性能快速提高和成本降低。可以给桌面应用提供 GFLOPS 级别的浮点运算，给数据中心提供 TFLOPS 级别的浮点运算。然而，由于能源消耗和散热问题，这种趋势从2003年开始放缓。这些问题限制了时钟频率的增加和保持按顺序步骤执行指令的同时在单个 CPU 上每个时钟周期内可以执行的行动。

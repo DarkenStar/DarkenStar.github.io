@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Collective Comm on WITHER</title>
-    <link>http://localhost:57770/tags/collective-comm/</link>
+    <link>http://localhost:1313/tags/collective-comm/</link>
     <description>Recent content in Collective Comm on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
     <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
-    <atom:link href="http://localhost:57770/tags/collective-comm/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/tags/collective-comm/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>All2All Communication Cost</title>
-      <link>http://localhost:57770/blogs/all2allcommcost/</link>
+      <link>http://localhost:1313/blogs/all2allcommcost/</link>
       <pubDate>Sun, 12 Jan 2025 16:05:23 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/all2allcommcost/</guid>
+      <guid>http://localhost:1313/blogs/all2allcommcost/</guid>
       <description>Introduction of Transformer Family</description>
       <content:encoded><![CDATA[<p>在 All2All 通信中，每个设备给其他设备发送大小为 m 的不同的消息。此操作相当于使用一维数组分区对分布在 p 个进程中的二维数据数组进行转置，因此也被称作全交换 (<strong>total exchange</strong>)</p>
 <h2 id="ring--bidirectional-linear-array">Ring / Bidirectional Linear Array</h2>

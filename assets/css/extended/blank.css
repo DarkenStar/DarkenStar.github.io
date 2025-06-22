@@ -3,18 +3,46 @@ This is just a placeholder blank stylesheet so as to support adding custom style
 
 Read https://github.com/adityatelange/hugo-PaperMod/wiki/FAQs#bundling-custom-css-with-themes-assets for more info
 */
+/* ==========================================================================
+   Table of Contents (TOC) - 动态展开样式
+   ========================================================================== */
+
+/* --- 1. 变量与基本布局 --- */
+/* 这些是您原有的布局变量和容器样式，我们予以保留 */
 :root {
     --nav-width: 1380px;
     --article-width: 650px;
     --toc-width: 300px;
+    /* 建议添加 gap 变量，如果尚未定义 */
+    --gap: 24px; 
+    /* 建议添加边框和背景颜色变量 */
+    --border: #ddd;
+    --entry: #f9f9f9;
+    --secondary: #0056b3;
+    --text-color: #333;
+    --primary-color: #007bff;
 }
 
+/* 适配暗色模式的颜色变量 */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --border: #333;
+        --entry: #1e1e1e;
+        --secondary: #66bfff;
+        --text-color: #eee;
+        --primary-color: #00aaff;
+    }
+}
+
+
+/* --- 2. TOC 容器样式 --- */
 .toc {
     margin: 0 2px 40px 2px;
     border: 1px solid var(--border);
     background: var(--entry);
-    border-radius: var(--radius);
-    padding: 0.4em;
+    border-radius: 6px; /* var(--radius) */
+    padding: 0.8em;
+    font-size: 15px;
 }
 
 .toc-container.wide {
@@ -33,51 +61,72 @@ Read https://github.com/adityatelange/hugo-PaperMod/wiki/FAQs#bundling-custom-cs
     background: unset;
     border-radius: unset;
     width: 100%;
-    margin: 0 2px 40px 2px;
+    margin: 0;
+    padding: 0;
+    max-height: calc(100vh - var(--gap) * 2); /* 限制最大高度，使其可以内部滚动 */
+    overflow-y: auto; /* 当目录过长时，允许滚动 */
 }
 
-.toc details summary {
-    cursor: zoom-in;
-    margin-inline-start: 20px;
-    padding: 12px 0;
+.toc .toc-title {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin-bottom: 1em;
+    padding-left: 10px;
+    color: var(--text-color);
 }
 
-.toc details[open] summary {
-    font-weight: 500;
+/* --- 3. 核心动态展开逻辑 --- */
+
+
+/* 当一级目录的 li 被 JavaScript 添加 .is-expanded 类时，显示其下的子目录 */
+.toc .inner > ul > li.is-expanded > ul {
+    display: block;
 }
 
-.toc-container.wide .toc .inner {
+
+/* --- 4. 列表和链接样式 --- */
+
+/* 通用列表样式 */
+.toc ul {
+    list-style: none;
+    padding-left: 0;
     margin: 0;
 }
 
-.active {
-    font-size: 110%;
-    font-weight: 600;
-}
-
-.toc ul {
-    list-style-type: circle;
-}
-
-.toc .inner {
-    margin: 0 0 0 20px;
-    padding: 0px 15px 15px 20px;
-    font-size: 16px;
-}
-
-.toc li ul {
-    margin-inline-start: calc(var(--gap) * 0.5);
-    list-style-type: none;
+/* 子列表缩进 */
+.toc ul ul {
+    padding-left: 2px; /* 控制子目录的缩进量 */
+    margin-top: 8px;
 }
 
 .toc li {
     list-style: none;
-    font-size: 0.95rem;
-    padding-bottom: 5px;
+    padding: 2px 0;
 }
 
-.toc li a:hover {
+/* 链接样式 */
+.toc a {
+    display: block;
+    text-decoration: none;
+    color: var(--text-color); /* 使用变量以便适配深色模式 */
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+    border-left: 3px solid transparent; /* 预留高亮边框位置 */
+}
+
+/* 鼠标悬停效果 */
+.toc a:hover {
+    background-color: rgba(128, 128, 128, 0.1);
     color: var(--secondary);
+}
+
+/* 关键样式：当链接被 JS 添加 .active 类时 */
+.toc a.active {
+    color: var(--primary-color);
+    font-weight: 600;
+    background-color: rgba(0, 123, 255, 0.1); /* 使用品牌色的半透明背景 */
+    border-left-color: var(--primary-color); /* 高亮左边框 */
 }
 
 img:active {
@@ -90,5 +139,3 @@ code {
   font-size: 1rem;
   line-height: 1.2;
 }
-
-  

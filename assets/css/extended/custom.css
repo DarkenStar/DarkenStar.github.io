@@ -17,7 +17,7 @@
 
 .highlight pre {
     /* 可选：增加内边距，让代码和边框有呼吸空间 */
-    padding: 1.5em 1.2em;
+    padding: 1em 1.2em;
 }
 
 /* 针对代码块内的 <code> 元素应用字体和大小 */

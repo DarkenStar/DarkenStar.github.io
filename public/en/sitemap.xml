@@ -2,304 +2,343 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>http://localhost:57770/tags/diffusion/</loc>
-    <lastmod>2025-06-13T11:39:32+08:00</lastmod>
+    <loc>http://localhost:1313/tags/deepseek/</loc>
+    <lastmod>2025-06-21T22:00:13+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/paperreading/</loc>
-    <lastmod>2025-06-13T11:39:32+08:00</lastmod>
+    <loc>http://localhost:1313/blogs/deepseek/</loc>
+    <lastmod>2025-06-21T22:00:13+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/pipefusion/</loc>
-    <lastmod>2025-06-13T11:39:32+08:00</lastmod>
+    <loc>http://localhost:1313/blogs/deepseek/dualpipe/</loc>
+    <lastmod>2025-06-21T22:00:13+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/diffusionllm/</loc>
-    <lastmod>2025-06-12T23:01:49+08:00</lastmod>
+    <loc>http://localhost:1313/categories/source-code-reading/</loc>
+    <lastmod>2025-06-21T22:00:13+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/fast-dllm/</loc>
-    <lastmod>2025-06-12T23:01:49+08:00</lastmod>
+    <loc>http://localhost:1313/blogs/deepseek/deepseek-v3technicalreport/</loc>
+    <lastmod>2025-06-20T16:37:06+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/paper-reading/</loc>
-    <lastmod>2025-06-12T23:01:49+08:00</lastmod>
+    <loc>http://localhost:1313/categories/paper-reading/</loc>
+    <lastmod>2025-06-20T16:37:06+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/llada/</loc>
-    <lastmod>2025-06-12T13:43:16+08:00</lastmod>
+    <loc>http://localhost:1313/blogs/deepseek/deepseekmoe/</loc>
+    <lastmod>2025-06-19T17:04:18+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/tx8-script/</loc>
-    <lastmod>2025-06-11T10:21:42+08:00</lastmod>
+    <loc>http://localhost:1313/blogs/deepseek/deepseekmla/</loc>
+    <lastmod>2025-06-19T11:24:45+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/tx8read/</loc>
-    <lastmod>2025-06-11T10:21:42+08:00</lastmod>
+    <loc>http://localhost:1313/tags/distributed-training/</loc>
+    <lastmod>2025-06-17T21:50:16+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/work/</loc>
-    <lastmod>2025-06-11T10:21:42+08:00</lastmod>
+    <loc>http://localhost:1313/tags/llm/</loc>
+    <lastmod>2025-06-17T21:50:16+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/astra-sim/</loc>
-    <lastmod>2025-06-09T13:34:39+08:00</lastmod>
+    <loc>http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/</loc>
+    <lastmod>2025-06-17T21:50:16+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/astra-sim/</loc>
-    <lastmod>2025-06-09T13:34:39+08:00</lastmod>
+    <loc>http://localhost:1313/categories/category-1/</loc>
+    <lastmod>2025-06-17T10:08:03+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/source-code-reading/</loc>
-    <lastmod>2025-06-09T13:34:39+08:00</lastmod>
+    <loc>http://localhost:1313/categories/category-2/</loc>
+    <lastmod>2025-06-17T10:08:03+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/transformer/</loc>
+    <loc>http://localhost:1313/blogs/internlm3-8b-instruct/</loc>
+    <lastmod>2025-06-17T10:08:03+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/tag-1/</loc>
+    <lastmod>2025-06-17T10:08:03+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/tag-2/</loc>
+    <lastmod>2025-06-17T10:08:03+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/diffusion/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/categories/paperreading/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/blogs/pipefusion/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/diffusionllm/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/blogs/fast-dllm/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/blogs/llada/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/tx8-script/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/blogs/tx8read/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/categories/work/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/blogs/astra-sim/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/astra-sim/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/transformer/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/transformerfamily/</loc>
+    <loc>http://localhost:1313/blogs/transformerfamily/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/distributed-training/</loc>
+    <loc>http://localhost:1313/blogs/zero/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/zero/</loc>
+    <loc>http://localhost:1313/tags/xdit/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/xdit/</loc>
+    <loc>http://localhost:1313/blogs/xdit/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/xdit/</loc>
+    <loc>http://localhost:1313/tags/vllm/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/vllm/</loc>
+    <loc>http://localhost:1313/blogs/vllm/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/vllm/</loc>
-    <lastmod>2025-06-07T23:40:58+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:57770/blogs/functiontest/</loc>
+    <loc>http://localhost:1313/blogs/functiontest/</loc>
     <lastmod>2025-06-07T16:41:56+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/test/</loc>
+    <loc>http://localhost:1313/categories/test/</loc>
     <lastmod>2025-06-07T16:41:56+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/test/</loc>
+    <loc>http://localhost:1313/tags/test/</loc>
     <lastmod>2025-06-07T16:41:56+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/simple_cmake/</loc>
+    <loc>http://localhost:1313/blogs/simple_cmake/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/cmake-learning/</loc>
+    <loc>http://localhost:1313/categories/cmake-learning/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/cmake-learning/</loc>
+    <loc>http://localhost:1313/tags/cmake-learning/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/git-learning/</loc>
+    <loc>http://localhost:1313/categories/git-learning/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/git-learning/</loc>
+    <loc>http://localhost:1313/tags/git-learning/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/git-rebase-flow/</loc>
+    <loc>http://localhost:1313/blogs/git-rebase-flow/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/all2allcommcost/</loc>
+    <loc>http://localhost:1313/blogs/all2allcommcost/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/collective-comm/</loc>
+    <loc>http://localhost:1313/tags/collective-comm/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/jeremykun-mlir-learning/</loc>
+    <loc>http://localhost:1313/tags/jeremykun-mlir-learning/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/mlir/</loc>
+    <loc>http://localhost:1313/categories/mlir/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/mlir/mlir-ch9-dialect-conversion/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/mlir/mlir-ch9-dialect-conversion/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/mlir/mlir-ch8-canonicalizers-and-declarative-rewrite-patterns/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/mlir/mlir-ch8-canonicalizers-and-declarative-rewrite-patterns/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/mlir/mlir-ch7-verifiers/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/mlir/mlir-ch7-verifiers/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/mlir/mlir-ch6-folders-and-constant-propagation/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/mlir/mlir-ch6-folders-and-constant-propagation/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/mlir/mlir-ch5-using-traits/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/mlir/mlir-ch5-using-traits/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/mlir/mlir-ch3-using-tablegen-for-passes/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/mlir/mlir-ch3-using-tablegen-for-passes/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/mlir/mlir-ch2-writing-our-first-pass/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/mlir/mlir-ch2-writing-our-first-pass/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/diffusion-models/</loc>
+    <loc>http://localhost:1313/tags/diffusion-models/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/distrifusion/</loc>
+    <loc>http://localhost:1313/blogs/distrifusion/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/deepspeedulysses/</loc>
+    <loc>http://localhost:1313/blogs/deepspeedulysses/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</loc>
+    <loc>http://localhost:1313/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/megatronlm/</loc>
+    <loc>http://localhost:1313/blogs/megatronlm/</loc>
+    <lastmod>2025-06-13T15:12:24+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/blogs/ringattention/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/ringattention/</loc>
+    <loc>http://localhost:1313/categories/cuda/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/cuda/</loc>
+    <loc>http://localhost:1313/tags/pmpp-learning/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/pmpp-learning/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch15/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch15/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch14/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch14/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch13/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch13/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch12/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch12/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch11/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch11/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch10/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch10/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch8/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch8/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch9/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch9/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch7/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch7/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch6/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch6/</loc>
-    <lastmod>2025-06-07T23:40:58+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch4/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch4/</loc>
     <lastmod>2025-06-07T16:41:56+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch5/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch5/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch3/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch3/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch2/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch2/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/pmpp-ch1/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/pmpp-ch1/</loc>
     <lastmod>2025-06-07T16:41:56+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/tags/autotuning/</loc>
+    <loc>http://localhost:1313/tags/autotuning/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/categories/tvm-learning/</loc>
+    <loc>http://localhost:1313/categories/tvm-learning/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tvm-ch8/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tvm-ch8/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tvm-ch7/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tvm-ch7/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tvm-ch6/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tvm-ch6/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tvm-ch5/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tvm-ch5/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tvm-ch4/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tvm-ch4/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tvm-ch3/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tvm-ch3/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tcm-ch10/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tcm-ch10/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tvm-ch2/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tvm-ch2/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tvm-ch1/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tvm-ch1/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/tvm-ch9/</loc>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/tvm-ch9/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/about_me/</loc>
+    <loc>http://localhost:1313/about_me/</loc>
     <lastmod>2025-06-07T16:41:56+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/blogs/comparsion-of-parallelsim-metods-in-vit/</loc>
+    <loc>http://localhost:1313/blogs/comparsion-of-parallelsim-metods-in-vit/</loc>
     <lastmod>2025-06-07T23:40:58+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:57770/</loc>
-    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh"
-                href="http://localhost:57770/zh/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="http://localhost:57770/"
-                />
-  </url><url>
-    <loc>http://localhost:57770/archives/</loc>
-    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:57770/search/</loc>
-    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:57770/blogs/</loc>
-    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:57770/categories/</loc>
-    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh"
-                href="http://localhost:57770/zh/categories/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="http://localhost:57770/categories/"
-                />
-  </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/</loc>
-    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:57770/friends/</loc>
-    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/mlir/</loc>
-    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/pmpp/</loc>
-    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:57770/tags/</loc>
+    <loc>http://localhost:1313/</loc>
     <lastmod>2025-06-07T16:41:56+08:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="zh"
-                href="http://localhost:57770/zh/tags/"
+                href="http://localhost:1313/zh/"
                 />
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="http://localhost:57770/tags/"
+                href="http://localhost:1313/"
                 />
   </url><url>
-    <loc>http://localhost:57770/blogs/courselearning/tvm/</loc>
+    <loc>http://localhost:1313/archives/</loc>
+    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/search/</loc>
+    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/blogs/</loc>
+    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/categories/</loc>
+    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh"
+                href="http://localhost:1313/zh/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://localhost:1313/categories/"
+                />
+  </url><url>
+    <loc>http://localhost:1313/blogs/courselearning/</loc>
+    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/friends/</loc>
+    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/blogs/courselearning/mlir/</loc>
+    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/blogs/courselearning/pmpp/</loc>
+    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/</loc>
+    <lastmod>2025-06-07T16:41:56+08:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh"
+                href="http://localhost:1313/zh/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://localhost:1313/tags/"
+                />
+  </url><url>
+    <loc>http://localhost:1313/blogs/courselearning/tvm/</loc>
     <lastmod>2025-06-07T16:41:56+08:00</lastmod>
   </url>
 </urlset>

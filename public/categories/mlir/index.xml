@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>MLIR on WITHER</title>
-    <link>http://localhost:57770/categories/mlir/</link>
+    <link>http://localhost:1313/categories/mlir/</link>
     <description>Recent content in MLIR on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
     <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
-    <atom:link href="http://localhost:57770/categories/mlir/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/categories/mlir/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>MLIR-Ch9 Dialect Conversion</title>
-      <link>http://localhost:57770/blogs/courselearning/mlir/mlir-ch9-dialect-conversion/</link>
+      <link>http://localhost:1313/blogs/courselearning/mlir/mlir-ch9-dialect-conversion/</link>
       <pubDate>Tue, 12 Nov 2024 15:22:23 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/mlir/mlir-ch9-dialect-conversion/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/mlir/mlir-ch9-dialect-conversion/</guid>
       <description>Personal MLIR learning notes 9.</description>
       <content:encoded><![CDATA[<p>MLIR 的主要原则之一是逐步下降，即存在许多级别的 IR 粒度，并且逐步下降 IR 的不同部分，仅在不再对优化有用时丢弃信息。在本文中，将完成其中的第一步：使用所谓的方言转换基础设施将多方言 lowering 为标准MLIR方言的组合。</p>
 <h1 id="the-type-obstacle">The Type Obstacle</h1>
@@ -254,9 +254,9 @@
     </item>
     <item>
       <title>MLIR-Ch8 Canonicalizers and Declarative Rewrite Patterns</title>
-      <link>http://localhost:57770/blogs/courselearning/mlir/mlir-ch8-canonicalizers-and-declarative-rewrite-patterns/</link>
+      <link>http://localhost:1313/blogs/courselearning/mlir/mlir-ch8-canonicalizers-and-declarative-rewrite-patterns/</link>
       <pubDate>Mon, 11 Nov 2024 13:48:23 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/mlir/mlir-ch8-canonicalizers-and-declarative-rewrite-patterns/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/mlir/mlir-ch8-canonicalizers-and-declarative-rewrite-patterns/</guid>
       <description>Personal MLIR learning notes 8.</description>
       <content:encoded><![CDATA[<h1 id="why-is-canonicalization-needed">Why is Canonicalization Needed?</h1>
 <p>规范化器可以用标准的方式编写：在 tablegen 中声明 op 具有规范化器，然后实现生成的 C++函数声明。<a href="https://mlir.llvm.org/docs/Canonicalization/#canonicalizing-with-rewritepatterns">官网例子如下</a></p>
@@ -804,9 +804,9 @@
     </item>
     <item>
       <title>MLIR-Ch7 Verifiers</title>
-      <link>http://localhost:57770/blogs/courselearning/mlir/mlir-ch7-verifiers/</link>
+      <link>http://localhost:1313/blogs/courselearning/mlir/mlir-ch7-verifiers/</link>
       <pubDate>Sun, 10 Nov 2024 23:51:23 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/mlir/mlir-ch7-verifiers/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/mlir/mlir-ch7-verifiers/</guid>
       <description>Personal MLIR learning notes 7.</description>
       <content:encoded><![CDATA[<h1 id="purposes-of-a-verifier">Purposes of a Verifier</h1>
 <p>Verifiers 确保具体的 MLIR 程序中的类型和操作格式正确。验证器会在每次优化 pass 之前和之后运行，帮助确保单个 pass, folders, rewrite patterns 等都能生成正确的 IR. 这使得每个操作的约束条件（invariants）能够得到强制执行，同时简化了传递的实现，因为它们可以依赖这些约束条件，从而避免检查边界情况。多数情况下验证代码是用 Traits 来实现的。</p>
@@ -1089,9 +1089,9 @@
     </item>
     <item>
       <title>MLIR-Ch6 Folders and Constant Propagation</title>
-      <link>http://localhost:57770/blogs/courselearning/mlir/mlir-ch6-folders-and-constant-propagation/</link>
+      <link>http://localhost:1313/blogs/courselearning/mlir/mlir-ch6-folders-and-constant-propagation/</link>
       <pubDate>Sat, 09 Nov 2024 20:51:23 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/mlir/mlir-ch6-folders-and-constant-propagation/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/mlir/mlir-ch6-folders-and-constant-propagation/</guid>
       <description>Personal MLIR learning notes 6.</description>
       <content:encoded><![CDATA[<h1 id="constant-propagation-vs-canonicalization">Constant Propagation vs Canonicalization</h1>
 <p><code>-sccp</code> Sparse Conditional Constant Propagation 是稀疏条件常数传播，它试图推断 op 何时具有常量输出，然后用常量值替换 op 。重复这个过程，它在程序中尽可能地“传播”这些常量。</p>
@@ -1372,9 +1372,9 @@
     </item>
     <item>
       <title>MLIR-Ch5 Using Traits</title>
-      <link>http://localhost:57770/blogs/courselearning/mlir/mlir-ch5-using-traits/</link>
+      <link>http://localhost:1313/blogs/courselearning/mlir/mlir-ch5-using-traits/</link>
       <pubDate>Fri, 08 Nov 2024 23:06:23 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/mlir/mlir-ch5-using-traits/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/mlir/mlir-ch5-using-traits/</guid>
       <description>Personal MLIR learning notes 5.</description>
       <content:encoded><![CDATA[<h1 id="traits-and-loop-invariant-code-motion">Traits and Loop Invariant Code Motion</h1>
 <p>为了提高代码重用性，MLIR 提供了 <a href="https://mlir.llvm.org/docs/Traits/">Traits</a> 和 <a href="https://mlir.llvm.org/docs/Interfaces/">Interfaces</a> Traits，用于增强 op  (Operation) 或类型的功能，提供结构化的约束和功能接口，方便在编译优化和生成过程中进行更强大和灵活的 op 。</p>
@@ -1603,9 +1603,9 @@ class Poly_BinOp&lt;string mnemonic&gt; : Op&lt;Poly_Dialect, mnemonic, [Pure, E
     </item>
     <item>
       <title>MLIR-Ch4 Defining a New Dialect</title>
-      <link>http://localhost:57770/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/</link>
+      <link>http://localhost:1313/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/</link>
       <pubDate>Thu, 07 Nov 2024 18:16:23 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/mlir/mlir-ch4-defining-a-new-dialect/</guid>
       <description>Personal MLIR learning notes 4.</description>
       <content:encoded><![CDATA[<h1 id="sketching-out-a-dseign">Sketching Out a Dseign</h1>
 <p>TableGen 也可以用来定义 dialect. 本文将定义一个单未知数多项式运算的 dialect，系数用 uint32_t 类型表示。，并提供通过从标准 MLIR 类型指定多项式系数来定义多项式的操作，提取关于多项式的数据以将结果存储在标准MLIR类型中，以及对多项式进行算术运算。</p>
@@ -2274,9 +2274,9 @@ def Poly_AddOp : Op&lt;Poly_Dialect, &#34;add&#34;&gt; {
     </item>
     <item>
       <title>MLIR-Ch3 Using Tablegen for Passes</title>
-      <link>http://localhost:57770/blogs/courselearning/mlir/mlir-ch3-using-tablegen-for-passes/</link>
+      <link>http://localhost:1313/blogs/courselearning/mlir/mlir-ch3-using-tablegen-for-passes/</link>
       <pubDate>Wed, 06 Nov 2024 09:37:32 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/mlir/mlir-ch3-using-tablegen-for-passes/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/mlir/mlir-ch3-using-tablegen-for-passes/</guid>
       <description>Personal MLIR learning notes 3.</description>
       <content:encoded><![CDATA[<h1 id="what-is-tablegen">What is Tablegen?</h1>
 <p>TableGen 是一个用于生成代码和描述结构的 DSL 和工具，最初由 LLVM 开发，后来被 MLIR 继承并扩展。它主要用于以声明式的方式定义和生成 MLIR 的各种组件，例如 Dialects、Operations、Attributes、Types 和 Passes，从而减少手动编写重复性 C++ 代码的工作量。</p>
@@ -2662,9 +2662,9 @@ def Poly_AddOp : Op&lt;Poly_Dialect, &#34;add&#34;&gt; {
     </item>
     <item>
       <title>MLIR-Ch2 Writing Our First Pass</title>
-      <link>http://localhost:57770/blogs/courselearning/mlir/mlir-ch2-writing-our-first-pass/</link>
+      <link>http://localhost:1313/blogs/courselearning/mlir/mlir-ch2-writing-our-first-pass/</link>
       <pubDate>Wed, 30 Oct 2024 11:42:34 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/mlir/mlir-ch2-writing-our-first-pass/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/mlir/mlir-ch2-writing-our-first-pass/</guid>
       <description>Personal MLIR learning notes 2.</description>
       <content:encoded><![CDATA[<h1 id="tutorial-opt-and-project-organization">Tutorial-opt and Project Organization</h1>
 <p>编译器可能将 mlir-opt 作为子例程在前端 (c++ -&gt; 某些MLIR方言) 和后端 (MLIR 的 LLVM 方言 -&gt; LLVM -&gt; 机器码) 之间运行。

@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>TVM Learning on WITHER</title>
-    <link>http://localhost:57770/categories/tvm-learning/</link>
+    <link>http://localhost:1313/categories/tvm-learning/</link>
     <description>Recent content in TVM Learning on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
     <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
-    <atom:link href="http://localhost:57770/categories/tvm-learning/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/categories/tvm-learning/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>TVM Learning (10)-Computational Graph Optimization</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tvm-ch8/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tvm-ch8/</link>
       <pubDate>Sun, 25 Aug 2024 16:08:00 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tvm-ch8/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tvm-ch8/</guid>
       <description>Personal notebook 7.</description>
       <content:encoded><![CDATA[<h1 id="pattern-match-and-rewriting">Pattern Match and Rewriting</h1>
 <p>下面代码中 <code>MyModule</code> 包含一个带有两个高级算子 <code>relax.opmultiply</code> 和 <code>relax.op.add</code> 的 relax 函数。我们的目标是找到这两个算子，并将其替换为对 <code>relax.ewise_fma</code> 算子的调用。</p>
@@ -1065,9 +1065,9 @@ AST 是一棵树状结构，其节点表示源代码中的语法结构。例如�
     </item>
     <item>
       <title>TVM Learning (9)-GPU and Hardware Acceleration, Part 2</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tvm-ch7/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tvm-ch7/</link>
       <pubDate>Sun, 25 Aug 2024 13:22:00 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tvm-ch7/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tvm-ch7/</guid>
       <description>Personal notebook 7.</description>
       <content:encoded><![CDATA[<h1 id="key-elements-of-specialized-code">Key Elements of Specialized Code</h1>
 <p>下面用 low-level numpy 写的 python 代码展示了一系列在专用硬件后端可能使用到的操作。</p>
@@ -1892,9 +1892,9 @@ AST 是一棵树状结构，其节点表示源代码中的语法结构。例如�
     </item>
     <item>
       <title>TVM Learning (8)-GPU and Hardware Acceleration, Part 1</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tvm-ch6/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tvm-ch6/</link>
       <pubDate>Sat, 24 Aug 2024 09:28:00 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tvm-ch6/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tvm-ch6/</guid>
       <description>Personal notebook 6.</description>
       <content:encoded><![CDATA[<h1 id="gpu-architecture">GPU Architecture</h1>
 <p>典型的 GPU 包含一系列流多处理器 (Stream Multi-processor, SM)，每个多处理器都有许多内核 (core). GPU 具有高度并行性，可以同时执行多项任务。</p>
@@ -2636,9 +2636,9 @@ AST 是一棵树状结构，其节点表示源代码中的语法结构。例如�
     </item>
     <item>
       <title>TVM Learning (6)-Exercise of End to End Model Execution</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tvm-ch5/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tvm-ch5/</link>
       <pubDate>Tue, 20 Aug 2024 12:45:00 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tvm-ch5/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tvm-ch5/</guid>
       <description>Personal notebook 5.</description>
       <content:encoded><![CDATA[<h1 id="model-preparation">Model Preparation</h1>
 <p>我们采用Pytorch框架先定一个模型，该模型接受一批图像为输入，然后对它们依次作用卷积层，激活层，池化层和全连接层，得到分类结果。并从训练好的模型里加载权重，输入图像来自FashionMNIST数据集，shape为(1, 28, 28)，我们设置batch size=4.</p>
@@ -3419,9 +3419,9 @@ AST 是一棵树状结构，其节点表示源代码中的语法结构。例如�
     </item>
     <item>
       <title>TVM Learning (5)-Automatic Program Optimization</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tvm-ch4/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tvm-ch4/</link>
       <pubDate>Mon, 19 Aug 2024 21:23:00 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tvm-ch4/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tvm-ch4/</guid>
       <description>Personal notebook 4.</description>
       <content:encoded><![CDATA[<h1 id="transform-a-primitive-tensor-function">Transform a Primitive Tensor Function</h1>
 <p>之前已经讲过如何通过 <code>tir.Schedule</code>对T.prim_func进行变换，仍以矩阵乘法为例</p>
@@ -3833,9 +3833,9 @@ AST 是一棵树状结构，其节点表示源代码中的语法结构。例如�
     </item>
     <item>
       <title>TVM Learning (4)-End to End Model Execution</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tvm-ch3/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tvm-ch3/</link>
       <pubDate>Sun, 18 Aug 2024 13:51:00 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tvm-ch3/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tvm-ch3/</guid>
       <description>Personal notebook 3.</description>
       <content:encoded><![CDATA[<h1 id="e2e-model-integration">E2E Model Integration</h1>
 <p>我们以下图中的 MLP 网络为例，这是一个两层全连接网络，并且省略了最后的 Softmax 层。</p>
@@ -4709,9 +4709,9 @@ AST 是一棵树状结构，其节点表示源代码中的语法结构。例如�
     </item>
     <item>
       <title>TVM Learning (3)-Schedule Analysis</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tcm-ch10/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tcm-ch10/</link>
       <pubDate>Sat, 17 Aug 2024 14:56:33 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tcm-ch10/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tcm-ch10/</guid>
       <description>Personal notebook 3.</description>
       <content:encoded><![CDATA[<h1 id="looprv--blockrv-object">LoopRV &amp; BlockRV Object</h1>
 <p>Schedule要操作的对象主要就是LoopRV和BlockRV，对应于我们TVMScript中的循环变量和计算块部分。下面代码为在 TVM 中注册 <code>LoopRV</code> 的自定义对象类型的过程，并通过 FFI（Foreign Function Interface）机制将 C++ 中的函数暴露给 Python.</p>
@@ -6129,9 +6129,9 @@ AST 是一棵树状结构，其节点表示源代码中的语法结构。例如�
     </item>
     <item>
       <title>TVM Learning (2)-Tensor Program Abstraction Case</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tvm-ch2/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tvm-ch2/</link>
       <pubDate>Thu, 15 Aug 2024 23:07:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tvm-ch2/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tvm-ch2/</guid>
       <description>Personal notebook 2.</description>
       <content:encoded><![CDATA[<h1 id="primitive-tensor-function">Primitive Tensor Function</h1>
 <p>机器学习编译的过程可以被看作张量函数之间的变换。一个典型的机器学习模型的执行包含许多步将输入张量之间转化为最终预测的计算步骤，其中的每一步都被称为元张量函数 (Primitive Tensor Function)
@@ -6467,9 +6467,9 @@ CPU 带有多级缓存，需要先将数据提取到缓存中，然后 CPU 才�
     </item>
     <item>
       <title>TVM Learning (1)-Tensor Program Abstraction in Action</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tvm-ch1/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tvm-ch1/</link>
       <pubDate>Thu, 15 Aug 2024 15:07:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tvm-ch1/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tvm-ch1/</guid>
       <description>Personal notebook 1.</description>
       <content:encoded><![CDATA[<p>My notebook of MLC: <a href="https://mlc.ai/summer22-zh">https://mlc.ai/summer22-zh</a></p>
 <h1 id="constructing-tensor-program-by-tvmscript">Constructing Tensor Program by TVMScript</h1>
@@ -7154,9 +7154,9 @@ B = te.placeholder((K, N), name=&#34;B&#34;)
     </item>
     <item>
       <title>TVM Learning (11)-Add Model Architeture in MLC LLM</title>
-      <link>http://localhost:57770/blogs/courselearning/tvm/tvm-ch9/</link>
+      <link>http://localhost:1313/blogs/courselearning/tvm/tvm-ch9/</link>
       <pubDate>Thu, 08 Aug 2024 12:00:00 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/courselearning/tvm/tvm-ch9/</guid>
+      <guid>http://localhost:1313/blogs/courselearning/tvm/tvm-ch9/</guid>
       <description>Add Model Architeture in MLC LLM</description>
       <content:encoded><![CDATA[<h1 id="irmodule-the-key-concept-in-tvm-unity">IRModule: The key concept in TVM Unity</h1>
 <p>IRModule 是张量函数的集合，代表我们需要在模型中执行的计算子集。例如，在 MLC-LLM 中，它可以是一个 Transformer 模块。

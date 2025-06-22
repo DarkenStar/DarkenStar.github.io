@@ -10,7 +10,7 @@
 <meta name="description" content="Paper reading about Efficient Large-Scale Language Model Training on GPU Clusters.">
 <meta name="author" content="WITHER">
 <link rel="canonical" href="http://localhost:1313/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.dd3b5b907a50db3238b81d49d094cf1c04a091227797dc9cfde4e2fa3f35df49.css" integrity="sha256-3TtbkHpQ2zI4uB1J0JTPHASgkSJ3l9yc/eTi&#43;j8130k=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
@@ -66,6 +66,16 @@
   };
 </script>
 
+
+
+
+<script src="https://cdn.bootcdn.net/ajax/libs/mermaid/9.1.6/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: localStorage.getItem("pref-theme") === "dark" ? "dark" : "forest" 
+    });
+</script>
 
 <meta property="og:url" content="http://localhost:1313/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/">
   <meta property="og:site_name" content="WITHER">
@@ -304,53 +314,90 @@
 <script>
     let activeElement;
     let elements;
-    window.addEventListener('DOMContentLoaded', function (event) {
+    
+    document.addEventListener('DOMContentLoaded', function (event) {
         checkTocPosition();
-
+    
         elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
-         
-         activeElement = elements[0];
-         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
-         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
-     }, false);
-
+        if (elements.length > 0) {
+            
+            activeElement = elements[0];
+            const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+            document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+        }
+    
+        
+        const topLink = document.getElementById('top-link');
+        if (topLink) {
+            topLink.addEventListener('click', (event) => {
+                
+                event.preventDefault();
+    
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    }, false);
+    
     window.addEventListener('resize', function(event) {
         checkTocPosition();
     }, false);
-
+    
     window.addEventListener('scroll', () => {
         
-        activeElement = Array.from(elements).find((element) => {
-            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
-                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
-                return element;
-            }
-        }) || activeElement
-
-        elements.forEach(element => {
-             const id = encodeURI(element.getAttribute('id')).toLowerCase();
-             if (element === activeElement){
-                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
-             } else {
-                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
-             }
-         })
-     }, false);
-
+        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
+        
+        if (scrollPosition === 0) {
+            return;
+        }
+    
+        
+        if (elements && elements.length > 0) {
+            
+            activeElement = Array.from(elements).find((element) => {
+                if ((getOffsetTop(element) - scrollPosition) > 0 && 
+                    (getOffsetTop(element) - scrollPosition) < window.innerHeight / 2) {
+                    return element;
+                }
+            }) || activeElement;
+    
+            elements.forEach(element => {
+                const id = encodeURI(element.getAttribute('id')).toLowerCase();
+                const tocLink = document.querySelector(`.inner ul li a[href="#${id}"]`);
+                if (element === activeElement){
+                    tocLink.classList.add('active');
+    
+                    
+                    const tocContainer = document.querySelector('.toc .inner');
+                    const linkOffsetTop = tocLink.offsetTop;
+                    const containerHeight = tocContainer.clientHeight;
+                    const linkHeight = tocLink.clientHeight;
+    
+                    
+                    const scrollPosition = linkOffsetTop - (containerHeight / 2) + (linkHeight / 2);
+                    tocContainer.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+                } else {
+                    tocLink.classList.remove('active');
+                }
+            });
+        }
+    }, false);
+    
     const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
     const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
     const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
-
+    
     function checkTocPosition() {
         const width = document.body.scrollWidth;
-
+    
         if (width - main - (toc * 2) - (gap * 4) > 0) {
             document.getElementById("toc-container").classList.add("wide");
         } else {
             document.getElementById("toc-container").classList.remove("wide");
         }
     }
-
+    
     function getOffsetTop(element) {
         if (!element.getClientRects().length) {
             return 0;
@@ -359,7 +406,9 @@
         let win = element.ownerDocument.defaultView;
         return rect.top + win.pageYOffset;   
     }
+    
 </script>
+
   <div class="post-content"><h1 id="abstract">Abstract<a hidden class="anchor" aria-hidden="true" href="#abstract">#</a></h1>
 <p>本文展示了如何将张量、流水线和数据并行性组合起来以扩展到数千个gpu。我们提出了一种新的交错流水线调度，可以在内存占用与现有方法相当的同时将吞吐量提高 10%.</p>
 <p>
@@ -436,7 +485,121 @@
 <p>如前所述，使用带有周期性冲洗的流水线并行会产生大小为 (p−1)/m 的流水线气泡. 固定 d=1，则 tp=n，气泡大小可以用 t 表示为</p>
 <p>(p−1)/m=(n/t-1)/m.</p>
 <p>GPU 之间的通信量也受 p 和 t 大小的影响。流水线模型并行的特点是更便宜的点对点通信，每个 microbatch 的每对连续设备之间 (前向或后向传递) 需要执行的通信总量为 bsh. 张量模型并行则使用 all-reduce 通信，总大小为 bsh 的张量需要在每层的前向和后向传递中，在 t 个模型副本之间进行两次 all-reduce，因此每个 microbatch 每层每个设备的总通信量为 4bsh(t-1)/t. 每个设备通常有多个层，则每个设备上每个 microbatch 的张量并行通信总量为 l^stage4bsh(t-1)/t, 其中 l^stage 为流水线阶段的层数。</p>
-<div class="notice tip" >
+<style type="text/css">
+     
+    .notice {
+        --title-color: #fff;
+        --title-background-color: #6be;
+        --content-color: #444;
+        --content-background-color: #e7f2fa;
+    }
+
+    .notice.info {
+        --title-background-color: #fb7;
+        --content-background-color: #fec;
+    }
+
+    .notice.tip {
+        --title-background-color: #5a5;
+        --content-background-color: #efe;
+    }
+
+    .notice.warning {
+        --title-background-color: #c33;
+        --content-background-color: #fee;
+    }
+
+     
+    @media (prefers-color-scheme:dark) {
+        .notice {
+            --title-color: #fff;
+            --title-background-color: #069;
+            --content-color: #ddd;
+            --content-background-color: #023;
+        }
+
+        .notice.info {
+            --title-background-color: #a50;
+            --content-background-color: #420;
+        }
+
+        .notice.tip {
+            --title-background-color: #363;
+            --content-background-color: #121;
+        }
+
+        .notice.warning {
+            --title-background-color: #800;
+            --content-background-color: #400;
+        }
+    }
+
+    body.dark .notice {
+        --title-color: #fff;
+        --title-background-color: #069;
+        --content-color: #ddd;
+        --content-background-color: #023;
+    }
+
+    body.dark .notice.info {
+        --title-background-color: #a50;
+        --content-background-color: #420;
+    }
+
+    body.dark .notice.tip {
+        --title-background-color: #363;
+        --content-background-color: #121;
+    }
+
+    body.dark .notice.warning {
+        --title-background-color: #800;
+        --content-background-color: #400;
+    }
+
+     
+    .notice {
+        padding: 18px;
+        line-height: 24px;
+        margin-bottom: 24px;
+        border-radius: 4px;
+        color: var(--content-color);
+        background: var(--content-background-color);
+    }
+
+    .notice p:last-child {
+        margin-bottom: 0
+    }
+
+     
+    .notice-title {
+        margin: -18px -18px 12px;
+        padding: 4px 18px;
+        border-radius: 4px 4px 0 0;
+        font-weight: 700;
+        color: var(--title-color);
+        background: var(--title-background-color);
+    }
+
+     
+    .icon-notice {
+        display: inline-flex;
+        align-self: center;
+        margin-right: 8px;
+    }
+
+    .icon-notice img,
+    .icon-notice svg {
+        height: 1em;
+        width: 1em;
+        fill: currentColor;
+    }
+
+    .icon-notice img,
+    .icon-notice.baseline svg {
+        top: .125em;
+        position: relative;
+    }
+</style><div class="notice tip" >
     <p class="notice-title">
         <span class="icon-notice baseline">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">

@@ -10,7 +10,7 @@
 <meta name="description" content="Paper Reading of LLaDA">
 <meta name="author" content="WITHER">
 <link rel="canonical" href="http://localhost:1313/blogs/llada/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.dd3b5b907a50db3238b81d49d094cf1c04a091227797dc9cfde4e2fa3f35df49.css" integrity="sha256-3TtbkHpQ2zI4uB1J0JTPHASgkSJ3l9yc/eTi&#43;j8130k=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
@@ -67,6 +67,16 @@
 </script>
 
 
+
+
+<script src="https://cdn.bootcdn.net/ajax/libs/mermaid/9.1.6/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: localStorage.getItem("pref-theme") === "dark" ? "dark" : "forest" 
+    });
+</script>
+
 <meta property="og:url" content="http://localhost:1313/blogs/llada/">
   <meta property="og:site_name" content="WITHER">
   <meta property="og:title" content="LLaDA">
@@ -75,7 +85,7 @@
   <meta property="og:type" content="article">
     <meta property="article:section" content="blogs">
     <meta property="article:published_time" content="2025-06-12T13:43:16+08:00">
-    <meta property="article:modified_time" content="2025-06-12T13:43:16+08:00">
+    <meta property="article:modified_time" content="2025-06-13T15:12:24+08:00">
     <meta property="article:tag" content="DiffusionLLM">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LLaDA">
@@ -112,11 +122,11 @@
   "keywords": [
     "DiffusionLLM"
   ],
-  "articleBody": "Introduction LLM 主要的思想是 generative modeling 的思想是通过最大似然估计来优化模型的分布 $\\log p_\\theta(\\cdot)$ 来逼近数据的分布 $\\log p_{\\text{data}}(\\cdot)$ $$\r\\underbrace{\\max_\\theta\\mathbb{E}_{p_{\\text{data}}(x)}\\log p_\\theta(x)\\Leftrightarrow\\min_\\theta\\operatorname{KL}(p_{\\text{data}}(x)||p_\\theta(x)).}_{\\text{Generative modeling principles}} \\quad(1)\r$$当前，几乎所有我们熟知的大语言模型，从GPT系列到LLaMA系列，都基于autoregressice modeling 来实现。这种范式的核心是 next-token prediction ，即根据已经生成的文本序列，逐 toekn 地预测下一个最有可能出现的 token.\n$$\r\\underbrace{p_\\theta(x)=p_\\theta(x^1)\\prod_{i=2}^Lp_\\theta(x^i\\mid x^1,\\ldots,x^{i-1})}_{\\text{Autoregressive formulation}} \\quad(2)\r$$这种单向、顺序的生成方式在处理需要双向推理的任务时表现不佳，一个典型的例子就是 Reversal Curse ——模型知道 A is B，却往往无法推断出 B is A.\nLLM 能力的核心基石是生成式建模原理本身，即通过最大似然估计让模型学习真实世界的数据分布 ，而非自回归这一具体的实现形式。\nIt is the generative modeling principles (i.e., Eq. (1)), rather than the autoregressive formulation (i.e., Eq. (2)) itself, that fundamentally underpin the essential properties of LLMs.\n大语言模型的可扩展性 (scalability) ——即模型越大、数据越多、效果越好的特性——并非自回归模型所独有 。相反，这种可扩展性来源于更底层的生成式建模原理，而这些原理恰好保证了fisher consistency1\ninstruction-following 和 in-context learning2 并非自回归模型所独有，而是所有设计得当的条件生成模型 (conditional generative models) 在处理结构化语言任务时都应具备的内在属性 。\n因此作者提出了LLaDA (Large Language Diffusion with mAsking)，一个从零开始训练的、参数量达到 8B 的扩散语言模型。\nZero\u0026Few-Shot Benchmarks\nLLaDA 使用了 Masked Diffusion Model (MDM)，该方法结合了离散随机掩蔽过程，并训练了一个掩码预测器来近似其反向过程。\n2 Approach A Conceptual Overview of LLaDA\n2.1 Probabilistic Formulation 与公式(2)中的自回归模型不同，LLaDA通过前向过程 (forward process) 和 反向过程 (reverse process) 来定义模型分布 $p_{\\theta}(x_{0})$。\nForward Process 逐步地、独立地 mask $x_{0}$ 中的 token，直到在 $t=1$ 时序列被完全 mask.\n给定 $x_{0}$ 时 $x_{t}$ 的条件分布可以被分解为：\n$$\rq_{t|0}(x_{t}|x_{0}) = \\prod_{i=1}^{L} q_{t|0}(x_{t}^{i}|x_{0}^{i})\r$$对于 $t \\in (0,1)$，序列 $x_{t}$ 是部分被掩码的，其中每个 token 有 $t$ 的概率被mask，或有 $1-t$ 的概率保持不变。\n$$\rq_{t|0}(x_{t}^{i}|x_{0}^{i}) = \\begin{cases} 1-t, \u0026 x_{t}^{i} = x_{0}^{i} \\\\ t, \u0026 x_{t}^{i} = M \\end{cases}\r$$其中 M 表示掩码 token. 直观上，每个 token 要么保持不变，要么被掩码，而被掩码的概率随着 t 从 0 到 1 线性增加。在 $t=1$ 时，所有 token 都被 mask.\nReverse Process 反向过程则通过在 $t=1\\rightarrow 0$ 从完全被掩码的序列中生成新数据。\n对于 $0 \\le s \u003c t \\le 1$，反向过程的条件分布分解为：\n$$\rq_{s|t}(x_{s}|x_{t}) = \\prod_{i=1}^{L} q_{s|t}(x_{s}^{i}|x_{t})\r$$其中每个 token 的条件分布为：\n$$\rq_{s|t}(x_{s}^{i}|x_{t}^{i}) = \\begin{cases} 1, \u0026 x_{t}^{i} \\ne M, x_{s}^{i} = x_{t}^{i} \\\\ \\frac{s}{t}, \u0026 x_{t}^{i} = M, x_{s}^{i} = M \\\\ \\frac{t-s}{t}q_{0|t}(x_{s}^{i}|x_{t}), \u0026 x_{t}^{i} = M, x_{s}^{i} \\ne M \\\\ 0, \u0026 \\text{otherwise} \\end{cases}\r$$需要估计的关键函数是条件分布 $q_{0|t}(x_{s}^{i}|x_{t})$，它在输入 $x_{t}$ 中对应位置被掩码的情况下，预测出原始的 token. 类似于连续扩散模型中的数据预测形式。如 (Ou et al., 2024) 所证明，可以推导出一个等价但无时间依赖的参数化形式\n$$\rq_{0|t}(x_s^i|x_t)=p_{\\text{data}}(x_0^i|x_t^\\text{UM}),\\quad\\forall i\\text{ such that }x_t^i=\\mathbf{M}\r$$其中 $x_{t}^{\\text{UM}}$ 表示 $x_{t}$ 中未被掩码 token 的集合，它与原始数据 $x_{0}$ 中对应的 token 相同，因为未掩码的 token 仅由 $x_{0}$ 决定且与时间 t 无关 。直观上，这意味着估计数据预测函数等同于估计在干净数据上的条件分布，而后者是时不变的。因此，时间 t 不需要作为输入提供给参数化模型 。\n尽管 MDM 的推导过程不简单，但其实现是直接的。我们首先引入掩码预测器，一个参数化模型 $p_{\\theta}(\\cdot|x_{t})$ (例如一个没有因果掩码的 Transformer)，它将任意 t 时刻的 $x_{t}$ 作为输入，并同时预测所有被 mask 的 token. 然后，我们如下定义模型分布 $p_{\\theta}(x_{0})$：从一个被完全 mask 序列的 $x_{1}$ 开始，从 $t=1$ 到 0 模拟一个由 $p_{\\theta}(\\cdot|x_{t})$ 参数化的近似反向过程。在 $t=0$ 时刻推导出的边缘分布即代表了模型分布 $p_{\\theta}(x_{0})$ 。\n掩码预测器将 $x_{t}$ 作为输入并同时预测所有被掩码的 token (表示为 M). 它通过一个仅在被掩码 token 上计算的交叉熵损失进行训练：\n$$\r\\mathcal{L}(\\theta)\\triangleq-\\mathbb{E}_{t,x_{0},x_{t}}[\\frac{1}{t}\\sum_{i=1}^{L}I[x_{t}^{i}=M]log~p_{\\theta}(x_{0}^{i}|x_{t})], \\quad(3)\r$$其中，$x_{0}$ 从训练数据中采样，$t$ 从[0, 1]中均匀采样Notably, LLaDA employs a masking ratio that varies randomly between 0 and 1 while masked language models (Devlin, 2018) use a fixed ratio.\r，$x_{t}$ 从前向过程中采样。指示函数 $I[\\cdot]$ 确保损失仅针对被掩码的 token 计算。一旦训练完成，便可以模拟一个由该掩码预测器参数化的反向过程（详见2.4节），并将模型分布 $p_{\\theta}(x_{0})$ 定义为该过程的边缘分布。\n总的来说该方法通过在正向过程中逐步屏蔽令牌并在反向过程中学习恢复数据分布来训练生成模型，所有这些都在（近似）最大似然估计框架下。\nPretraining LLaDA 8B 模型在一个包含 2.3T tokens 的高质量、多源数据集上从零开始进行预训练。该数据集覆盖了通用文本、代码、数学和多语言内容 。\n训练总共消耗了 0.13M H800 GPU小 hours. 训练序列长度固定为4096. 其核心训练步骤是：对每个序列随机采样一个掩码率 t，并独立地以该概率掩码每个 token，然后让模型去预测被掩码的部分 。\n架构调整 相较于LLaMA3 8B，LLaDA 8B在架构上做了一些必要调整，如使用标准的 MHA 而非 GQA，并相应地调整了 FFN 的维度以保持模型总参数量相当 。\n优化器与学习率 训练使用了 AdamW 优化器和一个特殊的 Warmup-Stable-Decay 学习率调度策略。整个8B模型的训练实验只执行了一次，没有进行任何超参数调优。\nOur ARM Baseline 1B LLaDA IB Our ARM Baseline 7B LLaDA 8B LLaMA3 8B Layers 22 22 28 32 32 Model dimension 2048 2048 4096 4096 4096 Attention heads 32 32 32 32 32 Vocabulary size 126,464 126,464 126,464 126.464 128,000 FFN dimension 5634 5634 13.440 12,288 14,336 Key/Value heads 4 4 8 32 8 Total parameters 1.49 B 1.49 B 6.83 B 8.02 B 8.03 B Non-embedding parameters 0.97 B 0.97 B 5.80 B 6.98 B 6.98 B Supervised Fine-Tuning 我们通过使用配对数据 $(p_{0}, r_{0})$ 进行监督微调 (SFT)来增强LLaDA遵循指令的能力，其中 $p_{0}$ 是 prompt，$r_{0}$ 表示响应(response). 这是针对LLM最简单、最基础的 post-training 方法。从技术上讲，这要求模型对条件分布 $p_{\\theta}(r_{0}|p_{0})$ 进行建模，而非预训练中的 $p_{\\theta}(x_{0})$。\n其实现方式与预训练类似。如图2(b)所示，保持 prompt 部分不变，并像处理 $x_{0}$ 一样，独立地 mask response 中的 token. 然后，将提示和被掩码的响应 $r_{t}$ 一同送入预训练好的掩码预测器，以计算用于 SFT 的损失\n$$\r-\\mathbb{E}_{t,p_{0},r_{0},r_{t}}[\\frac{1}{t}\\sum_{i=1}^{L^{\\prime}}I[r_{t}^{i}=M]log~p_{\\theta}(r_{0}^{i}|p_{0},r_{t})] \\quad (5)\r$$其中，$L^{\\prime}$ 表示稍后指定的动态长度。这种方法与预训练是完全兼容的。本质上，将 $p_{0}$ 和 $r_{0}$ 拼接起来可以被视为干净的预训练数据 $x_{0} $，而将 $p_{0}$ 和 $r_{t}$ 拼接起来则可作为其被掩码后的版本 $x_{t}$. 这个过程与预训练完全相同，唯一的区别在于所有被掩码的 token 恰好都出现在 $r_{0}$ 部分。\nLLaDA 8B 模型在一个包含 4.5M 对样本的数据集上进行了 SFT. 与预训练过程一致，数据准备和训练都遵循了现有LLM (Chu et al., 2024; Yang et al., 2024) 中使用的 SFT 协议，没有引入任何额外的技术来优化 LLaDA 的性能。该数据集涵盖了多个领域，包括代码、数学、指令遵循和结构化数据理解。我们在每个 mini-batch 中的短样本对末尾附加 EOS token，以确保所有数据长度相等。在训练期间将 EOS视为一个普通 token ，并在采样时将其移除，使得LLaDA能够自动控制响应的长度。\n我们在SFT数据上训练了 3 个 epoch，其调度策略与预训练阶段相似。学习率在最初 50 次迭代中从 0 线性增加到 $2.5 \\times 10^{-5}$，然后保持不变。在最后 10% 的迭代中，学习率性降低到 $2.5 \\times 10^{-6}$. 此外，我们将权重衰减设置为 0.1，全局 batch size 设置为 256，每个 GPU 的本地 batch size 设置为 2. SFT实验只执行了一次，没有进行任何超参数调优。\nInference 作为一个生成式模型，LLaDA既能 采样 (sampling) 新文本，也能 评估 (evaluating) 候选文本的似然。\n我们先从采样说起。如图 2(c) 所示，给定一个 prompt $p_{0}$，我们通过离散化反向过程来从模型分布 $p_{\\theta}(r_{0}|p_{0})$ 中进行采样，这个过程从一个被完全掩码的 response 开始。总的采样步数是一个超参数，为 LLaDA 提供了一个在效率和样本质量之间的权衡（详见3.3节分析）。我们默认使用均匀分布的时间步。此外，生成长度也被视为一个超参数，它指定了采样过程开始时完全被掩码句子的长度。如附录B.4所述，由于预训练和SFT都是在可变长度的数据集上进行的，最终结果对这个长度超参数不敏感。\n在一个从时间 $t \\in (0, 1]$ 到 $s \\in [0, t)$的中间步骤中，我们将 $p_{0}$ 和 $r_{t}$ 同时送入掩码预测器，并一次性预测所有被掩码的 token. 随后 remask $\\frac{s}{t}$ 比例的已预测 token. 得到$r_{s}$，从而确保反向过程的转换与前向过程保持一致，以实现准确采样。\n受 LLM 采样中退火技巧的启发，我们探索了两种确定性但有效的重掩码策略。\nlow-confidence remasking: remask 那些基于预测置信度最低的 $\\frac{s}{t}$ 比例的 token. semi-autoregressive remasking: 对于经过 SFT 的 LLaDA 模型，将序列分成几个块，并从左到右地生成. 在每个块内部，采用反向过程进行采样。 A Conceptual Overview of the Semi-autoregressive Sampling\n对于条件似然评估，我们自然可以利用公式(5)中的上界。然而，我们发现下面这个等价形式（公式6）表现出更低的方差，在评估时更为稳定：\n$$\r-\\mathbb{E}_{l,r_{0},r_{l}}[\\frac{L}{l}\\sum_{i=1}^{L}I[r_{l}^{i}=M]log~p_{\\theta}(r_{0}^{i}|p_{0},r_{l})] \\quad(6)\r$$其中，$l$ 从 ${1, 2, ..., L}$ 中均匀采样，$r_{l}$ 是通过从 $r_{0}$ 中不放回地均匀采样 $l$ 个没被 mask 的 token 得到的。此外，我们还采用了 unsupervised classifier-free guidance.\n虽然这两个形式的期望值相同，但它们的方差不同。直观上，在公式 (5) 中，我们期望 $x_{t}=[p_0,r_t]$ 有 $t$ 比例的 token 被掩码。然而，前向过程的随机性常常会导致偏差，尤其当 $x_{t}$ 包含的 token 很少时。相比之下，在公式 (6) 中，$r_{l}$ 中被掩码 token 的比例 $\\frac{l}{L}$ 是确定的。\n虽然理论分析取决于数据分布，但经验结果表明，公式 (5) 需要超过 1000 次蒙特卡洛估计才能得到稳定结果，而公式 (6) 仅需 128 次估计即可达到稳定。\nAny-order autoregressive models (AO-ARM) 通过对 L 个变量所有可能的排列顺序进行自回归来描述联合分布。为了学习这样的分布，AO-ARM 利用一个权重共享的神经网络来为所有单变量条件概率建模，并使用掩码 token 来表示缺失的变量。在训练期间，模型会最小化在所有顺序的均匀分布 $U_{\\pi}$ 上的期望负对数似然：\n$$\r-\\mathbb{E}_{x_{0},\\pi \\sim U_{\\pi}}[\\sum_{i=1}^{L}log~p_{\\theta}(x_{0}^{\\pi(i)}|x_{0}^{\\pi(",
-  "wordCount" : "3555",
+  "articleBody": "Introduction LLM 主要的思想是 generative modeling 的思想是通过最大似然估计来优化模型的分布 $\\log p_\\theta(\\cdot)$ 来逼近数据的分布 $\\log p_{\\text{data}}(\\cdot)$ $$\r\\underbrace{\\max_\\theta\\mathbb{E}_{p_{\\text{data}}(x)}\\log p_\\theta(x)\\Leftrightarrow\\min_\\theta\\operatorname{KL}(p_{\\text{data}}(x)||p_\\theta(x)).}_{\\text{Generative modeling principles}} \\tag{1}\r$$当前，几乎所有我们熟知的大语言模型，从GPT系列到LLaMA系列，都基于autoregressice modeling 来实现。这种范式的核心是 next-token prediction ，即根据已经生成的文本序列，逐 toekn 地预测下一个最有可能出现的 token.\n$$\r\\underbrace{p_\\theta(x)=p_\\theta(x^1)\\prod_{i=2}^Lp_\\theta(x^i\\mid x^1,\\ldots,x^{i-1})}_{\\text{Autoregressive formulation}} \\tag{2}\r$$这种单向、顺序的生成方式在处理需要双向推理的任务时表现不佳，一个典型的例子就是 Reversal Curse ——模型知道 A is B，却往往无法推断出 B is A.\nLLM 能力的核心基石是生成式建模原理本身，即通过最大似然估计让模型学习真实世界的数据分布 ，而非自回归这一具体的实现形式。\nIt is the generative modeling principles (i.e., Eq. (1)), rather than the autoregressive formulation (i.e., Eq. (2)) itself, that fundamentally underpin the essential properties of LLMs.\n大语言模型的可扩展性 (scalability) ——即模型越大、数据越多、效果越好的特性——并非自回归模型所独有 。相反，这种可扩展性来源于更底层的生成式建模原理，而这些原理恰好保证了fisher consistency1\ninstruction-following 和 in-context learning2 并非自回归模型所独有，而是所有设计得当的条件生成模型 (conditional generative models) 在处理结构化语言任务时都应具备的内在属性 。\n因此作者提出了LLaDA (Large Language Diffusion with mAsking)，一个从零开始训练的、参数量达到 8B 的扩散语言模型。\nZero\u0026Few-Shot Benchmarks\nLLaDA 使用了 Masked Diffusion Model (MDM)，该方法结合了离散随机掩蔽过程，并训练了一个掩码预测器来近似其反向过程。\n2 Approach A Conceptual Overview of LLaDA\n2.1 Probabilistic Formulation 与公式(2)中的自回归模型不同，LLaDA通过前向过程 (forward process) 和 反向过程 (reverse process) 来定义模型分布 $p_{\\theta}(x_{0})$。\nForward Process 逐步地、独立地 mask $x_{0}$ 中的 token，直到在 $t=1$ 时序列被完全 mask.\n给定 $x_{0}$ 时 $x_{t}$ 的条件分布可以被分解为：\n$$\rq_{t|0}(x_{t}|x_{0}) = \\prod_{i=1}^{L} q_{t|0}(x_{t}^{i}|x_{0}^{i})\r$$对于 $t \\in (0,1)$，序列 $x_{t}$ 是部分被掩码的，其中每个 token 有 $t$ 的概率被mask，或有 $1-t$ 的概率保持不变。\n$$\rq_{t|0}(x_{t}^{i}|x_{0}^{i}) = \\begin{cases} 1-t, \u0026 x_{t}^{i} = x_{0}^{i} \\\\ t, \u0026 x_{t}^{i} = M \\end{cases}\r$$其中 M 表示掩码 token. 直观上，每个 token 要么保持不变，要么被掩码，被掩码的概率随着 t 从 0 到 1 线性增加。在 $t=1$ 时，所有 token 都被 mask. 线性变化的被掩码概率和原先扩散模型的加噪流程不一样，是基于文本信息和 token 长度成正比的假设。\nReverse Process 反向过程则通过在 $t=1\\rightarrow 0$ 从完全被掩码的序列中生成新数据。\n对于 $0 \\le s \u003c t \\le 1$，反向过程的条件分布分解为：\n$$\rq_{s|t}(x_{s}|x_{t}) = \\prod_{i=1}^{L} q_{s|t}(x_{s}^{i}|x_{t})\r$$其中每个 token 的条件分布为：\n$$\rq_{s|t}(x_{s}^{i}|x_{t}^{i}) = \\begin{cases} 1, \u0026 x_{t}^{i} \\ne M, x_{s}^{i} = x_{t}^{i} \\\\ \\frac{s}{t}, \u0026 x_{t}^{i} = M, x_{s}^{i} = M \\\\ \\frac{t-s}{t}q_{0|t}(x_{s}^{i}|x_{t}), \u0026 x_{t}^{i} = M, x_{s}^{i} \\ne M \\\\ 0, \u0026 \\text{otherwise} \\end{cases}\r$$需要估计的关键函数是条件分布 $q_{0|t}(x_{s}^{i}|x_{t})$，它在输入 $x_{t}$ 中对应位置被掩码的情况下，预测出原始的 token. 类似于连续扩散模型中的数据预测形式。如 (Ou et al., 2024) 所证明，可以推导出一个等价但无时间依赖的参数化形式\n$$\rq_{0|t}(x_s^i|x_t)=p_{\\text{data}}(x_0^i|x_t^\\text{UM}),\\quad\\forall i\\text{ such that }x_t^i=\\mathbf{M}\r$$其中 $x_{t}^{\\text{UM}}$ 表示 $x_{t}$ 中未被掩码 token 的集合，它与原始数据 $x_{0}$ 中对应的 token 相同，因为未掩码的 token 仅由 $x_{0}$ 决定且与时间 t 无关 。直观上，这意味着估计数据预测函数等同于估计在干净数据上的条件分布，而后者是时不变的。因此，时间 t 不需要作为输入提供给参数化模型 。\n尽管 MDM 的推导过程不简单，但其实现是直接的。我们首先引入掩码预测器，一个参数化模型 $p_{\\theta}(\\cdot|x_{t})$ (例如一个没有因果掩码的 Transformer)，它将任意 t 时刻的 $x_{t}$ 作为输入，并同时预测所有被 mask 的 token. 然后，我们如下定义模型分布 $p_{\\theta}(x_{0})$：从一个被完全 mask 序列的 $x_{1}$ 开始，从 $t=1$ 到 0 模拟一个由 $p_{\\theta}(\\cdot|x_{t})$ 参数化的近似反向过程。在 $t=0$ 时刻推导出的边缘分布即代表了模型分布 $p_{\\theta}(x_{0})$ 。\n掩码预测器将 $x_{t}$ 作为输入并同时预测所有被掩码的 token (表示为 M). 它通过一个仅在被掩码 token 上计算的交叉熵损失进行训练：\n$$\r\\mathcal{L}(\\theta)\\triangleq-\\mathbb{E}_{t,x_{0},x_{t}}[\\frac{1}{t}\\sum_{i=1}^{L}I[x_{t}^{i}=M]log~p_{\\theta}(x_{0}^{i}|x_{t})], \\tag{3}\r$$其中，$x_{0}$ 从训练数据中采样，$t$ 从[0, 1]中均匀采样Notably, LLaDA employs a masking ratio that varies randomly between 0 and 1 while masked language models (Devlin, 2018) use a fixed ratio.\r，$x_{t}$ 从前向过程中采样。指示函数 $I[\\cdot]$ 确保损失仅针对被掩码的 token 计算。一旦训练完成，便可以模拟一个由该掩码预测器参数化的反向过程（详见2.4节），并将模型分布 $p_{\\theta}(x_{0})$ 定义为该过程的边缘分布。\n公式(3)已被证明是模型分布负对数似然的上界\n$$\r-\\mathbb{E}_{p_{\\text{data}}(x_{0})}\\left[\\log p_{\\theta}(x_{0})\\right]\\leq\\mathcal{L}(\\theta) \\tag{4}\r$$该方法通过在正向过程中逐步屏蔽 token 并在反向过程中学习恢复数据分布来训练生成模型，所有这些都在（近似）最大似然估计框架下。\nPretraining LLaDA 8B 模型在一个包含 2.3T tokens 的高质量、多源数据集上从零开始进行预训练。该数据集覆盖了通用文本、代码、数学和多语言内容 。\n训练总共消耗了 0.13M H800 GPU hours. 训练序列长度固定为4096. 其核心训练步骤是：对每个序列随机采样一个掩码率 t，并独立地以该概率掩码每个 token，然后让模型去预测被掩码的部分 。\n架构调整 相较于LLaMA3 8B，LLaDA 8B在架构上做了一些必要调整，如使用标准的 MHA 而非 GQA，并相应地调整了 FFN 的维度以保持模型总参数量相当 。\n优化器与学习率 训练使用了 AdamW 优化器和一个特殊的 Warmup-Stable-Decay 学习率调度策略。整个8B模型的训练实验只执行了一次，没有进行任何超参数调优。\nOur ARM Baseline 1B LLaDA IB Our ARM Baseline 7B LLaDA 8B LLaMA3 8B Layers 22 22 28 32 32 Model dimension 2048 2048 4096 4096 4096 Attention heads 32 32 32 32 32 Vocabulary size 126,464 126,464 126,464 126.464 128,000 FFN dimension 5634 5634 13.440 12,288 14,336 Key/Value heads 4 4 8 32 8 Total parameters 1.49 B 1.49 B 6.83 B 8.02 B 8.03 B Non-embedding parameters 0.97 B 0.97 B 5.80 B 6.98 B 6.98 B Supervised Fine-Tuning 我们通过使用配对数据 $(p_{0}, r_{0})$ 进行 监督微调 (SFT) 来增强LLaDA遵循指令的能力，其中 $p_{0}$ 是 prompt，$r_{0}$ 表示响应(response). 这是针对LLM最简单、最基础的 post-training 方法。从技术上讲，这要求模型对条件分布 $p_{\\theta}(r_{0}|p_{0})$，而非预训练中的 $p_{\\theta}(x_{0})$ 进行建模。\n其实现方式与预训练类似。如图2(b)所示，保持 prompt 部分不变，并像处理 $x_{0}$ 一样，独立地 mask response 中的 token. 然后，将提示和被掩码的响应 $r_{t}$ 一同送入预训练好的掩码预测器，以计算用于 SFT 的损失\n$$\r-\\mathbb{E}_{t,p_{0},r_{0},r_{t}}[\\frac{1}{t}\\sum_{i=1}^{L^{\\prime}}I[r_{t}^{i}=M]log~p_{\\theta}(r_{0}^{i}|p_{0},r_{t})] \\tag{5}\r$$其中，$L^{\\prime}$ 表示稍后指定的动态长度。这种方法与预训练是完全兼容的。本质上，将 $p_{0}$ 和 $r_{0}$ 拼接起来可以被视为干净的预训练数据 $x_{0} $，而将 $p_{0}$ 和 $r_{t}$ 拼接起来则可作为其被掩码后的版本 $x_{t}$. 这个过程与预训练完全相同，唯一的区别在于所有被掩码的 token 恰好都出现在 $r_{0}$ 部分。\nLLaDA 8B 模型在一个包含 4.5M 对样本的数据集上进行了 SFT. 与预训练过程一致，数据准备和训练都遵循了现有LLM (Chu et al., 2024; Yang et al., 2024) 中使用的 SFT 协议，没有引入任何额外的技术来优化 LLaDA 的性能。该数据集涵盖了多个领域，包括代码、数学、指令遵循和结构化数据理解。我们在每个 mini-batch 中的短样本对末尾附加 EOS token，以确保所有数据长度相等。在训练期间将 EOS视为一个普通 token ，并在采样时将其移除，使得LLaDA能够自动控制响应的长度。\n我们在SFT数据上训练了 3 个 epoch，其调度策略与预训练阶段相似。学习率在最初 50 次迭代中从 0 线性增加到 $2.5 \\times 10^{-5}$，然后保持不变。在最后 10% 的迭代中，学习率性降低到 $2.5 \\times 10^{-6}$. 此外，我们将权重衰减设置为 0.1，全局 batch size 设置为 256，每个 GPU 的本地 batch size 设置为 2. SFT实验只执行了一次，没有进行任何超参数调优。\nInference 作为一个生成式模型，LLaDA既能 采样 (sampling) 新文本，也能 评估 (evaluating) 候选文本的似然。\n先从采样说起。如图 2(c) 所示，给定一个 prompt $p_{0}$，我们通过离散化反向过程来从模型分布 $p_{\\theta}(r_{0}|p_{0})$ 中进行采样，这个过程从一个被完全掩码的 response 开始。\n总的采样步数是一个超参数，为 LLaDA 提供了一个在效率和样本质量之间的权衡（详见3.3节分析）。我们默认使用均匀分布的时间步。 此外，生成长度也被视为超参数，它指定了采样过程开始时完全被掩码句子的长度。如附录B.4所述，由于预训练和SFT都是在可变长度的数据集上进行的，最终结果对这个长度超参数不敏感。\n在一个从时间 $t \\in (0, 1]$ 到 $s \\in [0, t)$的中间步骤中，我们将 $p_{0}$ 和 $r_{t}$ 同时送入掩码预测器，并一次性预测所有被掩码的 token. 随后 remask $\\frac{s}{t}$ 比例的已预测 token 得到$r_{s}$，从而确保反向过程的转换与前向过程保持一致，以实现准确采样。\n受 LLM 采样中退火技巧的启发，我们探索了两种确定性但有效的重掩码策略。\nlow-confidence remasking: remask 那些基于预测置信度最低的 $\\frac{s}{t}$ 比例的 token. semi-autoregressive remasking: 对于经过 SFT 的 LLaDA 模型，将序列分成几个块，并从左到右地生成. 在每个块内部，采用反向过程进行采样。 A Conceptual Overview of the Semi-autoregressive Sampling\n对于条件似然评估，我们自然可以利用公式(5)中的上界。然而，我们发现下面这个等价形式（公式6）表现出更低的方差，在评估时更为稳定：\n$$\r-\\mathbb{E}_{l,r_{0},r_{l}}[\\frac{L}{l}\\sum_{i=1}^{L}I[r_{l}^{i}=M]log~p_{\\theta}(r_{0}^{i}|p_{0},r_{l})] \\tag{6}\r$$其中，$l$ 从 ${1, 2, ..., L}$ 中均匀采样，$r_{l}$ 是通过从 $r_{0}$ 中不放回地均匀采样 $l$ 个没被 mask 的 token 得到的。此外，我们还采用了 unsupervised classifier-free guidance.\n虽然这两个形式的期望值相同，但它们的方差不同。直观上，在公式 (5) 中，我们期望 $x_{t}=[p_0,r_t]$ 有 $t$ 比例的 token 被掩码。然而，前向过程的随机性常常会导致偏差，尤其当 $x_{t}$ 包含的 token 很少时。相比之下，在公式 (6) 中，$r_{l}$ 中被掩码 token 的比例 $\\frac{l}{L}$ 是确定的。\n虽然理论分析取决于数据分布，但经验结果表明，公式 (5) 需要超过 1000 次蒙特卡洛估计才能得到稳定结果，而公式 (6) 仅需 128 次估计即可达到稳定。\nAny-order autoregressive models (AO-ARM) 通过对 L 个变量所有可能的排列顺序进行自回归来描述联合分布。为了学习这样的分布，AO-ARM 利用一个权重共享的神经网络来为所有单变量条件概率建模，并使用掩码 token 来表示缺失的变量。在训练期间，模型会最小化在所有顺序的均匀分布 $U_{\\pi}$ 上的期望负对数似然：\n$$\r-\\mathbb{E}_{x_{0},\\pi \\sim U_{\\pi}}[\\sum_{i=1}^{L}log~p_{\\theta}(x_{0}^{\\pi(i)}|x_{0}^{\\pi(",
+  "wordCount" : "3615",
   "inLanguage": "en",
   "datePublished": "2025-06-12T13:43:16+08:00",
-  "dateModified": "2025-06-12T13:43:16+08:00",
+  "dateModified": "2025-06-13T15:12:24+08:00",
   "author":[{
     "@type": "Person",
     "name": "WITHER"
@@ -237,7 +247,7 @@
     <div class="post-description">
       Paper Reading of LLaDA
     </div>
-    <div class="post-meta"><span title='2025-06-12 13:43:16 +0800 CST'>Jun-12-2025</span>&nbsp;·&nbsp;8 min&nbsp;·&nbsp;3555 words&nbsp;·&nbsp;WITHER
+    <div class="post-meta"><span title='2025-06-12 13:43:16 +0800 CST'>Jun-12-2025</span>&nbsp;·&nbsp;8 min&nbsp;·&nbsp;3615 words&nbsp;·&nbsp;WITHER
 
 </div>
   </header> <aside id="toc-container" class="toc-container wide">
@@ -271,6 +281,8 @@
                     <li>
                         <a href="#3-experiment" aria-label="3 Experiment">3 Experiment</a></li>
                     <li>
+                        <a href="#generation-code" aria-label="Generation code">Generation code</a></li>
+                    <li>
                         <a href="#reference" aria-label="Reference">Reference</a>
                     </li>
                 </ul>
@@ -281,53 +293,90 @@
 <script>
     let activeElement;
     let elements;
-    window.addEventListener('DOMContentLoaded', function (event) {
+    
+    document.addEventListener('DOMContentLoaded', function (event) {
         checkTocPosition();
-
+    
         elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
-         
-         activeElement = elements[0];
-         const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
-         document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
-     }, false);
-
+        if (elements.length > 0) {
+            
+            activeElement = elements[0];
+            const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+            document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+        }
+    
+        
+        const topLink = document.getElementById('top-link');
+        if (topLink) {
+            topLink.addEventListener('click', (event) => {
+                
+                event.preventDefault();
+    
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    }, false);
+    
     window.addEventListener('resize', function(event) {
         checkTocPosition();
     }, false);
-
+    
     window.addEventListener('scroll', () => {
         
-        activeElement = Array.from(elements).find((element) => {
-            if ((getOffsetTop(element) - window.pageYOffset) > 0 && 
-                (getOffsetTop(element) - window.pageYOffset) < window.innerHeight/2) {
-                return element;
-            }
-        }) || activeElement
-
-        elements.forEach(element => {
-             const id = encodeURI(element.getAttribute('id')).toLowerCase();
-             if (element === activeElement){
-                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
-             } else {
-                 document.querySelector(`.inner ul li a[href="#${id}"]`).classList.remove('active');
-             }
-         })
-     }, false);
-
+        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
+        
+        if (scrollPosition === 0) {
+            return;
+        }
+    
+        
+        if (elements && elements.length > 0) {
+            
+            activeElement = Array.from(elements).find((element) => {
+                if ((getOffsetTop(element) - scrollPosition) > 0 && 
+                    (getOffsetTop(element) - scrollPosition) < window.innerHeight / 2) {
+                    return element;
+                }
+            }) || activeElement;
+    
+            elements.forEach(element => {
+                const id = encodeURI(element.getAttribute('id')).toLowerCase();
+                const tocLink = document.querySelector(`.inner ul li a[href="#${id}"]`);
+                if (element === activeElement){
+                    tocLink.classList.add('active');
+    
+                    
+                    const tocContainer = document.querySelector('.toc .inner');
+                    const linkOffsetTop = tocLink.offsetTop;
+                    const containerHeight = tocContainer.clientHeight;
+                    const linkHeight = tocLink.clientHeight;
+    
+                    
+                    const scrollPosition = linkOffsetTop - (containerHeight / 2) + (linkHeight / 2);
+                    tocContainer.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+                } else {
+                    tocLink.classList.remove('active');
+                }
+            });
+        }
+    }, false);
+    
     const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
     const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
     const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
-
+    
     function checkTocPosition() {
         const width = document.body.scrollWidth;
-
+    
         if (width - main - (toc * 2) - (gap * 4) > 0) {
             document.getElementById("toc-container").classList.add("wide");
         } else {
             document.getElementById("toc-container").classList.remove("wide");
         }
     }
-
+    
     function getOffsetTop(element) {
         if (!element.getClientRects().length) {
             return 0;
@@ -336,15 +385,17 @@
         let win = element.ownerDocument.defaultView;
         return rect.top + win.pageYOffset;   
     }
+    
 </script>
+
   <div class="post-content"><h1 id="introduction">Introduction<a hidden class="anchor" aria-hidden="true" href="#introduction">#</a></h1>
 <p>LLM 主要的思想是 <em>generative modeling</em> 的思想是通过最大似然估计来优化模型的分布 $\log p_\theta(\cdot)$ 来逼近数据的分布 $\log p_{\text{data}}(\cdot)$
 </p>
 $$
-\underbrace{\max_\theta\mathbb{E}_{p_{\text{data}}(x)}\log p_\theta(x)\Leftrightarrow\min_\theta\operatorname{KL}(p_{\text{data}}(x)||p_\theta(x)).}_{\text{Generative modeling principles}} \quad(1)
+\underbrace{\max_\theta\mathbb{E}_{p_{\text{data}}(x)}\log p_\theta(x)\Leftrightarrow\min_\theta\operatorname{KL}(p_{\text{data}}(x)||p_\theta(x)).}_{\text{Generative modeling principles}} \tag{1}
 $$<p>当前，几乎所有我们熟知的大语言模型，从GPT系列到LLaMA系列，都基于<em>autoregressice modeling</em> 来实现。这种范式的核心是 <strong>next-token prediction</strong> ，即根据已经生成的文本序列，逐 toekn 地预测下一个最有可能出现的 token.</p>
 $$
-\underbrace{p_\theta(x)=p_\theta(x^1)\prod_{i=2}^Lp_\theta(x^i\mid x^1,\ldots,x^{i-1})}_{\text{Autoregressive formulation}} \quad(2)
+\underbrace{p_\theta(x)=p_\theta(x^1)\prod_{i=2}^Lp_\theta(x^i\mid x^1,\ldots,x^{i-1})}_{\text{Autoregressive formulation}} \tag{2}
 $$<p>这种单向、顺序的生成方式在处理需要双向推理的任务时表现不佳，一个典型的例子就是 <strong>Reversal Curse</strong> ——模型知道 A is B，却往往无法推断出 B is A.</p>
 <p>LLM 能力的核心基石是生成式建模原理本身，即通过最大似然估计让模型学习真实世界的数据分布 ，而非自回归这一具体的实现形式。</p>
 <blockquote class="quote"><p><strong>It is the generative modeling principles (i.e., Eq. (1)), rather than the autoregressive formulation (i.e., Eq. (2)) itself, that fundamentally underpin the essential properties of LLMs.</strong></p></blockquote>
@@ -379,7 +430,7 @@ q_{t|0}(x_{t}|x_{0}) = \prod_{i=1}^{L} q_{t|0}(x_{t}^{i}|x_{0}^{i})
 $$<p>对于 $t \in (0,1)$，序列 $x_{t}$ 是部分被掩码的，其中每个 token 有 $t$ 的概率被mask，或有 $1-t$ 的概率保持不变。</p>
 $$
 q_{t|0}(x_{t}^{i}|x_{0}^{i}) = \begin{cases} 1-t, & x_{t}^{i} = x_{0}^{i} \\ t, & x_{t}^{i} = M \end{cases}
-$$<p>其中 M 表示掩码 token. 直观上，每个 token 要么保持不变，要么被掩码，而被掩码的概率随着 t 从 0 到 1 线性增加。在 $t=1$ 时，所有 token 都被 mask.</p>
+$$<p>其中 M 表示掩码 token. 直观上，每个 token 要么保持不变，要么被掩码，<strong>被掩码的概率随着 t 从 0 到 1 线性增加</strong>。在 $t=1$ 时，所有 token 都被 mask. 线性变化的被掩码概率和原先扩散模型的加噪流程不一样，是基于文本信息和 token 长度成正比的假设。</p>
 <h2 id="reverse-process">Reverse Process<a hidden class="anchor" aria-hidden="true" href="#reverse-process">#</a></h2>
 <p>反向过程则通过在 $t=1\rightarrow 0$ 从完全被掩码的序列中生成新数据。</p>
 <p>对于 $0 \le s < t \le 1$，反向过程的条件分布分解为：</p>
@@ -395,17 +446,20 @@ $$<p>其中 $x_{t}^{\text{UM}}$ 表示 $x_{t}$ 中未被掩码 token 的集合�
 <p>尽管 MDM 的推导过程不简单，但其实现是直接的。我们首先引入<strong>掩码预测器</strong>，一个参数化模型 $p_{\theta}(\cdot|x_{t})$ (例如一个没有因果掩码的 Transformer)，它将任意 t 时刻的 $x_{t}$ 作为输入，并同时预测所有被 mask 的 token. 然后，我们如下定义模型分布 $p_{\theta}(x_{0})$：从一个被完全 mask 序列的 $x_{1}$ 开始，从 $t=1$ 到 0 模拟一个由 $p_{\theta}(\cdot|x_{t})$ 参数化的近似反向过程。在 $t=0$ 时刻推导出的边缘分布即代表了模型分布 $p_{\theta}(x_{0})$ 。</p>
 <p>掩码预测器将 $x_{t}$ 作为输入并同时预测所有被掩码的 token (表示为 M). 它通过一个仅在被掩码 token 上计算的交叉熵损失进行训练：</p>
 $$
-\mathcal{L}(\theta)\triangleq-\mathbb{E}_{t,x_{0},x_{t}}[\frac{1}{t}\sum_{i=1}^{L}I[x_{t}^{i}=M]log~p_{\theta}(x_{0}^{i}|x_{t})], \quad(3)
+\mathcal{L}(\theta)\triangleq-\mathbb{E}_{t,x_{0},x_{t}}[\frac{1}{t}\sum_{i=1}^{L}I[x_{t}^{i}=M]log~p_{\theta}(x_{0}^{i}|x_{t})], \tag{3}
 $$<p>其中，$x_{0}$ 从训练数据中采样，$t$ 从<code>[0, 1]</code>中均匀采样<span class="sidenote-number"><small class="sidenote">Notably, LLaDA employs a masking ratio that <em>varies randomly</em> between 0 and 1 while masked language models (Devlin, 2018) use a fixed ratio.</small></span>
 ，$x_{t}$ 从前向过程中采样。指示函数 $I[\cdot]$ 确保损失仅针对被掩码的 token 计算。一旦训练完成，便可以模拟一个由该掩码预测器参数化的反向过程（详见2.4节），并将模型分布 $p_{\theta}(x_{0})$ 定义为该过程的边缘分布。</p>
-<p>总的来说该方法通过在正向过程中逐步屏蔽令牌并在反向过程中学习恢复数据分布来训练生成模型，所有这些都在（近似）最大似然估计框架下。</p>
+<p>公式(3)已被证明是模型分布负对数似然的上界</p>
+$$
+-\mathbb{E}_{p_{\text{data}}(x_{0})}\left[\log p_{\theta}(x_{0})\right]\leq\mathcal{L}(\theta) \tag{4}
+$$<p>该方法通过在正向过程中逐步屏蔽 token 并在反向过程中学习恢复数据分布来训练生成模型，所有这些都在（近似）最大似然估计框架下。</p>
 <h2 id="pretraining">Pretraining<a hidden class="anchor" aria-hidden="true" href="#pretraining">#</a></h2>
 <ul>
 <li>
 <p>LLaDA 8B 模型在一个包含 2.3T tokens 的高质量、多源数据集上从零开始进行预训练。该数据集覆盖了通用文本、代码、数学和多语言内容 。</p>
 </li>
 <li>
-<p>训练总共消耗了 0.13M H800 GPU小 hours. 训练序列长度固定为4096. 其核心训练步骤是：对每个序列随机采样一个掩码率 t，并独立地以该概率掩码每个 token，然后让模型去预测被掩码的部分 。</p>
+<p>训练总共消耗了 0.13M H800 GPU hours. 训练序列长度固定为4096. 其核心训练步骤是：对每个序列随机采样一个掩码率 t，并独立地以该概率掩码每个 token，然后让模型去预测被掩码的部分 。</p>
 </li>
 <li>
 <p><strong>架构调整</strong> 相较于LLaMA3 8B，LLaDA 8B在架构上做了一些必要调整，如使用标准的 MHA 而非 GQA，并相应地调整了 FFN 的维度以保持模型总参数量相当 。</p>
@@ -493,17 +547,19 @@ $$<p>其中，$x_{0}$ 从训练数据中采样，$t$ 从<code>[0, 1]</code>中�
   </tbody>
 </table>
 <h2 id="supervised-fine-tuning">Supervised Fine-Tuning<a hidden class="anchor" aria-hidden="true" href="#supervised-fine-tuning">#</a></h2>
-<p>我们通过使用配对数据 $(p_{0}, r_{0})$ 进行监督微调 (SFT)来增强LLaDA遵循指令的能力，其中 $p_{0}$ 是 prompt，$r_{0}$ 表示响应(response). 这是针对LLM最简单、最基础的 post-training 方法。从技术上讲，这要求模型对条件分布 $p_{\theta}(r_{0}|p_{0})$ 进行建模，而非预训练中的 $p_{\theta}(x_{0})$。</p>
+<p>我们通过使用配对数据 $(p_{0}, r_{0})$ 进行 <strong>监督微调 (SFT)</strong> 来增强LLaDA遵循指令的能力，其中 $p_{0}$ 是 prompt，$r_{0}$ 表示响应(response). 这是针对LLM最简单、最基础的 post-training 方法。从技术上讲，这要求模型对条件分布 $p_{\theta}(r_{0}|p_{0})$，而非预训练中的 $p_{\theta}(x_{0})$ 进行建模。</p>
 <p>其实现方式与预训练类似。如图2(b)所示，保持 prompt 部分不变，并像处理 $x_{0}$ 一样，独立地 mask response 中的 token. 然后，将提示和被掩码的响应 $r_{t}$ 一同送入预训练好的掩码预测器，以计算用于 SFT 的损失</p>
 $$
--\mathbb{E}_{t,p_{0},r_{0},r_{t}}[\frac{1}{t}\sum_{i=1}^{L^{\prime}}I[r_{t}^{i}=M]log~p_{\theta}(r_{0}^{i}|p_{0},r_{t})] \quad (5)
+-\mathbb{E}_{t,p_{0},r_{0},r_{t}}[\frac{1}{t}\sum_{i=1}^{L^{\prime}}I[r_{t}^{i}=M]log~p_{\theta}(r_{0}^{i}|p_{0},r_{t})] \tag{5}
 $$<p>其中，$L^{\prime}$ 表示稍后指定的动态长度。这种方法与预训练是完全兼容的。本质上，将 $p_{0}$ 和 $r_{0}$ 拼接起来可以被视为干净的预训练数据 $x_{0} $，而将 $p_{0}$ 和 $r_{t}$ 拼接起来则可作为其被掩码后的版本 $x_{t}$. 这个过程与预训练完全相同，唯一的区别在于所有被掩码的 token 恰好都出现在 $r_{0}$ 部分。</p>
 <p>LLaDA 8B 模型在一个包含 4.5M 对样本的数据集上进行了 SFT. 与预训练过程一致，数据准备和训练都遵循了现有LLM (Chu et al., 2024; Yang et al., 2024) 中使用的 SFT 协议，没有引入任何额外的技术来优化 LLaDA 的性能。该数据集涵盖了多个领域，包括代码、数学、指令遵循和结构化数据理解。我们在每个 mini-batch 中的短样本对末尾附加 EOS token，以确保所有数据长度相等。在训练期间将 EOS视为一个普通 token ，并在采样时将其移除，使得LLaDA能够自动控制响应的长度。</p>
 <p>我们在SFT数据上训练了 3 个 epoch，其调度策略与预训练阶段相似。学习率在最初 50 次迭代中从 0 线性增加到 $2.5 \times 10^{-5}$，然后保持不变。在最后 10% 的迭代中，学习率性降低到 $2.5 \times 10^{-6}$. 此外，我们将权重衰减设置为 0.1，全局 batch size 设置为 256，每个 GPU 的本地 batch size 设置为 2. SFT实验只执行了一次，没有进行任何超参数调优。</p>
 <h2 id="inference">Inference<a hidden class="anchor" aria-hidden="true" href="#inference">#</a></h2>
 <p>作为一个生成式模型，LLaDA既能 <strong>采样 (sampling)</strong> 新文本，也能 <strong>评估 (evaluating)</strong> 候选文本的似然。</p>
-<p>我们先从采样说起。如图 2(c) 所示，给定一个 prompt $p_{0}$，我们通过离散化反向过程来从模型分布 $p_{\theta}(r_{0}|p_{0})$ 中进行采样，这个过程从一个被完全掩码的 response 开始。总的采样步数是一个超参数，为 LLaDA 提供了一个在效率和样本质量之间的权衡（详见3.3节分析）。我们默认使用均匀分布的时间步。此外，生成长度也被视为一个超参数，它指定了采样过程开始时完全被掩码句子的长度。如附录B.4所述，由于预训练和SFT都是在可变长度的数据集上进行的，最终结果对这个长度超参数不敏感。</p>
-<p>在一个从时间 $t \in (0, 1]$ 到 $s \in [0, t)$的中间步骤中，我们将 $p_{0}$ 和 $r_{t}$ 同时送入掩码预测器，并一次性预测所有被掩码的 token. 随后 <em>remask</em> $\frac{s}{t}$ 比例的已预测 token. 得到$r_{s}$，从而确保反向过程的转换与前向过程保持一致，以实现准确采样。</p>
+<p>先从采样说起。如图 2(c) 所示，给定一个 prompt $p_{0}$，我们通过离散化反向过程来从模型分布 $p_{\theta}(r_{0}|p_{0})$ 中进行采样，这个过程从一个被完全掩码的 response 开始。</p>
+<p><strong>总的采样步数是一个超参数</strong>，为 LLaDA 提供了一个在效率和样本质量之间的权衡（详见3.3节分析）。我们默认使用均匀分布的时间步。
+此外，<strong>生成长度也被视为超参数</strong>，它指定了采样过程开始时完全被掩码句子的长度。如附录B.4所述，由于预训练和SFT都是在可变长度的数据集上进行的，最终结果对这个长度超参数不敏感。</p>
+<p>在一个从时间 $t \in (0, 1]$ 到 $s \in [0, t)$的中间步骤中，我们将 $p_{0}$ 和 $r_{t}$ 同时送入掩码预测器，并一次性预测所有被掩码的 token. 随后 <em>remask</em> $\frac{s}{t}$ 比例的已预测 token 得到$r_{s}$，从而确保反向过程的转换与前向过程保持一致，以实现准确采样。</p>
 <p>受 LLM 采样中退火技巧的启发，我们探索了两种确定性但有效的重掩码策略。</p>
 <ul>
 <li><strong>low-confidence remasking</strong>: remask 那些基于预测置信度最低的 $\frac{s}{t}$ 比例的 token.</li>
@@ -516,9 +572,9 @@ $$<p>其中，$L^{\prime}$ 表示稍后指定的动态长度。这种方法与�
     </a><figcaption>A Conceptual Overview of the Semi-autoregressive Sampling</figcaption></figure></p>
 <p>对于条件似然评估，我们自然可以利用公式(5)中的上界。然而，我们发现下面这个等价形式（公式6）表现出更低的方差，在评估时更为稳定：</p>
 $$
--\mathbb{E}_{l,r_{0},r_{l}}[\frac{L}{l}\sum_{i=1}^{L}I[r_{l}^{i}=M]log~p_{\theta}(r_{0}^{i}|p_{0},r_{l})] \quad(6)
+-\mathbb{E}_{l,r_{0},r_{l}}[\frac{L}{l}\sum_{i=1}^{L}I[r_{l}^{i}=M]log~p_{\theta}(r_{0}^{i}|p_{0},r_{l})] \tag{6}
 $$<p>其中，$l$ 从 ${1, 2, ..., L}$ 中均匀采样，$r_{l}$ 是通过从 $r_{0}$ 中不放回地均匀采样 $l$ 个没被 mask 的 token 得到的。此外，我们还采用了 unsupervised classifier-free guidance.</p>
-<p>虽然这两个形式的期望值相同，但它们的方差不同。直观上，在公式 (5) 中，我们期望 $x_{t}=[p_0,r_t]$ 有 $t$ 比例的 token 被掩码。然而，前向过程的随机性常常会导致偏差，尤其当 $x_{t}$ 包含的 token 很少时。相比之下，在公式 (6) 中，$r_{l}$ 中被掩码 token 的比例 $\frac{l}{L}$ 是确定的。</p>
+<p><strong>虽然这两个形式的期望值相同，但它们的方差不同</strong>。直观上，在公式 (5) 中，我们期望 $x_{t}=[p_0,r_t]$ 有 $t$ 比例的 token 被掩码。然而，前向过程的随机性常常会导致偏差，尤其当 $x_{t}$ 包含的 token 很少时。相比之下，在公式 (6) 中，$r_{l}$ 中被掩码 token 的比例 $\frac{l}{L}$ 是确定的。</p>
 <p>虽然理论分析取决于数据分布，但经验结果表明，公式 (5) 需要超过 1000 次蒙特卡洛估计才能得到稳定结果，而公式 (6) 仅需 128 次估计即可达到稳定。</p>
 <p>Any-order autoregressive models (AO-ARM)  通过对 L 个变量所有可能的排列顺序进行自回归来描述联合分布。为了学习这样的分布，AO-ARM 利用一个权重共享的神经网络来为所有单变量条件概率建模，并使用掩码 token 来表示缺失的变量。在训练期间，模型会最小化在所有顺序的均匀分布 $U_{\pi}$ 上的期望负对数似然：</p>
 $$
@@ -551,7 +607,211 @@ $$<p> (16)</p>
 <p>反向推理 (Reversal Reasoning)：为了量化模型克服“反转诅咒”的能力，实验在一个中文古诗补全任务上进行了测试。结果表明，LLaDA 在正向和反向任务上表现均衡，一致性强，而 GPT-4o 等模型则在反向任务上表现出显著的性能下降。</p>
 </li>
 </ol>
-<h1 id="reference">Reference<a hidden class="anchor" aria-hidden="true" href="#reference">#</a></h1>
+<h1 id="generation-code">Generation code<a hidden class="anchor" aria-hidden="true" href="#generation-code">#</a></h1>
+<ol>
+<li>
+<p><strong>初始化 (The Canvas) 🎨</strong></p>
+<p>函数首先会创建一个如下所示的序列：
+<code>[&lt;start_token&gt;, &lt;prompt_tokens&gt;, [MASK], [MASK], ..., [MASK]]</code>
+generate 的目标就是用一个连贯的答案来替换掉所有的 <code>[MASK]</code> 标记。</p>
+</li>
+<li>
+<p><strong>分块 (Semi-Autoregressive) 🧱</strong></p>
+<p>算法并不会一次性填充所有 <code>gen_length</code> 个掩码，而是将整个过程分解为 <code>num_blocks</code> 个块。它会先完全填满第一个 <code>block_length</code> 长度的掩码，然后再开始处理下一个块。这种方式在宏观层面引入了从左到右的生成顺序。</p>
+</li>
+<li>
+<p><strong>迭代式精炼 (核心循环) 🔄</strong></p>
+<p>对于每一个块，代码都会进入一个内部循环，该循环运行 <code>steps_per_block</code> 次。循环的每一步中：</p>
+<ul>
+<li>
+<p><strong>A. 预测：</strong> 将当前的 <code>x</code> 包含其中剩余的掩码 输入到 <code>LLaDA</code> 模型中。模型会为序列中的<em>每一个</em>位置预测最可能的 token，即使是那些没有被掩码的位置也会进行预测。</p>
+</li>
+<li>
+<p><strong>B. 生成候选 token：</strong> 算法通过对模型的输出 <code>logits</code> 执行 <code>argmax</code> 操作，为每个位置确定一个候选 token. 在这里可以加入 Gumbel 噪声来引入随机性，其作用类似于自回归采样中的 <code>temperature</code>。这样我们就得到了一个完整的候选序列 <code>x0</code>。</p>
+</li>
+<li>
+<p><strong>C. 置信度评分：</strong> 算法需为每个 <code>[MASK]</code> 位置上预测出的 token 计算一个<strong>置信度分数</strong>。<code>low_confidence</code> 策略（尽管其在代码逻辑中的命名可能有点误导）使用预测 token 的 softmax 概率作为其置信度。概率越高，代表模型越自信。</p>
+</li>
+<li>
+<p><strong>D. token 选择：</strong> 基于置信度分数，算法会保留<strong>置信度最高的 K 个</strong>预测结果。每一步要保留的 token 数量 (K) 由 <code>get_num_transfer_tokens</code> 函数预先计算好，以确保线性的 unksk 速率。</p>
+</li>
+<li>
+<p><strong>E. 状态更新：</strong> 在那些被选中的高置信度位置，<code>[MASK]</code>  token 会被替换成 <code>x0</code> 中对应的预测 token. 而其他的 <code>[MASK]</code> 位置则保持不变，留待下一次迭代。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>重复与推进 ➡️</strong>
+内部循环不断重复。在下一次迭代中，模型会看到更新后的 <code>x</code>，其中包含了更多上下文信息和更少的掩码。这使得模型在后续步骤中能做出更好的预测。这个精炼过程会一直持续，直到当前块中所有的 <code>[MASK]</code> 都被去除。</p>
+</li>
+<li>
+<p><strong>下一区块与完成 ✅</strong>
+当一个块完成后，外部循环会移动到下一个 <code>[MASK]</code> 块，并重复整个迭代式精炼过程，直到生成了完整的 <code>gen_length</code> 长度。最后，返回最终被完全填充的序列。</p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoTokenizer</span><span class="p">,</span> <span class="n">AutoModel</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">add_gumbel_noise</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperature</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">    The Gumbel max is a method for sampling categorical distributions.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    According to arXiv:2409.02908, for MDM, low-precision Gumbel Max improves perplexity score but reduces generation quality.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    Thus, we use float64.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">temperature</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">logits</span>
+</span></span><span class="line"><span class="cl">    <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">gumbel_noise</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">noise</span><span class="p">))</span> <span class="o">**</span> <span class="n">temperature</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">logits</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span> <span class="o">/</span> <span class="n">gumbel_noise</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_num_transfer_tokens</span><span class="p">(</span><span class="n">mask_index</span><span class="p">,</span> <span class="n">steps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">    In the reverse process, the interval [0, 1] is uniformly discretized into steps intervals.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    Furthermore, because LLaDA employs a linear noise schedule (as defined in Eq. (8)),
+</span></span></span><span class="line"><span class="cl"><span class="s1">    the expected number of tokens transitioned at each step should be consistent.
+</span></span></span><span class="line"><span class="cl"><span class="s1">
+</span></span></span><span class="line"><span class="cl"><span class="s1">    This function is designed to precompute the number of tokens that need to be transitioned at each step.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mask_num</span> <span class="o">=</span> <span class="n">mask_index</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">base</span> <span class="o">=</span> <span class="n">mask_num</span> <span class="o">//</span> <span class="n">steps</span>
+</span></span><span class="line"><span class="cl">    <span class="n">remainder</span> <span class="o">=</span> <span class="n">mask_num</span> <span class="o">%</span> <span class="n">steps</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">num_transfer_tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">mask_num</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">steps</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">mask_index</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">+</span> <span class="n">base</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mask_num</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num_transfer_tokens</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">remainder</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">num_transfer_tokens</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">gen_length</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">block_length</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">             <span class="n">cfg_scale</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">remasking</span><span class="o">=</span><span class="s1">&#39;low_confidence&#39;</span><span class="p">,</span> <span class="n">mask_id</span><span class="o">=</span><span class="mi">126336</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">    Args:
+</span></span></span><span class="line"><span class="cl"><span class="s1">        model: Mask predictor.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        prompt: A tensor of shape (1, L).
+</span></span></span><span class="line"><span class="cl"><span class="s1">        steps: Sampling steps, less than or equal to gen_length.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        gen_length: Generated answer length.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        block_length: Block length, less than or equal to gen_length. If less than gen_length, it means using semi_autoregressive remasking.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        temperature: Categorical distribution sampling temperature.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        cfg_scale: Unsupervised classifier-free guidance scale.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        remasking: Remasking strategy. &#39;low_confidence&#39; or &#39;random&#39;.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        mask_id: The toke id of [MASK] is 126336.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 1. Initialization: Create the full sequence tensor &#39;x&#39;.</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># It starts with the prompt, followed by `gen_length` [MASK] tokens.</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># This is the &#34;canvas&#34; that will be filled in.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">gen_length</span><span class="p">),</span> <span class="n">mask_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># Keep track of where the original prompt is, so we don&#39;t modify it.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">prompt_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="n">mask_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 2. Semi-Autoregressive Setup (Blocking)</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># The generation is split into &#39;num_blocks&#39; chunks. This handles long generation</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># by generating `block_length` tokens at a time before moving to the next chunk.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">assert</span> <span class="n">gen_length</span> <span class="o">%</span> <span class="n">block_length</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_blocks</span> <span class="o">=</span> <span class="n">gen_length</span> <span class="o">//</span> <span class="n">block_length</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1"># The total number of refinement steps is distributed among the blocks.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">assert</span> <span class="n">steps</span> <span class="o">%</span> <span class="n">num_blocks</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="n">steps_per_block</span> <span class="o">=</span> <span class="n">steps</span> <span class="o">//</span> <span class="n">num_blocks</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 3. Outer Loop: Process each block sequentially.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">num_block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Define the current working area (the block to be filled).</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Note: The original code has a small typo `...:]`, corrected here for clarity.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">start_pos</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">num_block</span> <span class="o">*</span> <span class="n">block_length</span>
+</span></span><span class="line"><span class="cl">        <span class="n">end_pos</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">num_block</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">block_length</span>
+</span></span><span class="line"><span class="cl">        <span class="n">block_mask_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">start_pos</span><span class="p">:</span><span class="n">end_pos</span><span class="p">]</span> <span class="o">==</span> <span class="n">mask_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Calculate how many tokens to &#34;unmask&#34; or &#34;confirm&#34; in each refinement step for this block.</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># This ensures a steady, linear progression of unmasking.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num_transfer_tokens</span> <span class="o">=</span> <span class="n">get_num_transfer_tokens</span><span class="p">(</span><span class="n">block_mask_index</span><span class="p">,</span> <span class="n">steps_per_block</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 4. Inner Loop: Iteratively refine the current block.</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">steps_per_block</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Get the indices of all currently masked tokens in the entire sequence.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">mask_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">mask_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4a. Prediction with optional Classifier-Free Guidance (CFG) ---</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">cfg_scale</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Create an unconditional version of the input by masking the prompt.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">un_x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">un_x</span><span class="p">[</span><span class="n">prompt_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask_id</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="c1"># Run the model on both the conditional (x) and unconditional (un_x) inputs.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">x_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">un_x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logits_cat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logits</span><span class="p">,</span> <span class="n">un_logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">logits_cat</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="c1"># Combine logits to steer the generation towards the prompt.</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># The formula is: unconditional + scale * (conditional - unconditional)</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># An algebraic simplification gives the line below.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logits</span> <span class="o">=</span> <span class="n">un_logits</span> <span class="o">+</span> <span class="p">(</span><span class="n">cfg_scale</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">logits</span> <span class="o">-</span> <span class="n">un_logits</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># If no CFG, just do a single forward pass.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4b. Candidate Generation ---</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Add Gumbel noise for stochastic sampling. If temperature is 0, this is a simple argmax.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits_with_noise</span> <span class="o">=</span> <span class="n">add_gumbel_noise</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Get the most likely token prediction for every position in the sequence.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">logits_with_noise</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4c. Confidence Scoring for Remasking ---</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Determine which of the new predictions to keep for the next step.</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">remasking</span> <span class="o">==</span> <span class="s1">&#39;low_confidence&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Calculate the softmax probabilities of the predicted tokens.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Get the probability of the chosen token `x0` at each position. This is the &#34;confidence&#34;.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">x0_p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="n">remasking</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Use random scores as confidence for random unmasking.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">x0_p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">((</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">device</span><span class="o">=</span><span class="n">x0</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">remasking</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4d. Selecting Tokens to Update ---</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># We are only interested in updating tokens inside the current block.</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Set confidence outside the current active generation area to -infinity to ignore them.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x0_p</span><span class="p">[:,</span> <span class="n">end_pos</span><span class="p">:]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># Only consider predictions for positions that are currently masked.</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Original tokens (prompt and previously confirmed tokens) should have -infinity confidence.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">confidence</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_index</span><span class="p">,</span> <span class="n">x0_p</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># Replace the content of `x` at masked positions with the new predictions (`x0`).</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_index</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># This will hold the indices of the tokens we decide to &#34;confirm&#34; in this step.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">transfer_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x0</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># For each item in the batch (here, just 1)...</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">confidence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># ...select the `k` tokens with the HIGHEST confidence scores among the masked positions.</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># `k` is determined by `num_transfer_tokens` for the current step `i`.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">_</span><span class="p">,</span> <span class="n">select_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">confidence</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="n">num_transfer_tokens</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Mark these high-confidence positions to be updated.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">transfer_index</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">select_index</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4e. State Update ---</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Update the main tensor &#39;x&#39; by replacing [MASK] tokens with the selected high-confidence predictions.</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># The other [MASK]s remain for the next refinement iteration.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span><span class="p">[</span><span class="n">transfer_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">x0</span><span class="p">[</span><span class="n">transfer_index</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 5. Return Final Generation</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Once all blocks and steps are complete, return the generated part of the sequence.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span>
+</span></span></code></pre></div><h1 id="reference">Reference<a hidden class="anchor" aria-hidden="true" href="#reference">#</a></h1>
 <div class="footnotes" role="doc-endnotes">
 <hr>
 <ol>

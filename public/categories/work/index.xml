@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Work on WITHER</title>
-    <link>http://localhost:57770/categories/work/</link>
+    <link>http://localhost:1313/categories/work/</link>
     <description>Recent content in Work on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Wed, 11 Jun 2025 10:21:42 +0800</lastBuildDate>
-    <atom:link href="http://localhost:57770/categories/work/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 13 Jun 2025 15:12:24 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/categories/work/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Tx8read</title>
-      <link>http://localhost:57770/blogs/tx8read/</link>
+      <link>http://localhost:1313/blogs/tx8read/</link>
       <pubDate>Wed, 11 Jun 2025 10:21:42 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/tx8read/</guid>
+      <guid>http://localhost:1313/blogs/tx8read/</guid>
       <description>tx8 regression</description>
       <content:encoded><![CDATA[<h1 id="testgraphcompute">TestGraphCompute</h1>
 <div class="highlight"><div class="chroma">

@@ -2,18 +2,63 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Distributed Training on WITHER</title>
-    <link>http://localhost:57770/tags/distributed-training/</link>
+    <link>http://localhost:1313/tags/distributed-training/</link>
     <description>Recent content in Distributed Training on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
-    <atom:link href="http://localhost:57770/tags/distributed-training/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 17 Jun 2025 21:50:16 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/distributed-training/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ServingLLMsOnHuaweiCloudMatrix384</title>
+      <link>http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/</link>
+      <pubDate>Tue, 17 Jun 2025 21:50:16 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/</guid>
+      <description>Paper Reading of Serving Large Language Models on Huawei CloudMatrix384</description>
+      <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
+<ol>
+<li>
+<p><strong>CloudMatrix384硬件架构</strong>：</p>
+<ul>
+<li>论文提出了一种 <strong>peer-to-peer</strong> 的硬件设计，包含384个<strong>Ascend 910C NPU</strong>和192个<strong>Kunpeng CPU</strong>，通过**Unified Bus (UB) Network **互联。UB 网络支持高带宽（392 GB/s单向带宽）和低延迟（1.9 µs）的全局通信，解决了传统AI集群中跨节点通信的瓶颈问题。</li>
+<li>架构特点包括：
+<ul>
+<li><strong>资源解耦和池化</strong>：计算、存储和网络资源可以动态分配，支持灵活的并行策略（如专家并行EP、数据并行DP）.</li>
+<li><strong>三层网络平面</strong>：UB平面（超节点内通信）、RDMA平面（跨超节点通信）和VPC平面（数据中心网络接入）。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>CloudMatrix-Infer软件优化</strong>：</p>
+<ul>
+<li><strong>预填充-解码-缓存（PDC）解耦架构</strong>：将LLM推理拆分为Prefill, Decode &amp; Caching 三个子系统，通过 UB网络实现高效协同。</li>
+<li><strong>large-scale expert parallelism (EP) strategy</strong>：支持高达<strong>EP320</strong>的专家并行度，每个NPU芯片承载一个专家，减少MoE模型中的通信开销。</li>
+<li><strong>UB驱动的分布式缓存</strong>：利用 <strong>弹性内存服务（EMS）</strong> 构建全局缓存池，支持KV缓存和模型权重的快速访问。</li>
+</ul>
+</li>
+<li>
+<p><strong>性能优化技术</strong>：</p>
+<ul>
+<li><strong>微批次流水线（Microbatch Pipeline）</strong>：重叠计算和通信，提升资源利用率。</li>
+<li><strong>INT8量化</strong>：在Ascend 910C上实现高效的8位推理，保持模型精度。</li>
+</ul>
+</li>
+</ol>
+<h4 id="实验结果">实验结果</h4>
+<p>论文使用<strong>DeepSeek-R1</strong>（671B参数MoE模型）验证了CloudMatrix-Infer的性能：</p>
+<ul>
+<li><strong>预填充吞吐量</strong>：6,688 tokens/s/NPU（4.45 tokens/s/TFLOPS），优于NVIDIA H100的SGLang（3.75 tokens/s/TFLOPS）。</li>
+<li><strong>解码吞吐量</strong>：1,943 tokens/s/NPU（1.29 tokens/s/TFLOPS），在TPOT &lt;50 ms约束下仍能保持高吞吐。</li>
+<li><strong>缓存命中率提升</strong>：上下文缓存（Context Caching）在90%重用率时，预填充时间减少59%。</li>
+</ul>
+]]></content:encoded>
+    </item>
     <item>
       <title>ZeRO, ZeRO-Offload, ZeRO-Infinity</title>
-      <link>http://localhost:57770/blogs/zero/</link>
+      <link>http://localhost:1313/blogs/zero/</link>
       <pubDate>Sat, 07 Jun 2025 21:11:32 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/zero/</guid>
+      <guid>http://localhost:1313/blogs/zero/</guid>
       <description>Paper reading of ZeRO.</description>
       <content:encoded><![CDATA[<h1 id="zero">ZeRO</h1>
 <p>Zero 用于优化内存，极大地提高了训练速度，同时增加了可以训练的模型大小。ZeRO 消除了数据和模型并行训练中的内存冗余，同时保持了低通信量和高计算粒度，能够以持续的高效率按设备数量等比例扩展可训练模型的大小。</p>
@@ -381,9 +426,9 @@
     </item>
     <item>
       <title>DeepSpeedUlysses</title>
-      <link>http://localhost:57770/blogs/deepspeedulysses/</link>
+      <link>http://localhost:1313/blogs/deepspeedulysses/</link>
       <pubDate>Mon, 21 Oct 2024 11:09:12 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/deepspeedulysses/</guid>
+      <guid>http://localhost:1313/blogs/deepspeedulysses/</guid>
       <description>Paper reading of Deepseed Ulysses.</description>
       <content:encoded><![CDATA[<h1 id="deepspeed-ulysses-core-design">DeepSpeed-Ulysses Core Design</h1>
 <h2 id="system-design">System Design</h2>
@@ -412,9 +457,9 @@
     </item>
     <item>
       <title>Efficient Large-Scale Language Model Training on GPU</title>
-      <link>http://localhost:57770/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</link>
+      <link>http://localhost:1313/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</link>
       <pubDate>Sat, 05 Oct 2024 10:09:35 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</guid>
+      <guid>http://localhost:1313/blogs/efficient-large-scale-language-model-training-on-gpu-clusters/</guid>
       <description>Paper reading about Efficient Large-Scale Language Model Training on GPU Clusters.</description>
       <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
 <p>本文展示了如何将张量、流水线和数据并行性组合起来以扩展到数千个gpu。我们提出了一种新的交错流水线调度，可以在内存占用与现有方法相当的同时将吞吐量提高 10%.</p>
@@ -686,9 +731,9 @@ Interleaved schedules 能显著提高GPU的计算效率。</p>
     </item>
     <item>
       <title>Megatron-LM</title>
-      <link>http://localhost:57770/blogs/megatronlm/</link>
+      <link>http://localhost:1313/blogs/megatronlm/</link>
       <pubDate>Wed, 02 Oct 2024 15:51:50 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/megatronlm/</guid>
+      <guid>http://localhost:1313/blogs/megatronlm/</guid>
       <description>Paper reading about Megatron-LM</description>
       <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
 <p>我们的方法不需要新的编译器或更改库，与流水线模型并行 (<em>pipeline model parallelism</em>) 正交互补，并且可以通过在原生 PyTorch 中插入一些通信操作来实现。为了阐述我们的方法，使用 512 个 GPU 将基于 transformer 的模型扩展到 83 亿个参数。与可保持 39 TeraFLOPs (峰值 FLOPs 的 30%) 的强大单 GPU 基准相比，我们在整个应用中保持了 15.1 PetaFLOPs，扩展效率高达 76%.</p>
@@ -775,9 +820,9 @@ $$<p>
     </item>
     <item>
       <title>Ring Attention Principle</title>
-      <link>http://localhost:57770/blogs/ringattention/</link>
+      <link>http://localhost:1313/blogs/ringattention/</link>
       <pubDate>Thu, 26 Sep 2024 22:59:35 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/ringattention/</guid>
+      <guid>http://localhost:1313/blogs/ringattention/</guid>
       <description>This is a brief introduction to the Ring Attention Principle.</description>
       <content:encoded><![CDATA[<h1 id="background">Background</h1>
 <p>如今 LLM 的 token 长度显著增加，从 GPT-3.5 的 16k 到 Claude 2 的 200k，现在 Gemini 1.5 Pro 甚至有 1M 的 token 长度。如此长的 token 在计算 attention 时对显存的需求非常大。<a href="https://arxiv.org/abs/2310.01889">Ring Attention</a> 便是为了并行计算 attention 而提出的一种方法<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>。</p>
@@ -992,9 +1037,9 @@ $$<h1 id="futher-optimization">Futher Optimization</h1>
     </item>
     <item>
       <title>Comparsion of Parallelsim Metods in ViT</title>
-      <link>http://localhost:57770/blogs/comparsion-of-parallelsim-metods-in-vit/</link>
+      <link>http://localhost:1313/blogs/comparsion-of-parallelsim-metods-in-vit/</link>
       <pubDate>Mon, 13 Nov 2023 16:05:23 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/comparsion-of-parallelsim-metods-in-vit/</guid>
+      <guid>http://localhost:1313/blogs/comparsion-of-parallelsim-metods-in-vit/</guid>
       <description>Paper reading of .</description>
       <content:encoded><![CDATA[<h1 id="basic-transformer-block">Basic Transformer Block</h1>
 <p>符号含义表示如下</p>

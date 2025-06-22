@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>DiffusionLLM on WITHER</title>
-    <link>http://localhost:57770/tags/diffusionllm/</link>
+    <link>http://localhost:1313/tags/diffusionllm/</link>
     <description>Recent content in DiffusionLLM on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Thu, 12 Jun 2025 23:01:49 +0800</lastBuildDate>
-    <atom:link href="http://localhost:57770/tags/diffusionllm/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 13 Jun 2025 15:12:24 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/diffusionllm/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Fast-dLLM</title>
-      <link>http://localhost:57770/blogs/fast-dllm/</link>
+      <link>http://localhost:1313/blogs/fast-dllm/</link>
       <pubDate>Thu, 12 Jun 2025 23:01:49 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/fast-dllm/</guid>
+      <guid>http://localhost:1313/blogs/fast-dllm/</guid>
       <description>Paper Reading of Fast-dLLM</description>
       <content:encoded><![CDATA[<h1 id="introduction">Introduction</h1>
 <p>Diffusion LLMs 被视为下一代文本生成技术的有力竞争者，其核心优势在于理论上可以并行生成多个 token，从而有望实现比自回归模型快几个数量级的推理速度。谷歌的 Gemini Diffusion 和 Inception Labs 的Mercury等模型已经展示了其惊人的潜力，宣称能达到每秒上千 token 的生成速度。</p>
@@ -21,12 +21,12 @@
 <ol>
 <li>无法使用 KV Cache</li>
 </ol>
-<p>扩散LLM的注意力机制是双向的，即一个 token 的生成不仅依赖于它前面的内容，也依赖于它后面的内容（尽管后面可能是未知的 MASK token ）。这种特性使得过去的信息和未来的信息相互纠缠，无法像自回归模型那样简单地缓存和复用过去的信息。导致扩散LLM在每一步推理中都需要进行大量的重复计算，严重拖慢了速度。</p>
+<p>扩散LLM的注意力机制是双向的，即一个 token 的生成不仅依赖于它前面的内容，也依赖于它后面的内容 (尽管后面可能是未知的 MASK token ) 。这种特性使得过去的信息和未来的信息相互纠缠，无法像自回归模型那样简单地缓存和复用过去的信息。导致扩散LLM在每一步推理中都需要进行大量的重复计算，严重拖慢了速度。</p>
 <p>Fast-dLLM 的第一个核心贡献，就是提出了一种分块近似 (block-wise approximate) KV Cache 机制。</p>
 <blockquote class="quote"><p>While the bidirectional nature of attention in Diffusion LLMs precludes a fully equivalent KV Cache, our approximation closely resembles an ideal cache in practice.</p></blockquote>
 <p>它将待生成的文本序列分成若干个块. 在生成某一个块 (比如Block 1) 时，它会提前计算并缓存其他所有块 (比如 Prompt 和 Block 0) 的 KV. 在这个块的内部生成过程中，这些缓存被反复利用。当这个块生成完毕后，再整体更新一次所有块的KV缓存 。</p>
-<p>这个方法的近似在于，在一个块的生成过程中，缓存是固定的，而实际上随着块内 token 的不断去噪和清晰化，这些缓存理论上也应该随之微调。但论文通过可视化实验（图3）有力地证明，在相邻的推理步骤中，KV 激活值的 余弦相似度非常高，几乎接近于1. 这说明使用固定的近似缓存带来的误差微乎其微，完全可以用极小的精度损失换取巨大的速度提升。</p>
-<p>论文还进一步提出了双缓存 (DualCache) 版本，不仅缓存了前面的“前缀”（prefix），还缓存了后面的“后缀”（suffix，通常是 MASK  token ） ，从而进一步压榨了计算优化的空间，实现了更快的速度。</p>
+<p>这个方法的近似在于，在一个块的生成过程中，缓存是固定的，而实际上随着块内 token 的不断去噪和清晰化，这些缓存理论上也应该随之微调。但论文通过可视化实验 (图3) 有力地证明，在相邻的推理步骤中，KV 激活值的 余弦相似度非常高，几乎接近于1. 这说明使用固定的近似缓存带来的误差微乎其微，完全可以用极小的精度损失换取巨大的速度提升。</p>
+<p>论文还进一步提出了双缓存 (DualCache) 版本，不仅缓存了前面的“前缀” (prefix) ，还缓存了后面的“后缀” (suffix，通常是 MASK  token )  ，从而进一步压榨了计算优化的空间，实现了更快的速度。</p>
 <ol start="2">
 <li>并行解码带来的质量下降</li>
 </ol>
@@ -49,20 +49,45 @@
 Nonequilibrium Thermodynamics 中被探提出。随后 D3PM 提出了一个更通用的框架，通过特定的转移矩阵 $Q_{t}$ 定义了前向加噪过程的离散状态马尔可夫链，并通过最大化 ELBO 来学习反向过程的参数化模型 $p_{\theta}(x_{0}|x_{t})$. CTMC 进一步将 D3PM 扩展到连续时间，将其形式化为一个连续时间马尔可夫链 (CTMC) 框架。在另一种不同的方法中，SEDD 通过参数化似然比 $\frac{p_{t}(y)}{p_{t}(x)}$ 来学习反向过程，并采用去噪分数熵来训练该比率。</p>
 <p>在各种离散扩散的噪声处理方式中，<strong>Masked Diffusion Models, MDMs</strong>，也被称为吸收状态离散扩散模型，获得了相当大的关注。MDMs 采用一种前向加噪过程，其中 token 被逐步替换为一个特殊的 MASK  token  。这个过程由以下转移概率定义：</p>
 $$
-q_{t|0}(x_{t}|x_{0})=\prod_{i=1}^{n}q_{t|0}(x_{t}^{i}|x_{0}^{i})=\prod_{i=1}^{n}Cat(x_{t}^{i};(1-t)\delta_{x_{0}^{i}}+t\delta_{[MASK]})
-$$<p> (1)</p>
-<ul>
+q_{t|0}(x_{t}|x_{0})=\prod_{i=1}^{n}q_{t|0}(x_{t}^{i}|x_{0}^{i})=\prod_{i=1}^{n}Cat(x_{t}^{i};(1-t)\delta_{x_{0}^{i}}+t\delta_{[MASK]}) \tag{1}
+$$<ul>
 <li>$q_{t|0}(x_t|x_0)$: 表示给定原始序列 $x_0$，得到噪声序列 $x_t$ 的概率 。</li>
-<li>$\prod_{i=1}^{n}$: 连乘符号，表示整个序列的噪声过程是序列中每个 token （token）独立进行噪声过程的概率乘积 。</li>
+<li>$\prod_{i=1}^{n}$: 连乘符号，表示整个序列的噪声过程是序列中每个 token  (token) 独立进行噪声过程的概率乘积 。</li>
 <li>$Cat(\cdot)$: 代表<strong>类别分布 (Categorical Distribution)</strong> 。</li>
 <li>$t \in [0,1]$: 表示<strong>扩散时间</strong>或<strong>掩码级别</strong>。当 $t=0$ 时，序列完全是原始的；当 $t=1$ 时，序列被完全替换为 <code>[MASK]</code>  token 。</li>
 <li>$(1-t)\delta_{x_{0}^{i}}+t\delta_{[MASK]}$: 在时间 <code>t</code>，第 <code>i</code> 个 token 有 $1-t$ 的概率保持其原始身份 $x_0^i$，有 $t$ 的概率变成 <code>[MASK]</code>  token 。<code>$\delta$</code> 是克罗内克函数，用于指定概率。</li>
 </ul>
 <p>最近，MDLM 和 RADD 的工作表明，对于 MDMs 不同的参数化是等价的。此外，他们证明了 MDMs 的训练目标可以被简化或直接从数据似然中推导出来 。这导出了以下目标函数，即 $log~p_{\theta}(x)$ 的一个 ELBO:</p>
+<details class="custom-details">
+    <summary class="custom-summary">Reparameterized Absorbing Discrete Diffusion, RADD</summary>
+    <div><p><strong>定理 1（Theorem 1）</strong>
+</p>
 $$
--log~p_{\theta}(x)\le\int_{0}^{1}\frac{1}{t}\mathbb{E}_{q_{t,0}(x_{t}|x_{0})}[\sum_{i:x_{t}^{i}=[MASK]}-log~p_{\theta}(x_{0}^{i}|x_{t})]dt:=\mathcal{L}_{MDM}.
-$$<p> (2)</p>
-<ul>
+\frac{p_t(\hat{x}_t)}{p_t(x_t)} = \underbrace{\frac{e^{-\bar{\sigma}(t)}}{1-e^{-\bar{\sigma}(t)}}}_{\text{时间相关的标量}} \cdot \underbrace{p_0(\hat{x}_t^i | x_t^{UM})}_{\text{干净数据的条件概率}}
+$$<ul>
+<li>$p_t(x_t)$ 是时间步 $t$ 的数据分布</li>
+<li>$x_t$ 是带噪声（被掩码）的序列</li>
+<li>$x_t^{UM}$ 是其中未被掩码的部分</li>
+<li>$\hat{x}_t$ 是在 $x_t$ 的一个掩码位置上填入一个新 token 后的序列</li>
+<li>$p_0$ 是原始干净数据的分布，$\bar{\sigma}(t)$ 是一个与噪声水平相关的函数。</li>
+</ul>
+<p>这个公式表明，模型需要学习的目标可以分解。其中一部分是一个可以精确计算的、只与时间 $t$ 有关的标量，而另一部分则是一个<strong>与时间无关</strong>的、在给定其他可见 token 的条件下，预测被掩码 token 的条件概率。正是LLM 所做的事情。这个看似简单的改动带来了巨大的实际优势：</p>
+<ol>
+<li><strong>架构简化</strong>：移除了时间编码和相关的自适应归一化层，使得模型参数更少，结构更简洁 。</li>
+<li><strong>采样加速</strong>：由于模型输出不再依赖于时间 $t$，当输入序列 $x_t$ 在某个采样区间内没有发生变化时，可以直接缓存上一步的计算结果，而无需再次调用网络。这极大地减少了<strong>函数评估次数（Number of Function Evaluations, NFEs）</strong>。论文给出了在特定采样策略下，期望函数评估次数（E-NFEs）的解析公式 ：</li>
+</ol>
+$$
+E\text{-}NFEs(n) = n \left( 1 - \left( 1 - \frac{1}{n} \right)^l \right)
+$$<p><strong>定理 2（Theorem 2）</strong></p>
+<p>证明了吸收态扩散模型的训练目标（具体来说是 DSE 损失）在数学上等价于**任意阶自回归模型（Any-Order Autoregressive Models, AO-ARMs）**的训练目标 。</p>
+<p>AO-ARMs 是一类特殊的生成模型，它们不像标准自回归模型那样固定从左到右的生成顺序，而是学习在所有可能的 $d!$（$d$ 为序列长度）种生成顺序下对数据进行建模。论文通过一系列精巧的数学推导，建立了四种不同损失函数之间的等价关系链 ：</p>
+<p>$\mathcal{L}_{DSE} \iff \mathcal{L}_{t-DCE} \iff \mathcal{L}_{\lambda-DCE} \iff \mathcal{L}_{AO}$</p>
+<p>它表明吸收态扩散模型本质上是在学习一个集成了所有可能生成顺序的自回归模型的期望 。这可能解释了为什么它们在某些任务上表现得非常稳健。</p>
+</div>
+</details><br>
+$$
+-log~p_{\theta}(x)\le\int_{0}^{1}\frac{1}{t}\mathbb{E}_{q_{t,0}(x_{t}|x_{0})}[\sum_{i:x_{t}^{i}=[MASK]}-log~p_{\theta}(x_{0}^{i}|x_{t})]dt:=\mathcal{L}_{MDM}. \tag{2}
+$$<ul>
 <li>$-log~p_{\theta}(x)$: 模型的目标是最大化生成真实数据 $x$ 的对数似然，这等价于最小化它的负对数似然。这个公式给出了负对数似然的一个* ELBO.</li>
 <li>$\int_{0}^{1}...dt$: 对所有可能的噪声级别 <code>t</code> (从0到1) 进行积分，意味着模型需要学会在任何噪声水平下都能很好地复原数据 。</li>
 <li>$\mathbb{E}_{q_{t,0}(x_{t}|x_{0})}[...]$: 表示对所有可能的噪声样本求期望。在训练时，我们根据公式(1)随机生成一个带 <code>[MASK]</code> 的噪声序列 $x_t$.</li>
@@ -79,7 +104,7 @@ $$
 q_{s|t}(x_s|x_t)=\prod_{i=0}^{n-1}q_{s|t}(x_{s}^{i}|x_{t})
 $$<p>其中</p>
 $$
-q_{s|t}(x_{s}^{i}|x_{t})=\begin{cases}1, & \text{if } x_{t}^{i}\ne[MASK], x_{s}^{i}=x_{t}^{i} \\ \frac{s}{t}, & \text{if } x_{t}^{i}=[MASK], x_{s}^{i}=[MASK] \\ \frac{t-s}{t}q_{0|t}(x_{s}^{i}|x_{t}), & \text{if } x_{t}^{i}=[MASK], x_{s}^{i}\ne[MASK]\end{cases}
+q_{s|t}(x_{s}^{i}|x_{t})=\begin{cases}1, & \text{if } x_{t}^{i}\ne[MASK], x_{s}^{i}=x_{t}^{i} \\ \frac{s}{t}, & \text{if } x_{t}^{i}=[MASK], x_{s}^{i}=[MASK] \\ \frac{t-s}{t}q_{0|t}(x_{s}^{i}|x_{t}), & \text{if } x_{t}^{i}=[MASK], x_{s}^{i}\ne[MASK]\end{cases} \tag{3}
 $$<ul>
 <li>$q_{s|t}(x_{s}^{i}|x_{t})$: 表示从 <code>t</code> 时刻的 token  $x_t^i$ 变为 <code>s</code> 时刻的 token  $x_s^i$ 的概率 。</li>
 <li><strong>Case 1</strong>: 如果一个 token 在 <code>t</code> 时刻就不是 <code>[MASK]</code>，那么它在更早的 <code>s</code> 时刻也保持不变 。</li>
@@ -97,8 +122,7 @@ $$<ul>
 <p>为了将其形式化，考虑揭示两个 token 位置 i 和 j. 由于条件独立性假设，MDMs 从 $p(x_{s}^{i}|x_{t})\cdot p(x_{s}^{j}|x_{t})$ 中采样这些 token. 然而，真实的联合概率需要考虑它们之间的依赖关系：</p>
 $$
 p(x_{s}^{i},x_{s}^{j}|x_{t})=p(x_{s}^{i}|x_{t})\cdot p(x_{s}^{j}|x_{t},x_{s}^{i})
-$$<p>
-或者对称地，通过将 i 依赖于条件 j. 这种假设的独立生成与真实的依赖性数据分布之间的差异，会降低生成序列的质量和连贯性。当在单一步骤中同时揭示大量 token 时，这个问题会变得更加严重。</p>
+$$<p>或者对称地，通过将 i 依赖于条件 j. 这种假设的独立生成与真实的依赖性数据分布之间的差异，会降低生成序列的质量和连贯性。当在单一步骤中同时揭示大量 token 时，这个问题会变得更加严重。</p>
 <h1 id="3-methodology">3. Methodology</h1>
 <h2 id="31-pipeline-overview">3.1. Pipeline Overview</h2>
 <p><strong>Fast-dLLM</strong>，建立在 MDM 架构之上，以实现高效和高质量的序列生成。为了加速推理，整体流水线融合了两大关键策略：通过 KV Cache 实现的高效注意力计算，以及一个由预测置信度引导的 并行解码方案。具体来说，我们采用了分块解码设计的 KV Cache，它允许在不同步骤间复用注意力激活值，并显著减少了冗余计算。在每个块内部，进一步提出了置信度感知的并行解码，它能根据置信度分数选择性地更新 token ，从而在保持输出质量的同时提高效率。通过结合这些策略，Fast-dLLM 在对生成性能影响最小的情况下，显著加快了 MDM 的推理速度。整体流程在算法 1 中进行了总结。</p>
@@ -108,8 +132,8 @@ $$<p>
     <a href="https://share.note.youdao.com/yws/api/personal/file/WEBe66f192a665248e7559ffa12a0bf10c1?method=download&amp;shareKey=8952caa17d664bd8bcc33b9ebcec321e" target="_blank" rel="noopener">
         <img loading="lazy" src="https://share.note.youdao.com/yws/api/personal/file/WEBe66f192a665248e7559ffa12a0bf10c1?method=download&amp;shareKey=8952caa17d664bd8bcc33b9ebcec321e" alt="Illustration of our Key-Value Cache for Block-Wise Decoding">
     </a><figcaption>Illustration of our Key-Value Cache for Block-Wise Decoding</figcaption></figure></p>
-<p>如上图所示，我们采用了一种分块解码的策略来支持 KV Cache 的使用。一开始计算并存储 prompt 的 KV 缓存，这个缓存将在整个块 0的解码过程中被复用。在每个块的内部，相同的缓存会被多个解码步骤复用。在完成一个块的解码之后，更新<strong>所有</strong> token  (不仅仅是新生成的 token ) 的缓存。这个缓存更新可以与解码步骤联合执行，因此与不使用缓存相比，没有额外的计算开销。由于掩码扩散模型中使用的是完全注意力机制，这种方法导致了一个近似的解码过程。</p>
-<p>我们的近似 KV 缓存方法的有效性，源于我们观察到 KV 激活值在相邻的推理步骤中表现出高度的相似性，如下图所示。图 a 中红色方框区域突显了块内的相似性分数，这些分数始终接近于1。这表明在分块解码期间，前缀 (prefix) 的键和值的差异可以忽略不计，使我们能够安全地复用缓存而不会有显著的准确率损失。 此外，我们实现了一个我们 KV 缓存机制的双向版本，名为 <strong>DualCache</strong>，它不仅缓存前缀 token ，还缓存后缀 (suffix)  token ，在我们的分块解码方案中，后缀完全由掩码 token 组成。如表3所示，DualCache 带来了进一步的加速。图 b 中的红色方框区域进一步证明，在分块解码期间，后缀的键和值的差异也可以忽略不计。</p>
+<p>如上图所示，我们采用了一种分块解码的策略来支持 KV Cache 的使用。一开始计算并存储 prompt 的 KV 缓存，这个缓存将在整个块 0的解码过程中被复用。在每个块的内部，相同的缓存会被多个解码步骤复用。<strong>在完成一个块的解码之后，更新所有 token (不仅仅是新生成的 token) 的缓存</strong>。这个缓存更新可以与解码步骤联合执行，因此与不使用缓存相比，没有额外的计算开销。由于掩码扩散模型中使用的是完全注意力机制，这种方法导致了一个近似的解码过程。</p>
+<p>我们的近似 KV 缓存方法的有效性，源于我们观察到 KV 激活值在相邻的推理步骤中表现出高度的相似性，如下图所示。图 a 中红色方框区域突显了块内的相似性分数，这些分数始终接近于 1. 表明在分块解码期间，前缀 (prefix) 的键和值的差异可以忽略不计，使我们能够安全地复用缓存而不会有显著的准确率损失。 此外，我们实现了一个我们 KV 缓存机制的双向版本，名为 <strong>DualCache</strong>，它不仅缓存前缀 token ，还缓存后缀 (suffix)  token ，在我们的分块解码方案中，后缀完全由掩码 token 组成。如表3所示，DualCache 带来了进一步的加速。图 b 中的红色方框区域进一步证明，在分块解码期间，后缀的键和值的差异也可以忽略不计。</p>
 <p>
 <figure class="post-figure">
     <a href="https://share.note.youdao.com/yws/api/personal/file/WEB2030e80c11d3d306e335a2dc5931b101?method=download&amp;shareKey=6a5005c556aaa11edb4006a48b755b4a" target="_blank" rel="noopener">
@@ -125,20 +149,34 @@ $$<p>
 <p>令 $X=(X_{i_{1}},...,X_{i_{n}})$ 是 n 个 token 的向量，其中每个 $X_{i_{j}}$ 在词汇表 V 中取值。设 $p(X|E)\equiv p_{\theta}(X_{i_{1}},...,X_{i_{n}}|E)$ 是模型给出的联合条件 PMF。设 $p_{j}(X_{i_{j}}|E)\equiv p_{\theta}(X_{i_{j}}|E)$ 是位置 $i_{j}$ 的边缘条件 PMF。并行解码使用边缘概率的乘积来生成 token ：$q(X|E)=\tilde{\prod}_{j=1}^{n}p_{j}(X_{i_{j}}|E)$。定理1的证明及相关讨论见附录A。</p>
 <p><strong>定理 1 (高置信度下的并行解码).</strong> 假设存在一个特定的 token 序列 $x^{*}=(x_{i_{1}},...,x_{i_{n}})$，使得对于每个 $j\in\{1,...,n\}$，模型对 $x_{i_{j}}$ 都有很高的置信度：$p_{j}(X_{i_{j}}=x_{i_{j}}|E)>1-\epsilon$，对于某个很小的 $\epsilon>0$. 那么，以下结论成立：</p>
 <ol>
-<li><strong>贪婪解码的等价性</strong>：如果 $(n+1)\epsilon\le1$（即 $\epsilon\le\frac{1}{n+1}$），那么
+<li><em>Equivalence of Greedy Decoding</em>：如果 $(n+1)\epsilon\le1$ (即 $\epsilon\le\frac{1}{n+1}$) ，那么
 $$
-\text{argmax}_{z} p(z|E) = \text{argmax}_{z} q(z|E) = x^{*}.
-$$ (4)</li>
+\text{argmax}_{z} p(z|E) = \text{argmax}_{z} q(z|E) = x^{*}. \tag{4}
+$$</li>
 </ol>
 <p>这意味着 greedy parallel 解码 (选择 argmax q) 与贪婪序贯解码 (选择 argmax p) 产生相同的结果。  这个界是紧的：如果 $\epsilon > \frac{1}{n+1}$，则存在满足高置信度边缘假设的分布 $p(X|E)$，使得 argmax $p(z|E)$ ≠ argmax $q(z|E)$。</p>
 <ol start="2">
-<li><em>Distance and Divergence Bounds</em>：为简洁起见，将 $p(\cdot|E)$ 和 $q(\cdot|E)$ 表示为 p 和 q。</li>
+<li><em>Distance and Divergence Bounds</em>：为简洁起见，将 $p(\cdot|E)$ 和 $q(\cdot|E)$ 表示为 p 和 q.</li>
 </ol>
-<p><strong>$L_p$ Distance ($p \ge 1$)</strong>: 对于 $n>1$，$D_{p}(p,q)<((n-1)^{p}+2n)^{1/p}\epsilon$。特别地，对于总变差距离 ($D_{TV}(p,q)=\frac{1}{2}D_{1}(p,q)$)，$D_{TV}(p,q)<\frac{3n-1}{2}\epsilon$。</p>
+<p><strong>$L_p$ Distance ($p \ge 1$)</strong>: 对于 $n>1$，$D_{p}(p,q)<((n-1)^{p}+2n)^{1/p}\epsilon$。特别地，对于总变差距离 ($D_{TV}(p,q)=\frac{1}{2}D_{1}(p,q)$)，$D_{TV}(p,q)<\frac{3n-1}{2}\epsilon$.</p>
+<p>这个公式说明，<strong>真实分布 p 和近似分布 q 之间的总变差距离有一个上限</strong>。这个上限取决于两个因素：</p>
+<ol>
+<li>$n$: 生成序列的长度。序列越长，这个上限就越大。这是符合直觉的，因为每增加一个 token，近似所累积的潜在误差就可能增加一点。</li>
+<li>$\epsilon$: 模型在每个位置上的“不确定性”。$\epsilon$ 越小 (即模型越自信)，这个上限就越低。</li>
+</ol>
 <p><strong>Forward KL Divergence</strong>: 对于 $n > 1$，$D_{KL}(p||q)<(n-1)(H_{b}(\epsilon)+\epsilon~ln(|\mathcal{V}|-1))$，其中 $H_{b}(\epsilon)=-\epsilon~ln~\epsilon-(1-\epsilon)ln(1-\epsilon)$ 是二元熵函数，而 $|\mathcal{V}|$ 是词汇表的大小。</p>
-<h1 id="4-experiments">4. Experiments</h1>
+<ol>
+<li>$n-1$: 同样，损失会随着序列长度线性增长。</li>
+<li>$H_{b}(\epsilon)$: 它衡量了一个概率为 $\epsilon$ 的事件带来的“意外程度”或不确定性。当 $\epsilon$ 很小时，$H_b(\epsilon)$ 也非常小。</li>
+<li>$\epsilon~ln(|\mathcal{V}|-1)$: 这一项反映了那部分微小的 $\epsilon$ 概率被分配到词汇表 $\mathcal{V}$ 中其他所有 token 上所带来的不确定性。即使 $\epsilon$ 很小，如果词汇表非常巨大 ($|\mathcal{V}|$ 很大)，这一项也可能有影响。</li>
+</ol>
 <hr>
-<h2 id="experimental-setup">Experimental Setup</h2>
+<ul>
+<li>$L_p$ 距离说明在高置信度下，两种方法找到的<strong>最佳答案</strong>是相同的。</li>
+<li>KL 散度说明高置信度下，不仅最佳答案相同，两种方法描绘的概率分布都非常相似。近似方法 q 不仅猜对了可能性最大的 token， 对其他可能性的估计，也和精确方法 p 的判断高度一致。</li>
+</ul>
+<h1 id="4-experiments">4. Experiments</h1>
+<h2 id="41-experimental-setup">4.1 Experimental Setup</h2>
 <ul>
 <li><strong>硬件与环境</strong> 🖥️: 所有实验均在单张 <strong>NVIDIA A100 80GB GPU</strong> 上进行，batch size=1.</li>
 <li><strong>评测模型</strong> 🧠: <strong>LLaDA</strong>  和 <strong>Dream</strong>.</li>
@@ -158,7 +196,7 @@ $$ (4)</li>
 </li>
 </ul>
 <hr>
-<h2 id="main-results-performance-and-speed">Main Results: Performance and Speed</h2>
+<h2 id="42-main-results-performance-and-speed">4.2 Main Results: Performance and Speed</h2>
 <p>实验结果表明，Fast-dLLM 在各种任务和设置上都取得了显著的速度提升，同时对模型准确率的影响微乎其微 。</p>
 <ul>
 <li>加速效果:
@@ -170,8 +208,7 @@ $$ (4)</li>
 <li>极小的精度损失: 在所有基准测试中，加速后模型的准确率与原始基线模型的差距基本保持在 <strong>1-2个百分点</strong> 以内，有时甚至略有提高。</li>
 <li>对长序列更友好: 实验还发现，在处理更长的文本序列时 (例如 few-shot 场景或长代码生成)，Fast-dLLM 的加速效果更为明显。</li>
 </ul>
-<h2 id="核心结果摘要">核心结果摘要</h2>
-<p>下表以 GSM8K (5-shot) 任务为例，直观展示了 Fast-dLLM (即 +Cache+Parallel) 相较于基线模型的性能提升。</p>
+<p>下表以 GSM8K (5-shot) 任务为例，直观展示了 Fast-dLLM (即 +Cache+Parallel) 相较于 baseline 模型的性能提升。</p>
 <table>
   <thead>
       <tr>
@@ -251,7 +288,7 @@ $$ (4)</li>
   </tbody>
 </table>
 <hr>
-<h2 id="ablations-and-analysis">Ablations and Analysis</h2>
+<h2 id="43-ablations-and-analysis">4.3 Ablations and Analysis</h2>
 <p>为了深入理解各个组件的贡献，论文进行了一系列详细的消融实验。</p>
 <ul>
 <li>
@@ -319,37 +356,187 @@ $$ (4)</li>
 </li>
 </ul>
 <h2 id="52-llm-acceleration">5.2. LLM Acceleration</h2>
-<h3 id="kv-cache">KV Cache</h3>
+<ul>
+<li>KV Cache</li>
+</ul>
 <p>由于 LLaDA 等扩散语言模型采用的是 <strong>full attention</strong>，将 KV 缓存直接应用于这类模型并非易事。 一篇相关的研究 <strong>Block diffusion</strong>  通过<strong>分块生成 (block-by-block)</strong> 的方式，克服了先前扩散语言模型的局限，使得缓存和复用先前已解码块的键和值成为可能 。</p>
-<h3 id="non-autoregressive-generation">Non-Autoregressive Generation</h3>
+<ul>
+<li>Non-Autoregressive Generation</li>
+</ul>
 <p>非自回归 (NAR) 生成标志着一种根本性的转变，它通过同时生成多个 token 来显著加速推理过程。NAR 方法最初被用于神经机器翻译，现已扩展到语法纠错、文本摘要和对话系统等多种任务
 。
-尽管 NAR 在速度上优势巨大，但它通常以牺牲一定的生成质量为代价。扩散语言模型是 NAR 领域一个新兴的范式；然而，先前的工作（如 LLaDA）在实践中难以实现预期的加速，因为并行生成会导致输出质量显著下降。</p>
+尽管 NAR 在速度上优势巨大，但它通常以牺牲一定的生成质量为代价。扩散语言模型是 NAR 领域一个新兴的范式；然而，先前的工作 (如 LLaDA) 在实践中难以实现预期的加速，因为并行生成会导致输出质量显著下降。</p>
 <h1 id="weakness">Weakness</h1>
-<p>近似缓存的误差累积效应：论文证明了在相邻步骤中，KV激活值的差异很小 。但随着生成块的增多，这种“近似”带来的微小误差是否会累积，并在生成非常长的文本（如数万 token 的小说）时导致语义漂移或一致性下降？论文的最长测试序列为1024 ，对于更长的序列，其鲁棒性有待进一步验证。</p>
-<p>对模型能力的依赖：“置信度感知解码”策略的有效性，隐式地依赖于模型本身具有良好的“校准度”（calibration），即模型的置信度能够真实反映其预测的正确性。如果模型本身“过于自信”或“不够自信”，可能会导致该策略效果不佳。论文没有对所用模型的校准度进行分析。
+<p>近似缓存的误差累积效应：论文证明了在相邻步骤中，KV激活值的差异很小 。但随着生成块的增多，这种“近似”带来的微小误差是否会累积，并在生成非常长的文本 (如数万 token 的小说) 时导致语义漂移或一致性下降？论文的最长测试序列为1024 ，对于更长的序列，其鲁棒性有待进一步验证。</p>
+<p>对模型能力的依赖：“置信度感知解码”策略的有效性，隐式地依赖于模型本身具有良好的“校准度” (calibration) ，即模型的置信度能够真实反映其预测的正确性。如果模型本身“过于自信”或“不够自信”，可能会导致该策略效果不佳。论文没有对所用模型的校准度进行分析。
 定理一的理论与实践差距：论文坦诚地指出了定理一的局限性</p>
 <blockquote>
 <p>In practice, while MDM may not strictly satisfy this property, its behavior typically offers a close approximation.</p></blockquote>
-<p>理论证明假设了一个“理想的”联合概率分布，而真实模型是否以及在多大程度上符合这个理想假设，是一个需要进一步探究的问题。理论和实践之间的差距可能在某些刁钻的（adversarial）或分布外（Out-of-Distribution）的场景下被放大。
-超参数的敏感性与调优成本：尽管论文分析了块大小和阈值的影响，但并未提供一套系统性的方法来为新模型或新任务选择最佳超参数。在实际应用中，这可能意味着需要为每个特定用例进行成本不菲的网格搜索（grid search），增加了方法的应用门槛。
-评估维度的局限性：论文主要使用了基于准确率的基准测试。但在开放式生成、对话等任务中，评估指标（如流畅度、一致性、多样性）更为复杂。Fast-dLLM是否会在这些“软”指标上引入不易察觉的负面影响，需要更全面的评估。</p>
-]]></content:encoded>
+<p>理论证明假设了一个“理想的”联合概率分布，而真实模型是否以及在多大程度上符合这个理想假设，是一个需要进一步探究的问题。理论和实践之间的差距可能在某些刁钻的 (adversarial) 或分布外 (Out-of-Distribution) 的场景下被放大。
+超参数的敏感性与调优成本：尽管论文分析了块大小和阈值的影响，但并未提供一套系统性的方法来为新模型或新任务选择最佳超参数。在实际应用中，这可能意味着需要为每个特定用例进行成本不菲的网格搜索 (grid search) ，增加了方法的应用门槛。
+评估维度的局限性：论文主要使用了基于准确率的基准测试。但在开放式生成、对话等任务中，评估指标 (如流畅度、一致性、多样性) 更为复杂。Fast-dLLM是否会在这些“软”指标上引入不易察觉的负面影响，需要更全面的评估。</p>
+<h1 id="source-code">Source Code</h1>
+<ol>
+<li>
+<p><strong>初始化</strong>:</p>
+<ul>
+<li>函数首先创建一个张量 <code>x</code>，其长度为“提示词长度 + 待生成长度”。</li>
+<li>提示词 (<code>prompt</code>) 部分被填充到 <code>x</code> 的开头，而所有待生成的位置则被初始化为特殊的掩码标记 <code>[MASK]</code> (<code>mask_id</code>) 。</li>
+<li>将总生成任务分解为多个块 (<code>num_blocks</code>) ，并为每个块分配固定的解码步数 (<code>steps</code>)</li>
+</ul>
+</li>
+<li>
+<p><strong>分块生成 (外层循环)</strong>:</p>
+<ul>
+<li>代码以块为单位进行循环，依次生成每个文本块。</li>
+</ul>
+</li>
+<li>
+<p><strong>处理单个块 (内层循环与缓存机制)</strong>:</p>
+<ul>
+<li>
+<p><strong>步骤 A: 全局缓存初始化 (第一次模型调用)</strong></p>
+<ul>
+<li>在处理一个新块的开始，它首先将<strong>整个序列 <code>x</code></strong> (包含提示词、已生成的块和所有未来待生成的<code>[MASK]</code>块) 完整地输入模型。</li>
+<li>这次调用的主要目的是计算并存储整个序列的键值对缓存 (<code>past_key_values</code>). 这是一个全局缓存。</li>
+<li>然后，模型根据输出的 <code>logits</code>，使用 <code>get_transfer_index</code> 函数决定在<strong>当前块</strong>中，哪些 <code>[MASK]</code> 标记应该被优先替换掉 (例如，基于最高置信度的预测) ，并用预测出的 token  (token) 进行填充。这个过程只发生一次。</li>
+</ul>
+</li>
+<li>
+<p><strong>步骤 B: 块内迭代优化 (第二次及后续模型调用)</strong></p>
+<ul>
+<li>接下来，进入一个 <code>while</code> 循环，对当前块进行迭代式地“精炼”，直到这个块中所有的 <code>[MASK]</code> 标记都被填满。</li>
+<li><strong>核心优化点</strong>：在这次及后续的模型调用中，<strong>不再需要输入整个序列</strong>。它只将<strong>当前块的张量</strong> (<code>x[:, current_block_start:current_block_end]</code>) 作为输入，并<strong>重用步骤 A 中生成的全局缓存 <code>past_key_values</code></strong>。</li>
+<li>这就是 dual cache: 一个为上下文 (提示词+之前块) 准备的、基本不变的静态缓存，和一个为当前块服务的、动态更新的缓存。这避免了对上下文部分的重复计算，极大地提升了效率。</li>
+<li>模型会为当前块中剩余的 <code>[MASK]</code> 位置生成新的预测，并根据策略继续填充。</li>
+<li>这个迭代过程会持续进行，直到当前块不再有 <code>[MASK]</code> 标记为止。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>完成与返回</strong>:</p>
+<ul>
+<li>当所有块都处理完毕后，函数返回最终生成的完整序列 <code>x</code> 和总的模型前向传播次数 <code>nfe</code> (一个衡量计算成本的指标) 。</li>
+</ul>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">generate_with_dual_cache</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">gen_length</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">block_length</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">remasking</span><span class="o">=</span><span class="s1">&#39;low_confidence&#39;</span><span class="p">,</span> <span class="n">mask_id</span><span class="o">=</span><span class="mi">126336</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">    Generates text using a non-autoregressive, block-wise decoding strategy with a dual-cache mechanism.
+</span></span></span><span class="line"><span class="cl"><span class="s1">
+</span></span></span><span class="line"><span class="cl"><span class="s1">    Args:
+</span></span></span><span class="line"><span class="cl"><span class="s1">        model: The mask predictor model.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        prompt: A tensor of shape (1, L) representing the input prompt.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        steps: Total number of sampling/refinement steps for the entire generation.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        gen_length: The desired length of the generated text.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        block_length: The size of each block to be generated in parallel. gen_length must be divisible by this.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        temperature: Sampling temperature for token selection. 0 means greedy decoding.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        remasking: The strategy for choosing which masks to fill (&#39;low_confidence&#39; or &#39;random&#39;).
+</span></span></span><span class="line"><span class="cl"><span class="s1">        mask_id: The token ID for the [MASK] token.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Create the full tensor &#39;x&#39; with the prompt and space for generation, initialized with the mask token.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">gen_length</span><span class="p">),</span> <span class="n">mask_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Copy the prompt into the beginning of the tensor &#39;x&#39;.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># Ensure that the generation length can be evenly divided into blocks.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">assert</span> <span class="n">gen_length</span> <span class="o">%</span> <span class="n">block_length</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_blocks</span> <span class="o">=</span> <span class="n">gen_length</span> <span class="o">//</span> <span class="n">block_length</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1"># Distribute the total steps among the blocks.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">assert</span> <span class="n">steps</span> <span class="o">%</span> <span class="n">num_blocks</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="n">steps_per_block</span> <span class="o">=</span> <span class="n">steps</span> <span class="o">//</span> <span class="n">num_blocks</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1"># nfe: Number of Forward-pass Evaluations. A counter for computational cost.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">nfe</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1"># Outer loop: iterate through each block to be generated.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">num_block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Define the start and end positions of the current block within the full tensor &#39;x&#39;.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">current_block_start</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">num_block</span> <span class="o">*</span> <span class="n">block_length</span>
+</span></span><span class="line"><span class="cl">        <span class="n">current_block_end</span> <span class="o">=</span> <span class="n">current_block_start</span> <span class="o">+</span> <span class="n">block_length</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Find the indices of mask tokens within the current block.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">block_mask_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">current_block_start</span><span class="p">:</span><span class="n">current_block_end</span><span class="p">]</span> <span class="o">==</span> <span class="n">mask_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># Determine the number of tokens to fill at each refinement step for this block.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num_transfer_tokens</span> <span class="o">=</span> <span class="n">get_num_transfer_tokens</span><span class="p">(</span><span class="n">block_mask_index</span><span class="p">,</span> <span class="n">steps_per_block</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># --- First Model Call: Initialize Global Cache ---</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># A single forward pass on the ENTIRE sequence (prompt + all masked blocks) to pre-calculate</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># the Key-Value cache for all tokens. This is the &#34;global&#34; cache.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">past_key_values</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">past_key_values</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># Identify all mask tokens up to the end of the current block.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mask_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">mask_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Ignore masks that are in future blocks for this step&#39;s prediction.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mask_index</span><span class="p">[:,</span> <span class="n">current_block_end</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># Select which tokens to predict and fill in this initial step for the current block.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x0</span><span class="p">,</span> <span class="n">transfer_index</span> <span class="o">=</span> <span class="n">get_transfer_index</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">remasking</span><span class="p">,</span> <span class="n">mask_index</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">num_transfer_tokens</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">threshold</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># Update the tensor &#39;x&#39; by filling the selected mask positions with the predicted tokens.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span><span class="p">[</span><span class="n">transfer_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">x0</span><span class="p">[</span><span class="n">transfer_index</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nfe</span> <span class="o">+=</span> <span class="mi">1</span> <span class="c1"># Increment the forward-pass counter.</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># Counter for refinement steps within the block.</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># A boolean mask indicating the position of the current block, used to update the cache efficiently.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">replace_position</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">replace_position</span><span class="p">[:,</span> <span class="n">current_block_start</span><span class="p">:</span><span class="n">current_block_end</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># --- Inner Loop: Iterative Refinement of the Current Block ---</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># This loop continues until all masks in the current block are filled.</span>
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nfe</span> <span class="o">+=</span> <span class="mi">1</span> <span class="c1"># Increment the forward-pass counter for each refinement step.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># Find the remaining masks ONLY within the current block.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">mask_index_block</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">current_block_start</span><span class="p">:</span><span class="n">current_block_end</span><span class="p">]</span> <span class="o">==</span> <span class="n">mask_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- Efficient Model Call using Dual Cache ---</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Instead of passing the whole sequence, only pass the CURRENT BLOCK&#39;s tokens.</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Reuse the &#39;past_key_values&#39; (global cache) computed earlier. The model internally</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># uses &#39;replace_position&#39; to update the cache only at the current block&#39;s location.</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># This is the &#34;dual cache&#34; trick, avoiding re-computation for the prompt and previous blocks.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">current_block_start</span><span class="p">:</span><span class="n">current_block_end</span><span class="p">],</span> <span class="n">past_key_values</span><span class="o">=</span><span class="n">past_key_values</span><span class="p">,</span> <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">replace_position</span><span class="o">=</span><span class="n">replace_position</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># Select which of the remaining masks to fill in this refinement step.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x0</span><span class="p">,</span> <span class="n">transfer_index</span> <span class="o">=</span> <span class="n">get_transfer_index</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">remasking</span><span class="p">,</span> <span class="n">mask_index_block</span><span class="p">,</span> 
+</span></span><span class="line"><span class="cl">                                            <span class="n">x</span><span class="p">[:,</span> <span class="n">current_block_start</span><span class="p">:</span><span class="n">current_block_end</span><span class="p">],</span> <span class="n">num_transfer_tokens</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">threshold</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># Update the current block with the newly predicted tokens.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span><span class="p">[:,</span> <span class="n">current_block_start</span><span class="p">:</span><span class="n">current_block_end</span><span class="p">][</span><span class="n">transfer_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">x0</span><span class="p">[</span><span class="n">transfer_index</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># If there are no more masks in the current block, exit the refinement loop.</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">current_block_start</span><span class="p">:</span><span class="n">current_block_end</span><span class="p">]</span> <span class="o">==</span> <span class="n">mask_id</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">break</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span> <span class="c1"># Move to the next refinement step.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># Return the fully generated sequence and the total number of model evaluations.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">nfe</span>
+</span></span></code></pre></div>]]></content:encoded>
     </item>
     <item>
       <title>LLaDA</title>
-      <link>http://localhost:57770/blogs/llada/</link>
+      <link>http://localhost:1313/blogs/llada/</link>
       <pubDate>Thu, 12 Jun 2025 13:43:16 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/llada/</guid>
+      <guid>http://localhost:1313/blogs/llada/</guid>
       <description>Paper Reading of LLaDA</description>
       <content:encoded><![CDATA[<h1 id="introduction">Introduction</h1>
 <p>LLM 主要的思想是 <em>generative modeling</em> 的思想是通过最大似然估计来优化模型的分布 $\log p_\theta(\cdot)$ 来逼近数据的分布 $\log p_{\text{data}}(\cdot)$
 </p>
 $$
-\underbrace{\max_\theta\mathbb{E}_{p_{\text{data}}(x)}\log p_\theta(x)\Leftrightarrow\min_\theta\operatorname{KL}(p_{\text{data}}(x)||p_\theta(x)).}_{\text{Generative modeling principles}} \quad(1)
+\underbrace{\max_\theta\mathbb{E}_{p_{\text{data}}(x)}\log p_\theta(x)\Leftrightarrow\min_\theta\operatorname{KL}(p_{\text{data}}(x)||p_\theta(x)).}_{\text{Generative modeling principles}} \tag{1}
 $$<p>当前，几乎所有我们熟知的大语言模型，从GPT系列到LLaMA系列，都基于<em>autoregressice modeling</em> 来实现。这种范式的核心是 <strong>next-token prediction</strong> ，即根据已经生成的文本序列，逐 toekn 地预测下一个最有可能出现的 token.</p>
 $$
-\underbrace{p_\theta(x)=p_\theta(x^1)\prod_{i=2}^Lp_\theta(x^i\mid x^1,\ldots,x^{i-1})}_{\text{Autoregressive formulation}} \quad(2)
+\underbrace{p_\theta(x)=p_\theta(x^1)\prod_{i=2}^Lp_\theta(x^i\mid x^1,\ldots,x^{i-1})}_{\text{Autoregressive formulation}} \tag{2}
 $$<p>这种单向、顺序的生成方式在处理需要双向推理的任务时表现不佳，一个典型的例子就是 <strong>Reversal Curse</strong> ——模型知道 A is B，却往往无法推断出 B is A.</p>
 <p>LLM 能力的核心基石是生成式建模原理本身，即通过最大似然估计让模型学习真实世界的数据分布 ，而非自回归这一具体的实现形式。</p>
 <blockquote class="quote"><p><strong>It is the generative modeling principles (i.e., Eq. (1)), rather than the autoregressive formulation (i.e., Eq. (2)) itself, that fundamentally underpin the essential properties of LLMs.</strong></p></blockquote>
@@ -384,7 +571,7 @@ q_{t|0}(x_{t}|x_{0}) = \prod_{i=1}^{L} q_{t|0}(x_{t}^{i}|x_{0}^{i})
 $$<p>对于 $t \in (0,1)$，序列 $x_{t}$ 是部分被掩码的，其中每个 token 有 $t$ 的概率被mask，或有 $1-t$ 的概率保持不变。</p>
 $$
 q_{t|0}(x_{t}^{i}|x_{0}^{i}) = \begin{cases} 1-t, & x_{t}^{i} = x_{0}^{i} \\ t, & x_{t}^{i} = M \end{cases}
-$$<p>其中 M 表示掩码 token. 直观上，每个 token 要么保持不变，要么被掩码，而被掩码的概率随着 t 从 0 到 1 线性增加。在 $t=1$ 时，所有 token 都被 mask.</p>
+$$<p>其中 M 表示掩码 token. 直观上，每个 token 要么保持不变，要么被掩码，<strong>被掩码的概率随着 t 从 0 到 1 线性增加</strong>。在 $t=1$ 时，所有 token 都被 mask. 线性变化的被掩码概率和原先扩散模型的加噪流程不一样，是基于文本信息和 token 长度成正比的假设。</p>
 <h2 id="reverse-process">Reverse Process</h2>
 <p>反向过程则通过在 $t=1\rightarrow 0$ 从完全被掩码的序列中生成新数据。</p>
 <p>对于 $0 \le s < t \le 1$，反向过程的条件分布分解为：</p>
@@ -400,17 +587,20 @@ $$<p>其中 $x_{t}^{\text{UM}}$ 表示 $x_{t}$ 中未被掩码 token 的集合�
 <p>尽管 MDM 的推导过程不简单，但其实现是直接的。我们首先引入<strong>掩码预测器</strong>，一个参数化模型 $p_{\theta}(\cdot|x_{t})$ (例如一个没有因果掩码的 Transformer)，它将任意 t 时刻的 $x_{t}$ 作为输入，并同时预测所有被 mask 的 token. 然后，我们如下定义模型分布 $p_{\theta}(x_{0})$：从一个被完全 mask 序列的 $x_{1}$ 开始，从 $t=1$ 到 0 模拟一个由 $p_{\theta}(\cdot|x_{t})$ 参数化的近似反向过程。在 $t=0$ 时刻推导出的边缘分布即代表了模型分布 $p_{\theta}(x_{0})$ 。</p>
 <p>掩码预测器将 $x_{t}$ 作为输入并同时预测所有被掩码的 token (表示为 M). 它通过一个仅在被掩码 token 上计算的交叉熵损失进行训练：</p>
 $$
-\mathcal{L}(\theta)\triangleq-\mathbb{E}_{t,x_{0},x_{t}}[\frac{1}{t}\sum_{i=1}^{L}I[x_{t}^{i}=M]log~p_{\theta}(x_{0}^{i}|x_{t})], \quad(3)
+\mathcal{L}(\theta)\triangleq-\mathbb{E}_{t,x_{0},x_{t}}[\frac{1}{t}\sum_{i=1}^{L}I[x_{t}^{i}=M]log~p_{\theta}(x_{0}^{i}|x_{t})], \tag{3}
 $$<p>其中，$x_{0}$ 从训练数据中采样，$t$ 从<code>[0, 1]</code>中均匀采样<span class="sidenote-number"><small class="sidenote">Notably, LLaDA employs a masking ratio that <em>varies randomly</em> between 0 and 1 while masked language models (Devlin, 2018) use a fixed ratio.</small></span>
 ，$x_{t}$ 从前向过程中采样。指示函数 $I[\cdot]$ 确保损失仅针对被掩码的 token 计算。一旦训练完成，便可以模拟一个由该掩码预测器参数化的反向过程（详见2.4节），并将模型分布 $p_{\theta}(x_{0})$ 定义为该过程的边缘分布。</p>
-<p>总的来说该方法通过在正向过程中逐步屏蔽令牌并在反向过程中学习恢复数据分布来训练生成模型，所有这些都在（近似）最大似然估计框架下。</p>
+<p>公式(3)已被证明是模型分布负对数似然的上界</p>
+$$
+-\mathbb{E}_{p_{\text{data}}(x_{0})}\left[\log p_{\theta}(x_{0})\right]\leq\mathcal{L}(\theta) \tag{4}
+$$<p>该方法通过在正向过程中逐步屏蔽 token 并在反向过程中学习恢复数据分布来训练生成模型，所有这些都在（近似）最大似然估计框架下。</p>
 <h2 id="pretraining">Pretraining</h2>
 <ul>
 <li>
 <p>LLaDA 8B 模型在一个包含 2.3T tokens 的高质量、多源数据集上从零开始进行预训练。该数据集覆盖了通用文本、代码、数学和多语言内容 。</p>
 </li>
 <li>
-<p>训练总共消耗了 0.13M H800 GPU小 hours. 训练序列长度固定为4096. 其核心训练步骤是：对每个序列随机采样一个掩码率 t，并独立地以该概率掩码每个 token，然后让模型去预测被掩码的部分 。</p>
+<p>训练总共消耗了 0.13M H800 GPU hours. 训练序列长度固定为4096. 其核心训练步骤是：对每个序列随机采样一个掩码率 t，并独立地以该概率掩码每个 token，然后让模型去预测被掩码的部分 。</p>
 </li>
 <li>
 <p><strong>架构调整</strong> 相较于LLaMA3 8B，LLaDA 8B在架构上做了一些必要调整，如使用标准的 MHA 而非 GQA，并相应地调整了 FFN 的维度以保持模型总参数量相当 。</p>
@@ -498,17 +688,19 @@ $$<p>其中，$x_{0}$ 从训练数据中采样，$t$ 从<code>[0, 1]</code>中�
   </tbody>
 </table>
 <h2 id="supervised-fine-tuning">Supervised Fine-Tuning</h2>
-<p>我们通过使用配对数据 $(p_{0}, r_{0})$ 进行监督微调 (SFT)来增强LLaDA遵循指令的能力，其中 $p_{0}$ 是 prompt，$r_{0}$ 表示响应(response). 这是针对LLM最简单、最基础的 post-training 方法。从技术上讲，这要求模型对条件分布 $p_{\theta}(r_{0}|p_{0})$ 进行建模，而非预训练中的 $p_{\theta}(x_{0})$。</p>
+<p>我们通过使用配对数据 $(p_{0}, r_{0})$ 进行 <strong>监督微调 (SFT)</strong> 来增强LLaDA遵循指令的能力，其中 $p_{0}$ 是 prompt，$r_{0}$ 表示响应(response). 这是针对LLM最简单、最基础的 post-training 方法。从技术上讲，这要求模型对条件分布 $p_{\theta}(r_{0}|p_{0})$，而非预训练中的 $p_{\theta}(x_{0})$ 进行建模。</p>
 <p>其实现方式与预训练类似。如图2(b)所示，保持 prompt 部分不变，并像处理 $x_{0}$ 一样，独立地 mask response 中的 token. 然后，将提示和被掩码的响应 $r_{t}$ 一同送入预训练好的掩码预测器，以计算用于 SFT 的损失</p>
 $$
--\mathbb{E}_{t,p_{0},r_{0},r_{t}}[\frac{1}{t}\sum_{i=1}^{L^{\prime}}I[r_{t}^{i}=M]log~p_{\theta}(r_{0}^{i}|p_{0},r_{t})] \quad (5)
+-\mathbb{E}_{t,p_{0},r_{0},r_{t}}[\frac{1}{t}\sum_{i=1}^{L^{\prime}}I[r_{t}^{i}=M]log~p_{\theta}(r_{0}^{i}|p_{0},r_{t})] \tag{5}
 $$<p>其中，$L^{\prime}$ 表示稍后指定的动态长度。这种方法与预训练是完全兼容的。本质上，将 $p_{0}$ 和 $r_{0}$ 拼接起来可以被视为干净的预训练数据 $x_{0} $，而将 $p_{0}$ 和 $r_{t}$ 拼接起来则可作为其被掩码后的版本 $x_{t}$. 这个过程与预训练完全相同，唯一的区别在于所有被掩码的 token 恰好都出现在 $r_{0}$ 部分。</p>
 <p>LLaDA 8B 模型在一个包含 4.5M 对样本的数据集上进行了 SFT. 与预训练过程一致，数据准备和训练都遵循了现有LLM (Chu et al., 2024; Yang et al., 2024) 中使用的 SFT 协议，没有引入任何额外的技术来优化 LLaDA 的性能。该数据集涵盖了多个领域，包括代码、数学、指令遵循和结构化数据理解。我们在每个 mini-batch 中的短样本对末尾附加 EOS token，以确保所有数据长度相等。在训练期间将 EOS视为一个普通 token ，并在采样时将其移除，使得LLaDA能够自动控制响应的长度。</p>
 <p>我们在SFT数据上训练了 3 个 epoch，其调度策略与预训练阶段相似。学习率在最初 50 次迭代中从 0 线性增加到 $2.5 \times 10^{-5}$，然后保持不变。在最后 10% 的迭代中，学习率性降低到 $2.5 \times 10^{-6}$. 此外，我们将权重衰减设置为 0.1，全局 batch size 设置为 256，每个 GPU 的本地 batch size 设置为 2. SFT实验只执行了一次，没有进行任何超参数调优。</p>
 <h2 id="inference">Inference</h2>
 <p>作为一个生成式模型，LLaDA既能 <strong>采样 (sampling)</strong> 新文本，也能 <strong>评估 (evaluating)</strong> 候选文本的似然。</p>
-<p>我们先从采样说起。如图 2(c) 所示，给定一个 prompt $p_{0}$，我们通过离散化反向过程来从模型分布 $p_{\theta}(r_{0}|p_{0})$ 中进行采样，这个过程从一个被完全掩码的 response 开始。总的采样步数是一个超参数，为 LLaDA 提供了一个在效率和样本质量之间的权衡（详见3.3节分析）。我们默认使用均匀分布的时间步。此外，生成长度也被视为一个超参数，它指定了采样过程开始时完全被掩码句子的长度。如附录B.4所述，由于预训练和SFT都是在可变长度的数据集上进行的，最终结果对这个长度超参数不敏感。</p>
-<p>在一个从时间 $t \in (0, 1]$ 到 $s \in [0, t)$的中间步骤中，我们将 $p_{0}$ 和 $r_{t}$ 同时送入掩码预测器，并一次性预测所有被掩码的 token. 随后 <em>remask</em> $\frac{s}{t}$ 比例的已预测 token. 得到$r_{s}$，从而确保反向过程的转换与前向过程保持一致，以实现准确采样。</p>
+<p>先从采样说起。如图 2(c) 所示，给定一个 prompt $p_{0}$，我们通过离散化反向过程来从模型分布 $p_{\theta}(r_{0}|p_{0})$ 中进行采样，这个过程从一个被完全掩码的 response 开始。</p>
+<p><strong>总的采样步数是一个超参数</strong>，为 LLaDA 提供了一个在效率和样本质量之间的权衡（详见3.3节分析）。我们默认使用均匀分布的时间步。
+此外，<strong>生成长度也被视为超参数</strong>，它指定了采样过程开始时完全被掩码句子的长度。如附录B.4所述，由于预训练和SFT都是在可变长度的数据集上进行的，最终结果对这个长度超参数不敏感。</p>
+<p>在一个从时间 $t \in (0, 1]$ 到 $s \in [0, t)$的中间步骤中，我们将 $p_{0}$ 和 $r_{t}$ 同时送入掩码预测器，并一次性预测所有被掩码的 token. 随后 <em>remask</em> $\frac{s}{t}$ 比例的已预测 token 得到$r_{s}$，从而确保反向过程的转换与前向过程保持一致，以实现准确采样。</p>
 <p>受 LLM 采样中退火技巧的启发，我们探索了两种确定性但有效的重掩码策略。</p>
 <ul>
 <li><strong>low-confidence remasking</strong>: remask 那些基于预测置信度最低的 $\frac{s}{t}$ 比例的 token.</li>
@@ -521,9 +713,9 @@ $$<p>其中，$L^{\prime}$ 表示稍后指定的动态长度。这种方法与�
     </a><figcaption>A Conceptual Overview of the Semi-autoregressive Sampling</figcaption></figure></p>
 <p>对于条件似然评估，我们自然可以利用公式(5)中的上界。然而，我们发现下面这个等价形式（公式6）表现出更低的方差，在评估时更为稳定：</p>
 $$
--\mathbb{E}_{l,r_{0},r_{l}}[\frac{L}{l}\sum_{i=1}^{L}I[r_{l}^{i}=M]log~p_{\theta}(r_{0}^{i}|p_{0},r_{l})] \quad(6)
+-\mathbb{E}_{l,r_{0},r_{l}}[\frac{L}{l}\sum_{i=1}^{L}I[r_{l}^{i}=M]log~p_{\theta}(r_{0}^{i}|p_{0},r_{l})] \tag{6}
 $$<p>其中，$l$ 从 ${1, 2, ..., L}$ 中均匀采样，$r_{l}$ 是通过从 $r_{0}$ 中不放回地均匀采样 $l$ 个没被 mask 的 token 得到的。此外，我们还采用了 unsupervised classifier-free guidance.</p>
-<p>虽然这两个形式的期望值相同，但它们的方差不同。直观上，在公式 (5) 中，我们期望 $x_{t}=[p_0,r_t]$ 有 $t$ 比例的 token 被掩码。然而，前向过程的随机性常常会导致偏差，尤其当 $x_{t}$ 包含的 token 很少时。相比之下，在公式 (6) 中，$r_{l}$ 中被掩码 token 的比例 $\frac{l}{L}$ 是确定的。</p>
+<p><strong>虽然这两个形式的期望值相同，但它们的方差不同</strong>。直观上，在公式 (5) 中，我们期望 $x_{t}=[p_0,r_t]$ 有 $t$ 比例的 token 被掩码。然而，前向过程的随机性常常会导致偏差，尤其当 $x_{t}$ 包含的 token 很少时。相比之下，在公式 (6) 中，$r_{l}$ 中被掩码 token 的比例 $\frac{l}{L}$ 是确定的。</p>
 <p>虽然理论分析取决于数据分布，但经验结果表明，公式 (5) 需要超过 1000 次蒙特卡洛估计才能得到稳定结果，而公式 (6) 仅需 128 次估计即可达到稳定。</p>
 <p>Any-order autoregressive models (AO-ARM)  通过对 L 个变量所有可能的排列顺序进行自回归来描述联合分布。为了学习这样的分布，AO-ARM 利用一个权重共享的神经网络来为所有单变量条件概率建模，并使用掩码 token 来表示缺失的变量。在训练期间，模型会最小化在所有顺序的均匀分布 $U_{\pi}$ 上的期望负对数似然：</p>
 $$
@@ -556,7 +748,211 @@ $$<p> (16)</p>
 <p>反向推理 (Reversal Reasoning)：为了量化模型克服“反转诅咒”的能力，实验在一个中文古诗补全任务上进行了测试。结果表明，LLaDA 在正向和反向任务上表现均衡，一致性强，而 GPT-4o 等模型则在反向任务上表现出显著的性能下降。</p>
 </li>
 </ol>
-<h1 id="reference">Reference</h1>
+<h1 id="generation-code">Generation code</h1>
+<ol>
+<li>
+<p><strong>初始化 (The Canvas) 🎨</strong></p>
+<p>函数首先会创建一个如下所示的序列：
+<code>[&lt;start_token&gt;, &lt;prompt_tokens&gt;, [MASK], [MASK], ..., [MASK]]</code>
+generate 的目标就是用一个连贯的答案来替换掉所有的 <code>[MASK]</code> 标记。</p>
+</li>
+<li>
+<p><strong>分块 (Semi-Autoregressive) 🧱</strong></p>
+<p>算法并不会一次性填充所有 <code>gen_length</code> 个掩码，而是将整个过程分解为 <code>num_blocks</code> 个块。它会先完全填满第一个 <code>block_length</code> 长度的掩码，然后再开始处理下一个块。这种方式在宏观层面引入了从左到右的生成顺序。</p>
+</li>
+<li>
+<p><strong>迭代式精炼 (核心循环) 🔄</strong></p>
+<p>对于每一个块，代码都会进入一个内部循环，该循环运行 <code>steps_per_block</code> 次。循环的每一步中：</p>
+<ul>
+<li>
+<p><strong>A. 预测：</strong> 将当前的 <code>x</code> 包含其中剩余的掩码 输入到 <code>LLaDA</code> 模型中。模型会为序列中的<em>每一个</em>位置预测最可能的 token，即使是那些没有被掩码的位置也会进行预测。</p>
+</li>
+<li>
+<p><strong>B. 生成候选 token：</strong> 算法通过对模型的输出 <code>logits</code> 执行 <code>argmax</code> 操作，为每个位置确定一个候选 token. 在这里可以加入 Gumbel 噪声来引入随机性，其作用类似于自回归采样中的 <code>temperature</code>。这样我们就得到了一个完整的候选序列 <code>x0</code>。</p>
+</li>
+<li>
+<p><strong>C. 置信度评分：</strong> 算法需为每个 <code>[MASK]</code> 位置上预测出的 token 计算一个<strong>置信度分数</strong>。<code>low_confidence</code> 策略（尽管其在代码逻辑中的命名可能有点误导）使用预测 token 的 softmax 概率作为其置信度。概率越高，代表模型越自信。</p>
+</li>
+<li>
+<p><strong>D. token 选择：</strong> 基于置信度分数，算法会保留<strong>置信度最高的 K 个</strong>预测结果。每一步要保留的 token 数量 (K) 由 <code>get_num_transfer_tokens</code> 函数预先计算好，以确保线性的 unksk 速率。</p>
+</li>
+<li>
+<p><strong>E. 状态更新：</strong> 在那些被选中的高置信度位置，<code>[MASK]</code>  token 会被替换成 <code>x0</code> 中对应的预测 token. 而其他的 <code>[MASK]</code> 位置则保持不变，留待下一次迭代。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>重复与推进 ➡️</strong>
+内部循环不断重复。在下一次迭代中，模型会看到更新后的 <code>x</code>，其中包含了更多上下文信息和更少的掩码。这使得模型在后续步骤中能做出更好的预测。这个精炼过程会一直持续，直到当前块中所有的 <code>[MASK]</code> 都被去除。</p>
+</li>
+<li>
+<p><strong>下一区块与完成 ✅</strong>
+当一个块完成后，外部循环会移动到下一个 <code>[MASK]</code> 块，并重复整个迭代式精炼过程，直到生成了完整的 <code>gen_length</code> 长度。最后，返回最终被完全填充的序列。</p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoTokenizer</span><span class="p">,</span> <span class="n">AutoModel</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">add_gumbel_noise</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperature</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">    The Gumbel max is a method for sampling categorical distributions.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    According to arXiv:2409.02908, for MDM, low-precision Gumbel Max improves perplexity score but reduces generation quality.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    Thus, we use float64.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">temperature</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">logits</span>
+</span></span><span class="line"><span class="cl">    <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">gumbel_noise</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">noise</span><span class="p">))</span> <span class="o">**</span> <span class="n">temperature</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">logits</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span> <span class="o">/</span> <span class="n">gumbel_noise</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_num_transfer_tokens</span><span class="p">(</span><span class="n">mask_index</span><span class="p">,</span> <span class="n">steps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">    In the reverse process, the interval [0, 1] is uniformly discretized into steps intervals.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    Furthermore, because LLaDA employs a linear noise schedule (as defined in Eq. (8)),
+</span></span></span><span class="line"><span class="cl"><span class="s1">    the expected number of tokens transitioned at each step should be consistent.
+</span></span></span><span class="line"><span class="cl"><span class="s1">
+</span></span></span><span class="line"><span class="cl"><span class="s1">    This function is designed to precompute the number of tokens that need to be transitioned at each step.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mask_num</span> <span class="o">=</span> <span class="n">mask_index</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">base</span> <span class="o">=</span> <span class="n">mask_num</span> <span class="o">//</span> <span class="n">steps</span>
+</span></span><span class="line"><span class="cl">    <span class="n">remainder</span> <span class="o">=</span> <span class="n">mask_num</span> <span class="o">%</span> <span class="n">steps</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">num_transfer_tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">mask_num</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">steps</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">mask_index</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">+</span> <span class="n">base</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mask_num</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num_transfer_tokens</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">remainder</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">num_transfer_tokens</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">gen_length</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">block_length</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">             <span class="n">cfg_scale</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">remasking</span><span class="o">=</span><span class="s1">&#39;low_confidence&#39;</span><span class="p">,</span> <span class="n">mask_id</span><span class="o">=</span><span class="mi">126336</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">    Args:
+</span></span></span><span class="line"><span class="cl"><span class="s1">        model: Mask predictor.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        prompt: A tensor of shape (1, L).
+</span></span></span><span class="line"><span class="cl"><span class="s1">        steps: Sampling steps, less than or equal to gen_length.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        gen_length: Generated answer length.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        block_length: Block length, less than or equal to gen_length. If less than gen_length, it means using semi_autoregressive remasking.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        temperature: Categorical distribution sampling temperature.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        cfg_scale: Unsupervised classifier-free guidance scale.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        remasking: Remasking strategy. &#39;low_confidence&#39; or &#39;random&#39;.
+</span></span></span><span class="line"><span class="cl"><span class="s1">        mask_id: The toke id of [MASK] is 126336.
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 1. Initialization: Create the full sequence tensor &#39;x&#39;.</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># It starts with the prompt, followed by `gen_length` [MASK] tokens.</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># This is the &#34;canvas&#34; that will be filled in.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">gen_length</span><span class="p">),</span> <span class="n">mask_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># Keep track of where the original prompt is, so we don&#39;t modify it.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">prompt_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="n">mask_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 2. Semi-Autoregressive Setup (Blocking)</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># The generation is split into &#39;num_blocks&#39; chunks. This handles long generation</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># by generating `block_length` tokens at a time before moving to the next chunk.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">assert</span> <span class="n">gen_length</span> <span class="o">%</span> <span class="n">block_length</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_blocks</span> <span class="o">=</span> <span class="n">gen_length</span> <span class="o">//</span> <span class="n">block_length</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1"># The total number of refinement steps is distributed among the blocks.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">assert</span> <span class="n">steps</span> <span class="o">%</span> <span class="n">num_blocks</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="n">steps_per_block</span> <span class="o">=</span> <span class="n">steps</span> <span class="o">//</span> <span class="n">num_blocks</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 3. Outer Loop: Process each block sequentially.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">num_block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Define the current working area (the block to be filled).</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Note: The original code has a small typo `...:]`, corrected here for clarity.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">start_pos</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">num_block</span> <span class="o">*</span> <span class="n">block_length</span>
+</span></span><span class="line"><span class="cl">        <span class="n">end_pos</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">num_block</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">block_length</span>
+</span></span><span class="line"><span class="cl">        <span class="n">block_mask_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">start_pos</span><span class="p">:</span><span class="n">end_pos</span><span class="p">]</span> <span class="o">==</span> <span class="n">mask_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Calculate how many tokens to &#34;unmask&#34; or &#34;confirm&#34; in each refinement step for this block.</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># This ensures a steady, linear progression of unmasking.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num_transfer_tokens</span> <span class="o">=</span> <span class="n">get_num_transfer_tokens</span><span class="p">(</span><span class="n">block_mask_index</span><span class="p">,</span> <span class="n">steps_per_block</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 4. Inner Loop: Iteratively refine the current block.</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">steps_per_block</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Get the indices of all currently masked tokens in the entire sequence.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">mask_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">mask_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4a. Prediction with optional Classifier-Free Guidance (CFG) ---</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">cfg_scale</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Create an unconditional version of the input by masking the prompt.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">un_x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">un_x</span><span class="p">[</span><span class="n">prompt_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask_id</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="c1"># Run the model on both the conditional (x) and unconditional (un_x) inputs.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">x_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">un_x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logits_cat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logits</span><span class="p">,</span> <span class="n">un_logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">logits_cat</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="c1"># Combine logits to steer the generation towards the prompt.</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># The formula is: unconditional + scale * (conditional - unconditional)</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># An algebraic simplification gives the line below.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logits</span> <span class="o">=</span> <span class="n">un_logits</span> <span class="o">+</span> <span class="p">(</span><span class="n">cfg_scale</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">logits</span> <span class="o">-</span> <span class="n">un_logits</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># If no CFG, just do a single forward pass.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4b. Candidate Generation ---</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Add Gumbel noise for stochastic sampling. If temperature is 0, this is a simple argmax.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits_with_noise</span> <span class="o">=</span> <span class="n">add_gumbel_noise</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Get the most likely token prediction for every position in the sequence.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">logits_with_noise</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4c. Confidence Scoring for Remasking ---</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Determine which of the new predictions to keep for the next step.</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">remasking</span> <span class="o">==</span> <span class="s1">&#39;low_confidence&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Calculate the softmax probabilities of the predicted tokens.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Get the probability of the chosen token `x0` at each position. This is the &#34;confidence&#34;.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">x0_p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="n">remasking</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Use random scores as confidence for random unmasking.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">x0_p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">((</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">device</span><span class="o">=</span><span class="n">x0</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">remasking</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4d. Selecting Tokens to Update ---</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># We are only interested in updating tokens inside the current block.</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Set confidence outside the current active generation area to -infinity to ignore them.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x0_p</span><span class="p">[:,</span> <span class="n">end_pos</span><span class="p">:]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># Only consider predictions for positions that are currently masked.</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Original tokens (prompt and previously confirmed tokens) should have -infinity confidence.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">confidence</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_index</span><span class="p">,</span> <span class="n">x0_p</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># Replace the content of `x` at masked positions with the new predictions (`x0`).</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_index</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># This will hold the indices of the tokens we decide to &#34;confirm&#34; in this step.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">transfer_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x0</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="c1"># For each item in the batch (here, just 1)...</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">confidence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># ...select the `k` tokens with the HIGHEST confidence scores among the masked positions.</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># `k` is determined by `num_transfer_tokens` for the current step `i`.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">_</span><span class="p">,</span> <span class="n">select_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">confidence</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="n">num_transfer_tokens</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Mark these high-confidence positions to be updated.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">transfer_index</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">select_index</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># --- 4e. State Update ---</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Update the main tensor &#39;x&#39; by replacing [MASK] tokens with the selected high-confidence predictions.</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># The other [MASK]s remain for the next refinement iteration.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span><span class="p">[</span><span class="n">transfer_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">x0</span><span class="p">[</span><span class="n">transfer_index</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 5. Return Final Generation</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Once all blocks and steps are complete, return the generated part of the sequence.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span>
+</span></span></code></pre></div><h1 id="reference">Reference</h1>
 <div class="footnotes" role="doc-endnotes">
 <hr>
 <ol>

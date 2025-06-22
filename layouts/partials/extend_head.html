@@ -2,3 +2,13 @@
   {{ partialCached "math.html" . }}
 {{ end }}
 
+{{ if or .Params.mermaid .Site.Params.mermaid }}
+<!-- MermaidJS support -->
+<script src="https://cdn.bootcdn.net/ajax/libs/mermaid/9.1.6/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: localStorage.getItem("pref-theme") === "dark" ? "dark" : "forest" // 自动匹配默认或夜间模式主题。
+    });
+</script>
+{{ end }}

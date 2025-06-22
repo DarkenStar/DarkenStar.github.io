@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Diffusion Models on WITHER</title>
-    <link>http://localhost:57770/tags/diffusion-models/</link>
+    <link>http://localhost:1313/tags/diffusion-models/</link>
     <description>Recent content in Diffusion Models on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
     <lastBuildDate>Sat, 07 Jun 2025 23:40:58 +0800</lastBuildDate>
-    <atom:link href="http://localhost:57770/tags/diffusion-models/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/tags/diffusion-models/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>DistriFusion</title>
-      <link>http://localhost:57770/blogs/distrifusion/</link>
+      <link>http://localhost:1313/blogs/distrifusion/</link>
       <pubDate>Wed, 23 Oct 2024 14:28:37 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/distrifusion/</guid>
+      <guid>http://localhost:1313/blogs/distrifusion/</guid>
       <description>Paper reading about DistriFusion.</description>
       <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
 <p>DistriFusion 将模型输入分割成多个 patch 后分配给 GPU。但是直接实现这样的算法会破坏 patch 之间的交互并失去保真度，而同步 GPU 之间的激活将产生巨大的通信开销。为了克服这一困境，根据观察到的相邻扩散步输入之间的高度相似性提出了 <strong>displaced patch parallelism</strong>，该方法通过重用前一个时间步骤中预先计算的 feature map 来利用扩散过程的顺序性，为当前步提供 context. 该方法支持异步通信，可以通过计算实现流水线化。</p>

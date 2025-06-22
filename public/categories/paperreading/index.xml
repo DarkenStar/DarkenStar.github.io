@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>PaperReading on WITHER</title>
-    <link>http://localhost:57770/categories/paperreading/</link>
+    <link>http://localhost:1313/categories/paperreading/</link>
     <description>Recent content in PaperReading on WITHER</description>
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Fri, 13 Jun 2025 11:39:32 +0800</lastBuildDate>
-    <atom:link href="http://localhost:57770/categories/paperreading/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 13 Jun 2025 15:12:24 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/categories/paperreading/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>PipeFusion</title>
-      <link>http://localhost:57770/blogs/pipefusion/</link>
+      <link>http://localhost:1313/blogs/pipefusion/</link>
       <pubDate>Fri, 13 Jun 2025 11:39:32 +0800</pubDate>
-      <guid>http://localhost:57770/blogs/pipefusion/</guid>
+      <guid>http://localhost:1313/blogs/pipefusion/</guid>
       <description>Paper Reading of PipeFusion</description>
       <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
 <p>PipeFusion 是一种利用多 GPU 并行来进行 DiT 模型推理的方法。</p>

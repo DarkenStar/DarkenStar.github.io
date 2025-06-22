@@ -10,7 +10,7 @@
 <meta name="description" content="">
 <meta name="author" content="">
 <link rel="canonical" href="http://localhost:1313/categories/category-2/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.5989807471fe399ba380d3b1501334cf52bf92768fffdd44127d22f5eeae9f42.css" integrity="sha256-WYmAdHH&#43;OZujgNOxUBM0z1K/knaP/91EEn0i9e6un0I=" rel="preload stylesheet" as="style">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.dd3b5b907a50db3238b81d49d094cf1c04a091227797dc9cfde4e2fa3f35df49.css" integrity="sha256-3TtbkHpQ2zI4uB1J0JTPHASgkSJ3l9yc/eTi&#43;j8130k=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
@@ -67,6 +67,16 @@
   };
 </script>
 
+
+
+
+<script src="https://cdn.bootcdn.net/ajax/libs/mermaid/9.1.6/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: localStorage.getItem("pref-theme") === "dark" ? "dark" : "forest" 
+    });
+</script>
 
 <meta property="og:url" content="http://localhost:1313/categories/category-2/">
   <meta property="og:site_name" content="WITHER">
@@ -177,14 +187,16 @@
 
 <article class="post-entry tag-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">PipeFusion
+    <h2 class="entry-hint-parent">InternLM3 8B Instruct
     </h2>
   </header>
   <div class="entry-content">
-    <p></p>
+    <p>model &amp; config Network Definition
+{ &#34;architectures&#34;: [ &#34;InternLM3ForCausalLM&#34; ], &#34;attention_dropout&#34;: 0.0, &#34;auto_map&#34;: { &#34;AutoConfig&#34;: &#34;configuration_internlm3.InternLM3Config&#34;, &#34;AutoModel&#34;: &#34;modeling_internlm3.InternLM3Model&#34;, &#34;AutoModelForCausalLM&#34;: &#34;modeling_internlm3.InternLM3ForCausalLM&#34; }, &#34;bias&#34;: false, &#34;bos_token_id&#34;: 1, &#34;eos_token_id&#34;: 2, &#34;head_dim&#34;: 128, &#34;hidden_act&#34;: &#34;silu&#34;, &#34;hidden_size&#34;: 4096, &#34;initializer_range&#34;: 0.02, &#34;intermediate_size&#34;: 10240, &#34;max_position_embeddings&#34;: 32768, &#34;model_type&#34;: &#34;internlm3&#34;, &#34;num_attention_heads&#34;: 32, &#34;num_hidden_layers&#34;: 48, &#34;num_key_value_heads&#34;: 2, &#34;pad_token_id&#34;: 2, &#34;qkv_bias&#34;: false, &#34;rms_norm_eps&#34;: 1e-05, &#34;rope_scaling&#34;: { &#34;factor&#34;: 6.0, &#34;rope_type&#34;: &#34;dynamic&#34; }, &#34;rope_theta&#34;: 50000000, &#34;tie_word_embeddings&#34;: false, &#34;torch_dtype&#34;: &#34;bfloat16&#34;, &#34;transformers_version&#34;: &#34;4.47.1&#34;, &#34;use_cache&#34;: true, &#34;vocab_size&#34;: 128512 } 模块 (Module) 子模块 (Sub-module) 功能描述 配置参数 InternLM3ForCausalLM model: InternLM3Model 模型主干，包含词嵌入和解码器层。 - lm_head: Linear 线性输出层，将隐藏状态映射到词汇表大小，生成预测 logits。 hidden_size: 4096, vocab_size: 128512 — — — — InternLM3Model embed_tokens: Embedding 将输入的 token IDs 转换为稠密向量（Embeddings）。 vocab_size: 128512, hidden_size: 4096 layers: ModuleList[InternLM3DecoderLayer] 包含多个（48个）Transformer解码器层。 num_hidden_layers: 48 norm: RMSNorm 在所有解码器层之后，对最终的隐藏状态进行归一化。 hidden_size: 4096, rms_norm_eps: 1e-05 rotary_emb: RotaryEmbedding 计算旋转位置编码（RoPE），用于在注意力机制中融入位置信息。 head_dim: 128, max_position_embeddings: 32768, rope_theta: 50000000, rope_scaling: {&#34;factor&#34;: 6.0, &#34;rope_type&#34;: &#34;dynamic&#34;} — — — — InternLM3DecoderLayer self_attn: InternLM3Attention 多头自注意力模块，用于捕捉输入序列中的依赖关系。 - mlp: InternLM3MLP 前馈神经网络，用于对注意力输出进行非线性变换。 - input_layernorm: RMSNorm 在自注意力模块之前对输入进行层归一化。 hidden_size: 4096, rms_norm_eps: 1e-05 post_attention_layernorm: RMSNorm 在自注意力模块之后、MLP模块之前进行层归一化。 hidden_size: 4096, rms_norm_eps: 1e-05 — — — — InternLM3Attention qkv_proj: Linear 将输入的隐藏状态线性变换为查询（Q）、键（K）、值（V）。采用分组查询注意力（GQA）。 hidden_size: 4096, num_attention_heads: 32 (Q), num_key_value_heads: 2 (K, V) o_proj: Linear 将注意力模块的输出线性变换回隐藏状态的维度。 hidden_size: 4096 apply_rotary_pos_emb 将旋转位置编码（RoPE）应用于Q和K。 - — — — — InternLM3MLP gate_up_proj: Linear 两个并行的线性层（gate 和 up），将隐藏状态映射到中间维度。 hidden_size: 4096, intermediate_size: 10240 act_fn: SiluAndMul 使用 SiLU (Swish) 激活函数并进行逐元素相乘。 hidden_act: &#34;silu&#34; down_proj: Linear 将激活后的中间状态映射回隐藏状态的维度。 intermediate_size: 10240, hidden_size: 4096 InternLM3DecoderLayer 运算流程 假设输入为 hidden_states 和 residual (在前一层计算得出，第一层时 residual 等于 hidden_states)。
+...</p>
   </div>
-  <footer class="entry-footer"><span title='2025-06-13 11:39:32 +0800 CST'>Jun-13-2025</span>&nbsp;·&nbsp;0 min&nbsp;·&nbsp;0 words&nbsp;·&nbsp;WITHER</footer>
-  <a class="entry-link" aria-label="post link to PipeFusion" href="http://localhost:1313/blogs/pipefusion/"></a>
+  <footer class="entry-footer"><span title='2025-06-17 10:08:03 +0800 CST'>Jun-17-2025</span>&nbsp;·&nbsp;3 min&nbsp;·&nbsp;1375 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to InternLM3 8B Instruct" href="http://localhost:1313/blogs/internlm3-8b-instruct/"></a>
 </article>
     </main>
     

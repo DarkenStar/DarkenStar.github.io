@@ -7,16 +7,51 @@
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Thu, 12 Jun 2025 13:43:16 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 17 Jun 2025 21:50:16 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/llm/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>Diffusion LLM</title>
-      <link>http://localhost:1313/blogs/diffusionllm/</link>
-      <pubDate>Thu, 12 Jun 2025 13:43:16 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/diffusionllm/</guid>
-      <description>Paper Reading of LLaDA</description>
-      <content:encoded><![CDATA[<h1 id="introduction">Introduction</h1>
-<p>当前，几乎所有我们熟知的大语言模型，从GPT系列到LLaMA系列，都构建在自回归范式之上。这种范式的核心是 <strong>next-token prediction</strong> ，即根据已经生成的文本序列，逐 toekn 地预测下一个最有可能出现的 token. 这种单向、顺序的生成方式虽然被证明极其有效 ，但也带来了一些固有的缺陷，例如，它们在处理需要双向推理的任务时表现不佳，一个典型的例子就是 <strong>Reversal Curse</strong> ——模型知道 A is B，却往往无法推断出 B is A.</p>
+      <title>ServingLLMsOnHuaweiCloudMatrix384</title>
+      <link>http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/</link>
+      <pubDate>Tue, 17 Jun 2025 21:50:16 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/servingllmsonhuaweicloudmatrix384/</guid>
+      <description>Paper Reading of Serving Large Language Models on Huawei CloudMatrix384</description>
+      <content:encoded><![CDATA[<h1 id="abstract">Abstract</h1>
+<ol>
+<li>
+<p><strong>CloudMatrix384硬件架构</strong>：</p>
+<ul>
+<li>论文提出了一种 <strong>peer-to-peer</strong> 的硬件设计，包含384个<strong>Ascend 910C NPU</strong>和192个<strong>Kunpeng CPU</strong>，通过**Unified Bus (UB) Network **互联。UB 网络支持高带宽（392 GB/s单向带宽）和低延迟（1.9 µs）的全局通信，解决了传统AI集群中跨节点通信的瓶颈问题。</li>
+<li>架构特点包括：
+<ul>
+<li><strong>资源解耦和池化</strong>：计算、存储和网络资源可以动态分配，支持灵活的并行策略（如专家并行EP、数据并行DP）.</li>
+<li><strong>三层网络平面</strong>：UB平面（超节点内通信）、RDMA平面（跨超节点通信）和VPC平面（数据中心网络接入）。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>CloudMatrix-Infer软件优化</strong>：</p>
+<ul>
+<li><strong>预填充-解码-缓存（PDC）解耦架构</strong>：将LLM推理拆分为Prefill, Decode &amp; Caching 三个子系统，通过 UB网络实现高效协同。</li>
+<li><strong>large-scale expert parallelism (EP) strategy</strong>：支持高达<strong>EP320</strong>的专家并行度，每个NPU芯片承载一个专家，减少MoE模型中的通信开销。</li>
+<li><strong>UB驱动的分布式缓存</strong>：利用 <strong>弹性内存服务（EMS）</strong> 构建全局缓存池，支持KV缓存和模型权重的快速访问。</li>
+</ul>
+</li>
+<li>
+<p><strong>性能优化技术</strong>：</p>
+<ul>
+<li><strong>微批次流水线（Microbatch Pipeline）</strong>：重叠计算和通信，提升资源利用率。</li>
+<li><strong>INT8量化</strong>：在Ascend 910C上实现高效的8位推理，保持模型精度。</li>
+</ul>
+</li>
+</ol>
+<h4 id="实验结果">实验结果</h4>
+<p>论文使用<strong>DeepSeek-R1</strong>（671B参数MoE模型）验证了CloudMatrix-Infer的性能：</p>
+<ul>
+<li><strong>预填充吞吐量</strong>：6,688 tokens/s/NPU（4.45 tokens/s/TFLOPS），优于NVIDIA H100的SGLang（3.75 tokens/s/TFLOPS）。</li>
+<li><strong>解码吞吐量</strong>：1,943 tokens/s/NPU（1.29 tokens/s/TFLOPS），在TPOT &lt;50 ms约束下仍能保持高吞吐。</li>
+<li><strong>缓存命中率提升</strong>：上下文缓存（Context Caching）在90%重用率时，预填充时间减少59%。</li>
+</ul>
 ]]></content:encoded>
     </item>
   </channel>

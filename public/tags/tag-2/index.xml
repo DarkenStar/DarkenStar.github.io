@@ -7,17 +7,475 @@
     <generator>Hugo -- 0.147.7</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Fri, 13 Jun 2025 11:39:32 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 17 Jun 2025 10:08:03 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/tag-2/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>PipeFusion</title>
-      <link>http://localhost:1313/blogs/pipefusion/</link>
-      <pubDate>Fri, 13 Jun 2025 11:39:32 +0800</pubDate>
-      <guid>http://localhost:1313/blogs/pipefusion/</guid>
-      <description>&lt;!-- more --&gt;
-&lt;!-- hugo new --kind post path\to\markdown --&gt;</description>
-      <content:encoded><![CDATA[<!-- more -->
-<!-- hugo new --kind post path\to\markdown -->    ]]></content:encoded>
+      <title>InternLM3 8B Instruct</title>
+      <link>http://localhost:1313/blogs/internlm3-8b-instruct/</link>
+      <pubDate>Tue, 17 Jun 2025 10:08:03 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/internlm3-8b-instruct/</guid>
+      <description>&lt;h1 id=&#34;model--config&#34;&gt;model &amp;amp; config&lt;/h1&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/InternLM/lmdeploy/blob/7ca466599f01e5ef93e8951771c62163136e21b2/lmdeploy/pytorch/models/internlm3.py#L304&#34;&gt;Network Definition&lt;/a&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-JSON&#34; data-lang=&#34;JSON&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;architectures&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;s2&#34;&gt;&amp;#34;InternLM3ForCausalLM&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;],&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;attention_dropout&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mf&#34;&gt;0.0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;auto_map&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;AutoConfig&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;configuration_internlm3.InternLM3Config&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;AutoModel&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;modeling_internlm3.InternLM3Model&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;AutoModelForCausalLM&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;modeling_internlm3.InternLM3ForCausalLM&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;bias&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;kc&#34;&gt;false&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;bos_token_id&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;eos_token_id&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;head_dim&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;128&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;hidden_act&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;silu&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;hidden_size&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;4096&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;initializer_range&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mf&#34;&gt;0.02&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;intermediate_size&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;10240&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;max_position_embeddings&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;32768&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;model_type&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;internlm3&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;num_attention_heads&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;32&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;num_hidden_layers&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;48&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;num_key_value_heads&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;pad_token_id&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;qkv_bias&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;kc&#34;&gt;false&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;rms_norm_eps&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mf&#34;&gt;1e-05&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;rope_scaling&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;factor&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mf&#34;&gt;6.0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;rope_type&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;dynamic&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;rope_theta&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;50000000&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;tie_word_embeddings&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;kc&#34;&gt;false&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;torch_dtype&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;bfloat16&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;transformers_version&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;4.47.1&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;use_cache&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;kc&#34;&gt;true&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;vocab_size&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;128512&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th style=&#34;text-align: left&#34;&gt;&lt;strong&gt;模块 (Module)&lt;/strong&gt;&lt;/th&gt;
+          &lt;th style=&#34;text-align: left&#34;&gt;&lt;strong&gt;子模块 (Sub-module)&lt;/strong&gt;&lt;/th&gt;
+          &lt;th style=&#34;text-align: left&#34;&gt;&lt;strong&gt;功能描述&lt;/strong&gt;&lt;/th&gt;
+          &lt;th style=&#34;text-align: left&#34;&gt;&lt;strong&gt;配置参数&lt;/strong&gt;&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;InternLM3ForCausalLM&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;model: InternLM3Model&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;模型主干，包含词嵌入和解码器层。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;-&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;lm_head: Linear&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;线性输出层，将隐藏状态映射到词汇表大小，生成预测 logits。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;hidden_size: 4096&lt;/code&gt;, &lt;code&gt;vocab_size: 128512&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;InternLM3Model&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;embed_tokens: Embedding&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;将输入的 token IDs 转换为稠密向量（Embeddings）。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;vocab_size: 128512&lt;/code&gt;, &lt;code&gt;hidden_size: 4096&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;layers: ModuleList[InternLM3DecoderLayer]&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;包含多个（48个）Transformer解码器层。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;num_hidden_layers: 48&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;norm: RMSNorm&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;在所有解码器层之后，对最终的隐藏状态进行归一化。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;hidden_size: 4096&lt;/code&gt;, &lt;code&gt;rms_norm_eps: 1e-05&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;rotary_emb: RotaryEmbedding&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;计算旋转位置编码（RoPE），用于在注意力机制中融入位置信息。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;head_dim: 128&lt;/code&gt;, &lt;code&gt;max_position_embeddings: 32768&lt;/code&gt;, &lt;code&gt;rope_theta: 50000000&lt;/code&gt;, &lt;code&gt;rope_scaling: {&amp;quot;factor&amp;quot;: 6.0, &amp;quot;rope_type&amp;quot;: &amp;quot;dynamic&amp;quot;}&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;InternLM3DecoderLayer&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;self_attn: InternLM3Attention&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;多头自注意力模块，用于捕捉输入序列中的依赖关系。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;-&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;mlp: InternLM3MLP&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;前馈神经网络，用于对注意力输出进行非线性变换。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;-&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;input_layernorm: RMSNorm&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;在自注意力模块之前对输入进行层归一化。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;hidden_size: 4096&lt;/code&gt;, &lt;code&gt;rms_norm_eps: 1e-05&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;post_attention_layernorm: RMSNorm&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;在自注意力模块之后、MLP模块之前进行层归一化。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;hidden_size: 4096&lt;/code&gt;, &lt;code&gt;rms_norm_eps: 1e-05&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;InternLM3Attention&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;qkv_proj: Linear&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;将输入的隐藏状态线性变换为查询（Q）、键（K）、值（V）。采用分组查询注意力（GQA）。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;hidden_size: 4096&lt;/code&gt;, &lt;code&gt;num_attention_heads: 32&lt;/code&gt; (Q), &lt;code&gt;num_key_value_heads: 2&lt;/code&gt; (K, V)&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;o_proj: Linear&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;将注意力模块的输出线性变换回隐藏状态的维度。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;hidden_size: 4096&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;apply_rotary_pos_emb&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;将旋转位置编码（RoPE）应用于Q和K。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;-&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&amp;mdash;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;InternLM3MLP&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;gate_up_proj: Linear&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;两个并行的线性层（gate 和 up），将隐藏状态映射到中间维度。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;hidden_size: 4096&lt;/code&gt;, &lt;code&gt;intermediate_size: 10240&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;act_fn: SiluAndMul&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;使用 SiLU (Swish) 激活函数并进行逐元素相乘。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;hidden_act: &amp;quot;silu&amp;quot;&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;down_proj: Linear&lt;/code&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;将激活后的中间状态映射回隐藏状态的维度。&lt;/td&gt;
+          &lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;intermediate_size: 10240&lt;/code&gt;, &lt;code&gt;hidden_size: 4096&lt;/code&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;internlm3decoderlayer-运算流程&#34;&gt;InternLM3DecoderLayer 运算流程&lt;/h3&gt;
+&lt;p&gt;假设输入为 &lt;code&gt;hidden_states&lt;/code&gt; 和 &lt;code&gt;residual&lt;/code&gt; (在前一层计算得出，第一层时 &lt;code&gt;residual&lt;/code&gt; 等于 &lt;code&gt;hidden_states&lt;/code&gt;)。&lt;/p&gt;</description>
+      <content:encoded><![CDATA[<h1 id="model--config">model &amp; config</h1>
+<p><a href="https://github.com/InternLM/lmdeploy/blob/7ca466599f01e5ef93e8951771c62163136e21b2/lmdeploy/pytorch/models/internlm3.py#L304">Network Definition</a></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-JSON" data-lang="JSON"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;architectures&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;InternLM3ForCausalLM&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;attention_dropout&#34;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;auto_map&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;AutoConfig&#34;</span><span class="p">:</span> <span class="s2">&#34;configuration_internlm3.InternLM3Config&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;AutoModel&#34;</span><span class="p">:</span> <span class="s2">&#34;modeling_internlm3.InternLM3Model&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;AutoModelForCausalLM&#34;</span><span class="p">:</span> <span class="s2">&#34;modeling_internlm3.InternLM3ForCausalLM&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;bias&#34;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;bos_token_id&#34;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;eos_token_id&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;head_dim&#34;</span><span class="p">:</span> <span class="mi">128</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;hidden_act&#34;</span><span class="p">:</span> <span class="s2">&#34;silu&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;hidden_size&#34;</span><span class="p">:</span> <span class="mi">4096</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;initializer_range&#34;</span><span class="p">:</span> <span class="mf">0.02</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;intermediate_size&#34;</span><span class="p">:</span> <span class="mi">10240</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;max_position_embeddings&#34;</span><span class="p">:</span> <span class="mi">32768</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;model_type&#34;</span><span class="p">:</span> <span class="s2">&#34;internlm3&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;num_attention_heads&#34;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;num_hidden_layers&#34;</span><span class="p">:</span> <span class="mi">48</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;num_key_value_heads&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;pad_token_id&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;qkv_bias&#34;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;rms_norm_eps&#34;</span><span class="p">:</span> <span class="mf">1e-05</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;rope_scaling&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;factor&#34;</span><span class="p">:</span> <span class="mf">6.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;rope_type&#34;</span><span class="p">:</span> <span class="s2">&#34;dynamic&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;rope_theta&#34;</span><span class="p">:</span> <span class="mi">50000000</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;tie_word_embeddings&#34;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;torch_dtype&#34;</span><span class="p">:</span> <span class="s2">&#34;bfloat16&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;transformers_version&#34;</span><span class="p">:</span> <span class="s2">&#34;4.47.1&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;use_cache&#34;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;vocab_size&#34;</span><span class="p">:</span> <span class="mi">128512</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><table>
+  <thead>
+      <tr>
+          <th style="text-align: left"><strong>模块 (Module)</strong></th>
+          <th style="text-align: left"><strong>子模块 (Sub-module)</strong></th>
+          <th style="text-align: left"><strong>功能描述</strong></th>
+          <th style="text-align: left"><strong>配置参数</strong></th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left"><code>InternLM3ForCausalLM</code></td>
+          <td style="text-align: left"><code>model: InternLM3Model</code></td>
+          <td style="text-align: left">模型主干，包含词嵌入和解码器层。</td>
+          <td style="text-align: left">-</td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>lm_head: Linear</code></td>
+          <td style="text-align: left">线性输出层，将隐藏状态映射到词汇表大小，生成预测 logits。</td>
+          <td style="text-align: left"><code>hidden_size: 4096</code>, <code>vocab_size: 128512</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><code>InternLM3Model</code></td>
+          <td style="text-align: left"><code>embed_tokens: Embedding</code></td>
+          <td style="text-align: left">将输入的 token IDs 转换为稠密向量（Embeddings）。</td>
+          <td style="text-align: left"><code>vocab_size: 128512</code>, <code>hidden_size: 4096</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>layers: ModuleList[InternLM3DecoderLayer]</code></td>
+          <td style="text-align: left">包含多个（48个）Transformer解码器层。</td>
+          <td style="text-align: left"><code>num_hidden_layers: 48</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>norm: RMSNorm</code></td>
+          <td style="text-align: left">在所有解码器层之后，对最终的隐藏状态进行归一化。</td>
+          <td style="text-align: left"><code>hidden_size: 4096</code>, <code>rms_norm_eps: 1e-05</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>rotary_emb: RotaryEmbedding</code></td>
+          <td style="text-align: left">计算旋转位置编码（RoPE），用于在注意力机制中融入位置信息。</td>
+          <td style="text-align: left"><code>head_dim: 128</code>, <code>max_position_embeddings: 32768</code>, <code>rope_theta: 50000000</code>, <code>rope_scaling: {&quot;factor&quot;: 6.0, &quot;rope_type&quot;: &quot;dynamic&quot;}</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><code>InternLM3DecoderLayer</code></td>
+          <td style="text-align: left"><code>self_attn: InternLM3Attention</code></td>
+          <td style="text-align: left">多头自注意力模块，用于捕捉输入序列中的依赖关系。</td>
+          <td style="text-align: left">-</td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>mlp: InternLM3MLP</code></td>
+          <td style="text-align: left">前馈神经网络，用于对注意力输出进行非线性变换。</td>
+          <td style="text-align: left">-</td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>input_layernorm: RMSNorm</code></td>
+          <td style="text-align: left">在自注意力模块之前对输入进行层归一化。</td>
+          <td style="text-align: left"><code>hidden_size: 4096</code>, <code>rms_norm_eps: 1e-05</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>post_attention_layernorm: RMSNorm</code></td>
+          <td style="text-align: left">在自注意力模块之后、MLP模块之前进行层归一化。</td>
+          <td style="text-align: left"><code>hidden_size: 4096</code>, <code>rms_norm_eps: 1e-05</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><code>InternLM3Attention</code></td>
+          <td style="text-align: left"><code>qkv_proj: Linear</code></td>
+          <td style="text-align: left">将输入的隐藏状态线性变换为查询（Q）、键（K）、值（V）。采用分组查询注意力（GQA）。</td>
+          <td style="text-align: left"><code>hidden_size: 4096</code>, <code>num_attention_heads: 32</code> (Q), <code>num_key_value_heads: 2</code> (K, V)</td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>o_proj: Linear</code></td>
+          <td style="text-align: left">将注意力模块的输出线性变换回隐藏状态的维度。</td>
+          <td style="text-align: left"><code>hidden_size: 4096</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>apply_rotary_pos_emb</code></td>
+          <td style="text-align: left">将旋转位置编码（RoPE）应用于Q和K。</td>
+          <td style="text-align: left">-</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+          <td style="text-align: left">&mdash;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><code>InternLM3MLP</code></td>
+          <td style="text-align: left"><code>gate_up_proj: Linear</code></td>
+          <td style="text-align: left">两个并行的线性层（gate 和 up），将隐藏状态映射到中间维度。</td>
+          <td style="text-align: left"><code>hidden_size: 4096</code>, <code>intermediate_size: 10240</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>act_fn: SiluAndMul</code></td>
+          <td style="text-align: left">使用 SiLU (Swish) 激活函数并进行逐元素相乘。</td>
+          <td style="text-align: left"><code>hidden_act: &quot;silu&quot;</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"></td>
+          <td style="text-align: left"><code>down_proj: Linear</code></td>
+          <td style="text-align: left">将激活后的中间状态映射回隐藏状态的维度。</td>
+          <td style="text-align: left"><code>intermediate_size: 10240</code>, <code>hidden_size: 4096</code></td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="internlm3decoderlayer-运算流程">InternLM3DecoderLayer 运算流程</h3>
+<p>假设输入为 <code>hidden_states</code> 和 <code>residual</code> (在前一层计算得出，第一层时 <code>residual</code> 等于 <code>hidden_states</code>)。</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: left"><strong>步骤</strong></th>
+          <th style="text-align: left"><strong>模块/操作</strong></th>
+          <th style="text-align: left"><strong>输入</strong></th>
+          <th style="text-align: left"><strong>运算描述</strong></th>
+          <th style="text-align: left"><strong>输出</strong></th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left"><strong>1. 输入归一化</strong></td>
+          <td style="text-align: left"><code>input_layernorm</code> (RMSNorm)</td>
+          <td style="text-align: left"><code>hidden_states</code>, <code>residual</code></td>
+          <td style="text-align: left">对 <code>hidden_states</code> 进行 RMS 归一化。同时，将 <code>hidden_states</code> 加上上一层的残差 <code>residual</code>，为后续的残差连接做准备。</td>
+          <td style="text-align: left"><code>norm_hidden_states</code>, <code>new_residual</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>2. 自注意力 (Self-Attention)</strong></td>
+          <td style="text-align: left"><code>self_attn</code> (InternLM3Attention)</td>
+          <td style="text-align: left"><code>norm_hidden_states</code></td>
+          <td style="text-align: left"><strong>这是最复杂的部分，内含多个子步骤：</strong><br>a. <strong>QKV 投射</strong>: <code>qkv_proj</code> 将 <code>norm_hidden_states</code> 线性变换，生成查询 <code>Q</code>、键 <code>K</code> 和值 <code>V</code>。<br>b. <strong>位置编码</strong>: <code>apply_rotary_pos_emb</code> 将旋转位置编码 (RoPE) 应用于 <code>Q</code> 和 <code>K</code>，注入位置信息。<br>c. <strong>注意力计算</strong>: <code>attn_fwd</code> 根据 <code>Q</code>、<code>K</code>、<code>V</code> 计算注意力分数，并生成加权和。<br>d. <strong>输出投射</strong>: <code>o_proj</code> 将注意力计算结果线性变换回 <code>hidden_size</code> 维度。</td>
+          <td style="text-align: left"><code>attn_output</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>3. 第一次残差连接</strong></td>
+          <td style="text-align: left"><code>+</code></td>
+          <td style="text-align: left"><code>attn_output</code>, <code>new_residual</code></td>
+          <td style="text-align: left">将步骤 2 的 <code>attn_output</code> 与步骤 1 的 <code>new_residual</code> 逐元素相加。</td>
+          <td style="text-align: left"><code>attn_residual_output</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>4. 注意力后归一化</strong></td>
+          <td style="text-align: left"><code>post_attention_layernorm</code> (RMSNorm)</td>
+          <td style="text-align: left"><code>attn_residual_output</code></td>
+          <td style="text-align: left">对残差连接后的结果进行第二次 RMS 归一化。</td>
+          <td style="text-align: left"><code>norm_attn_output</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>5. MLP (前馈网络)</strong></td>
+          <td style="text-align: left"><code>mlp</code> (InternLM3MLP)</td>
+          <td style="text-align: left"><code>norm_attn_output</code></td>
+          <td style="text-align: left"><strong>包含三个子步骤：</strong><br>a. <strong>Gate &amp; Up 投射</strong>: <code>gate_up_proj</code> 同时将 <code>norm_attn_output</code> 线性变换到 <code>intermediate_size</code>，得到 <code>gate</code> 和 <code>up</code> 两个张量。<br>b. <strong>激活</strong>: <code>act_fn</code> (SiLU and Multiply) 对 <code>gate</code> 应用 SiLU 激活函数，然后与 <code>up</code> 逐元素相乘。<br>c. <strong>Down 投射</strong>: <code>down_proj</code> 将激活后的结果从 <code>intermediate_size</code> 线性变换回 <code>hidden_size</code>。</td>
+          <td style="text-align: left"><code>mlp_output</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>6. 第二次残差连接</strong></td>
+          <td style="text-align: left"><code>+</code></td>
+          <td style="text-align: left"><code>mlp_output</code>, <code>norm_attn_output</code></td>
+          <td style="text-align: left">将步骤 5 的 <code>mlp_output</code> 与步骤 4 的 <code>norm_attn_output</code> 逐元素相加。</td>
+          <td style="text-align: left"><code>final_hidden_states</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><strong>7. 输出</strong></td>
+          <td style="text-align: left">-</td>
+          <td style="text-align: left">-</td>
+          <td style="text-align: left">这一层的最终输出 <code>hidden_states</code> 将作为下一层的输入，而 <code>final_residual</code> 将作为下一层的残差输入。</td>
+          <td style="text-align: left"><code>hidden_states</code> (用于下一层), <code>residual</code> (用于下一层)</td>
+      </tr>
+  </tbody>
+</table>
+<pre tabindex="0"><code class="language-mermaid" data-lang="mermaid">graph TD
+    subgraph &#34;InternLM3DecoderLayer 内部流程&#34;
+    
+    direction LR
+    
+    %% 定义输入
+    Input[Input: hidden_states&lt;br&gt;Input: residual_in] --&gt; Norm1
+    
+    %% 第一个模块：注意力
+    subgraph &#34;模块1: 注意力 (Pre-Norm)&#34;
+        Norm1(RMSNorm:&lt;br&gt;input_layernorm) --&gt; Attention[Self-Attention]
+        Input -- residual --o Add1
+        Attention -- attn_output --o Add1
+    end
+    
+    %% 第二个模块：MLP
+    subgraph &#34;模块2: MLP (Pre-Norm)&#34;
+        Add1(第一次&lt;br&gt;残差连接 +) --&gt; Norm2(RMSNorm:&lt;br&gt;post_attention_layernorm)
+        Norm2 --&gt; MLP[MLP Block]
+        Add1 -- residual --o Add2
+        MLP -- mlp_output --o Add2
+    end
+
+    %% 定义输出
+    Add2(第二次&lt;br&gt;残差连接 +) --&gt; Output[Output: hidden_states&lt;br&gt;Output: residual_out]
+
+    end
+
+    %% 样式定义
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef subgraph_style fill:#eef,stroke:#333,stroke-width:2px,color:#333;
+    class Input,Output,Add1,Add2,Norm1,Norm2,Attention,MLP subgraph_style
+</code></pre><h1 id="group-pattern">Group Pattern</h1>
+<p>在 <code>include/tx8be_mlir/OpHelper.h</code> 中添加你自己定义的 pattern 到</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">enum</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">GROUP_NAME</span> <span class="o">=</span> <span class="n">id</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">GroupPatternMode</span><span class="p">;</span>
+</span></span></code></pre></div><p>在 <code>include/tx8be_mlir/Transforms/LayerGroup/GroupPattern.h</code> 定义好你自己的</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TX8BE_OPS</span><span class="o">&gt;</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span> <span class="n">PATTERN_NAME</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>然后添加进 <code>patternConfigMap</code> 中</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TX8BE_OPS</span><span class="o">&gt;&gt;</span> <span class="n">patternConfigMap</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span><span class="n">GROUP_NAME</span><span class="p">,</span> <span class="n">PATTERN_NAME</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>最后在 <code>lib/Support/OpHelper.cpp</code> 的 <code>getGroupPatternMode</code> 函数里添加</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="n">lowerOption</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#34;opt_group_name&#34;</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mode</span> <span class="o">=</span> <span class="n">GROUP_NAME</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p><code>opt_group_name</code> 由 <code>run_codegen_layer</code> 命令的 <code>--opt_group=opt_group_name</code> 参数指定</p>
+]]></content:encoded>
     </item>
   </channel>
 </rss>

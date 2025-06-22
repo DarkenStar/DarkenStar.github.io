@@ -10,7 +10,7 @@
 <meta name="description" content="Blogs - WITHER">
 <meta name="author" content="">
 <link rel="canonical" href="http://localhost:1313/blogs/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.57fd86fa03777cde771f7b2a41cf80559337875129cb3387f67260e81f43454c.css" integrity="sha256-V/2G&#43;gN3fN53H3sqQc&#43;AVZM3h1EpyzOH9nJg6B9DRUw=" rel="preload stylesheet" as="style">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.dd3b5b907a50db3238b81d49d094cf1c04a091227797dc9cfde4e2fa3f35df49.css" integrity="sha256-3TtbkHpQ2zI4uB1J0JTPHASgkSJ3l9yc/eTi&#43;j8130k=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
@@ -67,9 +67,18 @@
   };
 </script>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.google.com/share?selection.family=Cascadia+Code:ital,wght@0,200..700;1,200..700" rel="stylesheet"><meta property="og:url" content="http://localhost:1313/blogs/">
+
+
+
+<script src="https://cdn.bootcdn.net/ajax/libs/mermaid/9.1.6/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: localStorage.getItem("pref-theme") === "dark" ? "dark" : "forest" 
+    });
+</script>
+
+<meta property="og:url" content="http://localhost:1313/blogs/">
   <meta property="og:site_name" content="WITHER">
   <meta property="og:title" content="Blogs">
   <meta property="og:locale" content="en">
@@ -191,31 +200,36 @@
     </h1>
 </header><div class="archive-year">
         <h2 class="archive-year-header">
-            <span>分类</span>
+            <span></span>
         </h2><article class="post-entry">
             <header class="entry-header">
                 <h2 class="entry-hint-parent">
                     Course Learning
                     <span class="entry-hint" title="Pages count">
-                        &nbsp;(1)
+                        &nbsp;(3)
                     </span>
                 </h2>
             </header>
             <a class="entry-link" aria-label="link to Course Learning" href="http://localhost:1313/blogs/courselearning/"></a>
+        </article><article class="post-entry">
+            <header class="entry-header">
+                <h2 class="entry-hint-parent">
+                    DeepSeek Related
+                    <span class="entry-hint" title="Pages count">
+                        &nbsp;(4)
+                    </span>
+                </h2>
+            </header>
+            <a class="entry-link" aria-label="link to DeepSeek Related" href="http://localhost:1313/blogs/deepseek/"></a>
         </article></div><div class="archive-year">
         <h2 class="archive-year-header">
-            <span>文章</span>
+            <span>Articles</span>
         </h2>
     </div><article class="post-entry"> <header class="entry-header">
-        <h2 class="entry-hint-parent">TVM Learning (1)-Tensor Program Abstraction in Action</h2>
+        <h2 class="entry-hint-parent">Comparsion of Parallelsim Metods in ViT</h2>
     </header><div class="entry-content">
-        <p>Personal notebook 1.</p>
-    </div><footer class="entry-footer"><span title='2024-08-15 15:07:12 +0800 CST'>Aug-15-2024</span>&nbsp;·&nbsp;8 min&nbsp;·&nbsp;3578 words&nbsp;·&nbsp;WITHER</footer><a class="entry-link" aria-label="post link to TVM Learning (1)-Tensor Program Abstraction in Action" href="http://localhost:1313/blogs/tvm-ch1/"></a>
-</article><article class="post-entry"> <header class="entry-header">
-        <h2 class="entry-hint-parent">TVM Learning (11)-Add Model Architeture in MLC LLM</h2>
-    </header><div class="entry-content">
-        <p>Add Model Architeture in MLC LLM</p>
-    </div><footer class="entry-footer"><span title='2024-08-08 12:00:00 +0800 CST'>Aug-08-2024</span>&nbsp;·&nbsp;8 min&nbsp;·&nbsp;3528 words&nbsp;·&nbsp;WITHER</footer><a class="entry-link" aria-label="post link to TVM Learning (11)-Add Model Architeture in MLC LLM" href="http://localhost:1313/blogs/tvm-ch9/"></a>
+        <p>Paper reading of</p>
+    </div><footer class="entry-footer"><span title='2023-11-13 16:05:23 +0800 CST'>Nov-13-2023</span>&nbsp;·&nbsp;15 min&nbsp;·&nbsp;7045 words&nbsp;·&nbsp;WITHER</footer><a class="entry-link" aria-label="post link to Comparsion of Parallelsim Metods in ViT" href="http://localhost:1313/blogs/comparsion-of-parallelsim-metods-in-vit/"></a>
 </article><footer class="page-footer">
     <nav class="pagination"><a class="prev" href="http://localhost:1313/blogs/page/2/">
             «&nbsp;Prev&nbsp;2/3</a></nav>
