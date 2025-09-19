@@ -7,6 +7,7 @@ author: ["WITHER"]
 keywords: 
     - cmake
 categories:
+    - Productivity
     - cmake Learning
 tags:
     - cmake Learning
@@ -21,8 +22,8 @@ cover:
     relative: true
     hidden: true
 ---
-
 CMake 入门教程：从项目结构到链接库
+
 1. 核心理念：源码外构建 (Out-of-Source Builds)
 
 在开始之前，最重要的一点是理解 CMake 的核心哲学：源码外构建。这意味着所有由构建过程产生的文件（例如 Makefiles、Visual Studio 项目文件、目标文件 .o、可执行文件 .exe、库文件 .a 或 .so）都应该与你的源代码完全分离开。这样做最大的好处是能保持你的源码目录永远干净整洁。我们将创建一个 build 目录来存放所有这些生成的文件。
@@ -30,7 +31,8 @@ CMake 入门教程：从项目结构到链接库
 2. 推荐的项目目录结构 📂
 
 一个良好组织的 C++ 项目结构不仅清晰，也让 CMake 的配置工作事半功倍。这是一个推荐的、可扩展的目录结构：my_project/
-```plaintext {linenos=true}
+
+```plaintext
 │
 ├── build/                  # 构建目录 (初始为空，所有生成文件都在此)
 │
@@ -58,7 +60,7 @@ CMake 入门教程：从项目结构到链接库
 
 )这个文件只负责一件事：将 my_lib.cpp 和相关的头文件编译成一个库。# 文件位置: src/my_lib/CMakeLists.txt
 
-```cmake {linenos=true}
+```cmake
 # 使用 add_library 命令创建一个库。
 # 语法: add_library(<库名称> [STATIC | SHARED] <源文件...>)
 #
@@ -90,7 +92,7 @@ target_include_directories(my_lib
 
 第 2 步: 顶层的 CMakeLists.txt 这个文件是整个项目的总指挥，负责设置全局配置、调用子模块，并生成最终的可执行文件。
 
-```cmake {linenos=true}
+```cmake
 # 文件位置: my_project/CMakeLists.txt
 
 # 1. 指定 CMake 的最低版本要求。这是每个顶层文件都应该有的第一行。
@@ -133,8 +135,9 @@ target_link_libraries(app PRIVATE my_lib)
 - target_link_libraries() 负责将不同的编译目标（库和可执行文件）链接在一起，形成依赖关系。
 
 4. 如何构建项目 🚀
-现在已经写好了所有的 CMakeLists.txt 文件，可以开始构建了。整个过程都在终端中完成。
-```bash {linenos=true}
+   现在已经写好了所有的 CMakeLists.txt 文件，可以开始构建了。整个过程都在终端中完成。
+
+```bash
 # 1. 确保你位于项目的根目录 (my_project)
 cd path/to/my_project
 

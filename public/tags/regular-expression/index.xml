@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Regular Expression on WITHER</title>
+    <link>http://localhost:1313/tags/regular-expression/</link>
+    <description>Recent content in Regular Expression on WITHER</description>
+    <generator>Hugo -- 0.148.1</generator>
+    <language>en</language>
+    <copyright>2024-2025 WITHER</copyright>
+    <lastBuildDate>Fri, 19 Sep 2025 09:20:48 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/regular-expression/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Regular Expression Rules</title>
+      <link>http://localhost:1313/blogs/productivity/regularexpression/</link>
+      <pubDate>Fri, 04 Jul 2025 10:02:17 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/productivity/regularexpression/</guid>
+      <description>Regular Expression note.</description>
+      <content:encoded><![CDATA[<h1 id="regular-expression-rules-detailed-explanation">Regular Expression Rules Detailed Explanation</h1>
+<p>正则表达式 (Regular Expression，简称 regex) 是一种用于匹配和操作文本的强大工具。它通过定义特定的模式来查找、验证或替换字符串。本文档详细介绍正则表达式的规则，包括基本语法、常用元字符、量词、捕获组等，并提供示例。</p>
+<h2 id="1-regular-expression-basics">1. Regular Expression Basics</h2>
+<p>正则表达式由普通字符和元字符组成：</p>
+<ul>
+<li><strong>普通字符</strong>：如字母、数字、符号 (如 <code>a</code>、<code>1</code>、<code>@</code>)，直接匹配自身。</li>
+<li><strong>元字符</strong>：具有特殊意义的字符，如 <code>.</code>、<code>^</code>、<code>*</code> 等，用于定义匹配规则。</li>
+</ul>
+<p>正则表达式通常用斜杠 <code>/</code> 包裹 (如 <code>/abc/</code>)，但在不同语言中可能有所不同 (例如 Python 用字符串表示，JavaScript 用 <code>/.../</code>) 。</p>
+<h2 id="2-common-metacharacters">2. Common Metacharacters</h2>
+<p>以下是正则表达式中常用的元字符及其含义：</p>
+<table>
+  <thead>
+      <tr>
+          <th>元字符</th>
+          <th>描述</th>
+          <th>示例</th>
+          <th>匹配结果</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>.</code></td>
+          <td>匹配除换行符 (<code>\n</code>) 外的任意单个字符</td>
+          <td><code>a.c</code></td>
+          <td><code>abc</code>, <code>a1c</code>, <code>a@c</code></td>
+      </tr>
+      <tr>
+          <td><code>^</code></td>
+          <td>匹配字符串的开头</td>
+          <td><code>^abc</code></td>
+          <td><code>abc</code> (仅在字符串开头)</td>
+      </tr>
+      <tr>
+          <td><code>$</code></td>
+          <td>匹配字符串的结尾</td>
+          <td><code>abc$</code></td>
+          <td><code>abc</code> (仅在字符串结尾)</td>
+      </tr>
+      <tr>
+          <td><code>*</code></td>
+          <td>匹配前面的字符或子表达式 0 次或多次</td>
+          <td><code>ab*c</code></td>
+          <td><code>ac</code>, <code>abc</code>, <code>abbc</code></td>
+      </tr>
+      <tr>
+          <td><code>+</code></td>
+          <td>匹配前面的字符或子表达式 1 次或多次</td>
+          <td><code>ab+c</code></td>
+          <td><code>abc</code>, <code>abbc</code> (不匹配 <code>ac</code>)</td>
+      </tr>
+      <tr>
+          <td><code>?</code></td>
+          <td>匹配前面的字符或子表达式 0 次或 1 次</td>
+          <td><code>ab?c</code></td>
+          <td><code>ac</code>, <code>abc</code></td>
+      </tr>
+      <tr>
+          <td>`</td>
+          <td>`</td>
+          <td>或运算，匹配左侧或右侧的模式</td>
+          <td>`a</td>
+      </tr>
+      <tr>
+          <td><code>[]</code></td>
+          <td>匹配方括号内的任意一个字符</td>
+          <td><code>[abc]</code></td>
+          <td><code>a</code>, <code>b</code>, 或 <code>c</code></td>
+      </tr>
+      <tr>
+          <td><code>[^]</code></td>
+          <td>匹配不在方括号内的任意字符</td>
+          <td><code>[^abc]</code></td>
+          <td>非 <code>a</code>、<code>b</code>、<code>c</code> 的字符</td>
+      </tr>
+      <tr>
+          <td><code>()</code></td>
+          <td>定义子表达式或捕获组</td>
+          <td><code>(abc)</code></td>
+          <td>匹配 <code>abc</code> 作为一个整体</td>
+      </tr>
+      <tr>
+          <td><code>{n}</code></td>
+          <td>精确匹配前面的字符或子表达式 n 次</td>
+          <td><code>a{3}</code></td>
+          <td><code>aaa</code></td>
+      </tr>
+      <tr>
+          <td><code>{n,}</code></td>
+          <td>匹配前面的字符或子表达式至少 n 次</td>
+          <td><code>a{2,}</code></td>
+          <td><code>aa</code>, <code>aaa</code>, <code>aaaa</code></td>
+      </tr>
+      <tr>
+          <td><code>{n,m}</code></td>
+          <td>匹配前面的字符或子表达式 n 到 m 次</td>
+          <td><code>a{2,3}</code></td>
+          <td><code>aa</code>, <code>aaa</code></td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="3-character-classes">3. Character Classes</h2>
+<p>字符类用于匹配特定范围或类型的字符：</p>
+<ul>
+<li><strong>预定义字符类</strong>：
+<ul>
+<li><code>\d</code>：匹配任意数字，等价于 <code>[0-9]</code>.</li>
+<li><code>\D</code>：匹配非数字，等价于 <code>[^0-9]</code>.</li>
+<li><code>\w</code>：匹配任意字母、数字或下划线，等价于 <code>[a-zA-Z0-9_]</code> dissuades</li>
+<li><code>\W</code>：匹配非字母、数字或下划线，等价于 <code>[^a-zA-Z0-9_]</code>.</li>
+<li><code>\s</code>：匹配任意空白字符 (如空格、制表符、换行符) 。</li>
+<li><code>\S</code>：匹配非空白字符。</li>
+</ul>
+</li>
+<li><strong>自定义字符类</strong>：
+<ul>
+<li><code>[a-z]</code>：匹配小写字母 <code>a</code> 到 <code>z</code>.</li>
+<li><code>[A-Z]</code>：匹配大写字母 <code>A</code> 到 <code>Z</code>.</li>
+<li><code>[0-9]</code>：匹配数字 <code>0</code> 到 <code>9</code>.</li>
+<li><code>[a-zA-Z]</code>：匹配任意字母。</li>
+<li><code>[a-dm-p]</code>：匹配 <code>a</code> 到 <code>d</code> 或 <code>m</code> 到 <code>p</code> 的字符。</li>
+</ul>
+</li>
+</ul>
+<p>示例：</p>
+<ul>
+<li><code>\d{3}</code>：匹配三个数字，如 <code>123</code>.</li>
+<li><code>[a-zA-Z]+</code>：匹配一个或多个字母，如 <code>hello</code>.</li>
+</ul>
+<h2 id="4-quantifiers">4. Quantifiers</h2>
+<p>量词控制前面的字符或子表达式的重复次数：</p>
+<ul>
+<li><code>*</code>：0 次或多次。</li>
+<li><code>+</code>：1 次或多次。</li>
+<li><code>?</code>：0 次或 1 次。</li>
+<li><code>{n}</code>：精确 n 次。</li>
+<li><code>{n,}</code>：至少 n 次。</li>
+<li><code>{n,m}</code>：n 到 m 次。</li>
+</ul>
+<p><strong>贪婪模式与非贪婪模式</strong>：</p>
+<ul>
+<li>默认情况下，量词是<strong>贪婪模式</strong>，匹配尽可能多的字符。例如，<code>a.*b</code> 匹配 <code>a123b456b</code> 中的 <code>a123b456b</code>.</li>
+<li>添加 <code>?</code> 后变为<strong>非贪婪模式</strong>，匹配尽可能少的字符。例如，<code>a.*?b</code> 匹配 <code>a123b456b</code> 中的 <code>a123b</code>.</li>
+</ul>
+<h2 id="5-capture-groups-and-non-capture-groups">5. Capture Groups and Non-Capture Groups</h2>
+<ul>
+<li><strong>捕获组</strong>：用 <code>()</code> 包裹的子表达式，可以提取匹配的内容或进行反向引用。
+<ul>
+<li>示例：<code>(\d{2})-(\d{2})</code> 匹配 <code>12-34</code>，捕获组 1 为 <code>12</code>，捕获组 2 为 <code>34</code>.</li>
+<li>反向引用：使用 <code>\n</code> (n 为组编号) 引用捕获组。例如，<code>(a)\1</code> 匹配 <code>aa</code> (两个相同的 <code>a</code>) 。</li>
+</ul>
+</li>
+<li><strong>非捕获组</strong>：用 <code>(?:...)</code> 定义，不保存匹配内容，仅用于分组。
+<ul>
+<li>示例：<code>(?:abc)</code> 匹配 <code>abc</code>，但不捕获。</li>
+</ul>
+</li>
+</ul>
+<h2 id="6-boundaries-and-assertions">6. Boundaries and Assertions</h2>
+<ul>
+<li><strong>单词边界</strong>：
+<ul>
+<li><code>\b</code>：匹配单词边界。例如，<code>\bcat\b</code> 匹配 <code>cat</code>，但不匹配 <code>category</code> 中的 <code>cat</code>.</li>
+<li><code>\B</code>：匹配非单词边界。</li>
+</ul>
+</li>
+<li><strong>前瞻与后顾断言</strong>：
+<ul>
+<li><code>(?=...)</code>：正向前瞻，匹配后面跟着某模式的情况。例如，<code>a(?=b)</code> 匹配 <code>ab</code> 中的 <code>a</code>.</li>
+<li><code>(?!...)</code>：负向前瞻，匹配后面不跟某模式的情况。例如，<code>a(?!b)</code> 匹配 <code>ac</code> 中的 <code>a</code>.</li>
+<li><code>(?&lt;=...)</code>：正向后顾，匹配前面是某模式的情况。例如，<code>(?&lt;=b)a</code> 匹配 <code>ba</code> 中的 <code>a</code>.</li>
+<li><code>(?&lt;!...)</code>：负向后顾，匹配前面不是某模式的情况。例如，<code>(?&lt;!b)a</code> 匹配 <code>ca</code> 中的 <code>a</code>.</li>
+</ul>
+</li>
+</ul>
+<h2 id="7-modifiers-flags">7. Modifiers (Flags)</h2>
+<p>修饰符控制正则表达式的行为，常见修饰符包括：</p>
+<ul>
+<li><code>i</code>：忽略大小写。例如，<code>/abc/i</code> 匹配 <code>ABC</code>.</li>
+<li><code>g</code>：全局匹配，查找所有匹配项。</li>
+<li><code>m</code>：多行模式，<code>^</code> 和 <code>$</code> 匹配每行的开头和结尾。</li>
+<li>注意：
+<ul>
+<li>修饰符的写法因语言而异。例如，在 JavaScript 中，修饰符写在正则表达式后 (如 <code>/abc/gi</code>) ，而在 Python 中通过 <code>re.compile(pattern, re.IGNORECASE)</code> 指定。</li>
+</ul>
+</li>
+</ul>
+<h2 id="8-common-application-examples">8. Common Application Examples</h2>
+<p>以下是一些常见的正则表达式应用场景及其示例：</p>
+<ol>
+<li><strong>验证邮箱格式</strong>:
+<pre tabindex="0"><code class="language-regex" data-lang="regex">^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$
+</code></pre></li>
+<li><strong>提取 URL</strong>:
+<pre tabindex="0"><code class="language-regex" data-lang="regex">https?://[^\s]+
+</code></pre></li>
+<li><strong>验证密码</strong> (至少 8 位，包含字母、数字、特殊字符):
+<pre tabindex="0"><code class="language-regex" data-lang="regex">^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&amp;])[A-Za-z\d@$!%*?&amp;]{8,}$
+</code></pre></li>
+<li><strong>匹配日期格式</strong> (YYYY-MM-DD):
+<pre tabindex="0"><code class="language-regex" data-lang="regex">\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])
+</code></pre></li>
+</ol>
+]]></content:encoded>
+    </item>
+  </channel>
+</rss>

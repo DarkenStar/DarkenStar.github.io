@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Regular Expression Rules | WITHER</title>
+<meta name="keywords" content="Regular Expression">
+<meta name="description" content="Regular Expression note.">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/productivity/regularexpression/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.dd3b5b907a50db3238b81d49d094cf1c04a091227797dc9cfde4e2fa3f35df49.css" integrity="sha256-3TtbkHpQ2zI4uB1J0JTPHASgkSJ3l9yc/eTi&#43;j8130k=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/productivity/regularexpression/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+
+
+
+<script src="https://cdn.bootcdn.net/ajax/libs/mermaid/9.1.6/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: localStorage.getItem("pref-theme") === "dark" ? "dark" : "forest" 
+    });
+</script>
+
+<meta property="og:url" content="http://localhost:1313/blogs/productivity/regularexpression/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="Regular Expression Rules">
+  <meta property="og:description" content="Regular Expression note.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2025-07-04T10:02:17+08:00">
+    <meta property="article:modified_time" content="2025-09-19T09:20:48+08:00">
+    <meta property="article:tag" content="Regular Expression">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Regular Expression Rules">
+<meta name="twitter:description" content="Regular Expression note.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Engineering Development Skills🔧",
+      "item": "http://localhost:1313/blogs/productivity/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "Regular Expression Rules",
+      "item": "http://localhost:1313/blogs/productivity/regularexpression/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Regular Expression Rules",
+  "name": "Regular Expression Rules",
+  "description": "Regular Expression note.",
+  "keywords": [
+    "Regular Expression"
+  ],
+  "articleBody": "Regular Expression Rules Detailed Explanation 正则表达式 (Regular Expression，简称 regex) 是一种用于匹配和操作文本的强大工具。它通过定义特定的模式来查找、验证或替换字符串。本文档详细介绍正则表达式的规则，包括基本语法、常用元字符、量词、捕获组等，并提供示例。\n1. Regular Expression Basics 正则表达式由普通字符和元字符组成：\n普通字符：如字母、数字、符号 (如 a、1、@)，直接匹配自身。 元字符：具有特殊意义的字符，如 .、^、* 等，用于定义匹配规则。 正则表达式通常用斜杠 / 包裹 (如 /abc/)，但在不同语言中可能有所不同 (例如 Python 用字符串表示，JavaScript 用 /.../) 。\n2. Common Metacharacters 以下是正则表达式中常用的元字符及其含义：\n元字符 描述 示例 匹配结果 . 匹配除换行符 (\\n) 外的任意单个字符 a.c abc, a1c, a@c ^ 匹配字符串的开头 ^abc abc (仅在字符串开头) $ 匹配字符串的结尾 abc$ abc (仅在字符串结尾) * 匹配前面的字符或子表达式 0 次或多次 ab*c ac, abc, abbc + 匹配前面的字符或子表达式 1 次或多次 ab+c abc, abbc (不匹配 ac) ? 匹配前面的字符或子表达式 0 次或 1 次 ab?c ac, abc ` ` 或运算，匹配左侧或右侧的模式 `a [] 匹配方括号内的任意一个字符 [abc] a, b, 或 c [^] 匹配不在方括号内的任意字符 [^abc] 非 a、b、c 的字符 () 定义子表达式或捕获组 (abc) 匹配 abc 作为一个整体 {n} 精确匹配前面的字符或子表达式 n 次 a{3} aaa {n,} 匹配前面的字符或子表达式至少 n 次 a{2,} aa, aaa, aaaa {n,m} 匹配前面的字符或子表达式 n 到 m 次 a{2,3} aa, aaa 3. Character Classes 字符类用于匹配特定范围或类型的字符：\n预定义字符类： \\d：匹配任意数字，等价于 [0-9]. \\D：匹配非数字，等价于 [^0-9]. \\w：匹配任意字母、数字或下划线，等价于 [a-zA-Z0-9_] dissuades \\W：匹配非字母、数字或下划线，等价于 [^a-zA-Z0-9_]. \\s：匹配任意空白字符 (如空格、制表符、换行符) 。 \\S：匹配非空白字符。 自定义字符类： [a-z]：匹配小写字母 a 到 z. [A-Z]：匹配大写字母 A 到 Z. [0-9]：匹配数字 0 到 9. [a-zA-Z]：匹配任意字母。 [a-dm-p]：匹配 a 到 d 或 m 到 p 的字符。 示例：\n\\d{3}：匹配三个数字，如 123. [a-zA-Z]+：匹配一个或多个字母，如 hello. 4. Quantifiers 量词控制前面的字符或子表达式的重复次数：\n*：0 次或多次。 +：1 次或多次。 ?：0 次或 1 次。 {n}：精确 n 次。 {n,}：至少 n 次。 {n,m}：n 到 m 次。 贪婪模式与非贪婪模式：\n默认情况下，量词是贪婪模式，匹配尽可能多的字符。例如，a.*b 匹配 a123b456b 中的 a123b456b. 添加 ? 后变为非贪婪模式，匹配尽可能少的字符。例如，a.*?b 匹配 a123b456b 中的 a123b. 5. Capture Groups and Non-Capture Groups 捕获组：用 () 包裹的子表达式，可以提取匹配的内容或进行反向引用。 示例：(\\d{2})-(\\d{2}) 匹配 12-34，捕获组 1 为 12，捕获组 2 为 34. 反向引用：使用 \\n (n 为组编号) 引用捕获组。例如，(a)\\1 匹配 aa (两个相同的 a) 。 非捕获组：用 (?:...) 定义，不保存匹配内容，仅用于分组。 示例：(?:abc) 匹配 abc，但不捕获。 6. Boundaries and Assertions 单词边界： \\b：匹配单词边界。例如，\\bcat\\b 匹配 cat，但不匹配 category 中的 cat. \\B：匹配非单词边界。 前瞻与后顾断言： (?=...)：正向前瞻，匹配后面跟着某模式的情况。例如，a(?=b) 匹配 ab 中的 a. (?!...)：负向前瞻，匹配后面不跟某模式的情况。例如，a(?!b) 匹配 ac 中的 a. (?\u003c=...)：正向后顾，匹配前面是某模式的情况。例如，(?\u003c=b)a 匹配 ba 中的 a. (?\u003c!...)：负向后顾，匹配前面不是某模式的情况。例如，(?\u003c!b)a 匹配 ca 中的 a. 7. Modifiers (Flags) 修饰符控制正则表达式的行为，常见修饰符包括：\ni：忽略大小写。例如，/abc/i 匹配 ABC. g：全局匹配，查找所有匹配项。 m：多行模式，^ 和 $ 匹配每行的开头和结尾。 注意： 修饰符的写法因语言而异。例如，在 JavaScript 中，修饰符写在正则表达式后 (如 /abc/gi) ，而在 Python 中通过 re.compile(pattern, re.IGNORECASE) 指定。 8. Common Application Examples 以下是一些常见的正则表达式应用场景及其示例：\n验证邮箱格式: ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$ 提取 URL: https?://[^\\s]+ 验证密码 (至少 8 位，包含字母、数字、特殊字符): ^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?\u0026])[A-Za-z\\d@$!%*?\u0026]{8,}$ 匹配日期格式 (YYYY-MM-DD): \\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01]) ",
+  "wordCount" : "1577",
+  "inLanguage": "en",
+  "datePublished": "2025-07-04T10:02:17+08:00",
+  "dateModified": "2025-09-19T09:20:48+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/productivity/regularexpression/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/productivity/">Engineering Development Skills🔧</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Regular Expression Rules
+    </h1>
+    <div class="post-description">
+      Regular Expression note.
+    </div>
+    <div class="post-meta"><span title='2025-07-04 10:02:17 +0800 CST'>Jul-04-2025</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;1577 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#regular-expression-rules-detailed-explanation" aria-label="Regular Expression Rules Detailed Explanation">Regular Expression Rules Detailed Explanation</a><ul>
+                            
+                    <li>
+                        <a href="#1-regular-expression-basics" aria-label="1. Regular Expression Basics">1. Regular Expression Basics</a></li>
+                    <li>
+                        <a href="#2-common-metacharacters" aria-label="2. Common Metacharacters">2. Common Metacharacters</a></li>
+                    <li>
+                        <a href="#3-character-classes" aria-label="3. Character Classes">3. Character Classes</a></li>
+                    <li>
+                        <a href="#4-quantifiers" aria-label="4. Quantifiers">4. Quantifiers</a></li>
+                    <li>
+                        <a href="#5-capture-groups-and-non-capture-groups" aria-label="5. Capture Groups and Non-Capture Groups">5. Capture Groups and Non-Capture Groups</a></li>
+                    <li>
+                        <a href="#6-boundaries-and-assertions" aria-label="6. Boundaries and Assertions">6. Boundaries and Assertions</a></li>
+                    <li>
+                        <a href="#7-modifiers-flags" aria-label="7. Modifiers (Flags)">7. Modifiers (Flags)</a></li>
+                    <li>
+                        <a href="#8-common-application-examples" aria-label="8. Common Application Examples">8. Common Application Examples</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    
+    document.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+    
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+        if (elements.length > 0) {
+            
+            activeElement = elements[0];
+            const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+            document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+        }
+    
+        
+        const topLink = document.getElementById('top-link');
+        if (topLink) {
+            topLink.addEventListener('click', (event) => {
+                
+                event.preventDefault();
+    
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    }, false);
+    
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+    
+    window.addEventListener('scroll', () => {
+        
+        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
+        
+        if (scrollPosition === 0) {
+            return;
+        }
+    
+        
+        if (elements && elements.length > 0) {
+            
+            activeElement = Array.from(elements).find((element) => {
+                if ((getOffsetTop(element) - scrollPosition) > 0 && 
+                    (getOffsetTop(element) - scrollPosition) < window.innerHeight / 2) {
+                    return element;
+                }
+            }) || activeElement;
+    
+            elements.forEach(element => {
+                const id = encodeURI(element.getAttribute('id')).toLowerCase();
+                const tocLink = document.querySelector(`.inner ul li a[href="#${id}"]`);
+                if (element === activeElement){
+                    tocLink.classList.add('active');
+    
+                    
+                    const tocContainer = document.querySelector('.toc .inner');
+                    const linkOffsetTop = tocLink.offsetTop;
+                    const containerHeight = tocContainer.clientHeight;
+                    const linkHeight = tocLink.clientHeight;
+    
+                    
+                    const scrollPosition = linkOffsetTop - (containerHeight / 2) + (linkHeight / 2);
+                    tocContainer.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+                } else {
+                    tocLink.classList.remove('active');
+                }
+            });
+        }
+    }, false);
+    
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+    
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+    
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+    
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+    
+</script>
+
+  <div class="post-content"><h1 id="regular-expression-rules-detailed-explanation">Regular Expression Rules Detailed Explanation<a hidden class="anchor" aria-hidden="true" href="#regular-expression-rules-detailed-explanation">#</a></h1>
+<p>正则表达式 (Regular Expression，简称 regex) 是一种用于匹配和操作文本的强大工具。它通过定义特定的模式来查找、验证或替换字符串。本文档详细介绍正则表达式的规则，包括基本语法、常用元字符、量词、捕获组等，并提供示例。</p>
+<h2 id="1-regular-expression-basics">1. Regular Expression Basics<a hidden class="anchor" aria-hidden="true" href="#1-regular-expression-basics">#</a></h2>
+<p>正则表达式由普通字符和元字符组成：</p>
+<ul>
+<li><strong>普通字符</strong>：如字母、数字、符号 (如 <code>a</code>、<code>1</code>、<code>@</code>)，直接匹配自身。</li>
+<li><strong>元字符</strong>：具有特殊意义的字符，如 <code>.</code>、<code>^</code>、<code>*</code> 等，用于定义匹配规则。</li>
+</ul>
+<p>正则表达式通常用斜杠 <code>/</code> 包裹 (如 <code>/abc/</code>)，但在不同语言中可能有所不同 (例如 Python 用字符串表示，JavaScript 用 <code>/.../</code>) 。</p>
+<h2 id="2-common-metacharacters">2. Common Metacharacters<a hidden class="anchor" aria-hidden="true" href="#2-common-metacharacters">#</a></h2>
+<p>以下是正则表达式中常用的元字符及其含义：</p>
+<table>
+  <thead>
+      <tr>
+          <th>元字符</th>
+          <th>描述</th>
+          <th>示例</th>
+          <th>匹配结果</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>.</code></td>
+          <td>匹配除换行符 (<code>\n</code>) 外的任意单个字符</td>
+          <td><code>a.c</code></td>
+          <td><code>abc</code>, <code>a1c</code>, <code>a@c</code></td>
+      </tr>
+      <tr>
+          <td><code>^</code></td>
+          <td>匹配字符串的开头</td>
+          <td><code>^abc</code></td>
+          <td><code>abc</code> (仅在字符串开头)</td>
+      </tr>
+      <tr>
+          <td><code>$</code></td>
+          <td>匹配字符串的结尾</td>
+          <td><code>abc$</code></td>
+          <td><code>abc</code> (仅在字符串结尾)</td>
+      </tr>
+      <tr>
+          <td><code>*</code></td>
+          <td>匹配前面的字符或子表达式 0 次或多次</td>
+          <td><code>ab*c</code></td>
+          <td><code>ac</code>, <code>abc</code>, <code>abbc</code></td>
+      </tr>
+      <tr>
+          <td><code>+</code></td>
+          <td>匹配前面的字符或子表达式 1 次或多次</td>
+          <td><code>ab+c</code></td>
+          <td><code>abc</code>, <code>abbc</code> (不匹配 <code>ac</code>)</td>
+      </tr>
+      <tr>
+          <td><code>?</code></td>
+          <td>匹配前面的字符或子表达式 0 次或 1 次</td>
+          <td><code>ab?c</code></td>
+          <td><code>ac</code>, <code>abc</code></td>
+      </tr>
+      <tr>
+          <td>`</td>
+          <td>`</td>
+          <td>或运算，匹配左侧或右侧的模式</td>
+          <td>`a</td>
+      </tr>
+      <tr>
+          <td><code>[]</code></td>
+          <td>匹配方括号内的任意一个字符</td>
+          <td><code>[abc]</code></td>
+          <td><code>a</code>, <code>b</code>, 或 <code>c</code></td>
+      </tr>
+      <tr>
+          <td><code>[^]</code></td>
+          <td>匹配不在方括号内的任意字符</td>
+          <td><code>[^abc]</code></td>
+          <td>非 <code>a</code>、<code>b</code>、<code>c</code> 的字符</td>
+      </tr>
+      <tr>
+          <td><code>()</code></td>
+          <td>定义子表达式或捕获组</td>
+          <td><code>(abc)</code></td>
+          <td>匹配 <code>abc</code> 作为一个整体</td>
+      </tr>
+      <tr>
+          <td><code>{n}</code></td>
+          <td>精确匹配前面的字符或子表达式 n 次</td>
+          <td><code>a{3}</code></td>
+          <td><code>aaa</code></td>
+      </tr>
+      <tr>
+          <td><code>{n,}</code></td>
+          <td>匹配前面的字符或子表达式至少 n 次</td>
+          <td><code>a{2,}</code></td>
+          <td><code>aa</code>, <code>aaa</code>, <code>aaaa</code></td>
+      </tr>
+      <tr>
+          <td><code>{n,m}</code></td>
+          <td>匹配前面的字符或子表达式 n 到 m 次</td>
+          <td><code>a{2,3}</code></td>
+          <td><code>aa</code>, <code>aaa</code></td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="3-character-classes">3. Character Classes<a hidden class="anchor" aria-hidden="true" href="#3-character-classes">#</a></h2>
+<p>字符类用于匹配特定范围或类型的字符：</p>
+<ul>
+<li><strong>预定义字符类</strong>：
+<ul>
+<li><code>\d</code>：匹配任意数字，等价于 <code>[0-9]</code>.</li>
+<li><code>\D</code>：匹配非数字，等价于 <code>[^0-9]</code>.</li>
+<li><code>\w</code>：匹配任意字母、数字或下划线，等价于 <code>[a-zA-Z0-9_]</code> dissuades</li>
+<li><code>\W</code>：匹配非字母、数字或下划线，等价于 <code>[^a-zA-Z0-9_]</code>.</li>
+<li><code>\s</code>：匹配任意空白字符 (如空格、制表符、换行符) 。</li>
+<li><code>\S</code>：匹配非空白字符。</li>
+</ul>
+</li>
+<li><strong>自定义字符类</strong>：
+<ul>
+<li><code>[a-z]</code>：匹配小写字母 <code>a</code> 到 <code>z</code>.</li>
+<li><code>[A-Z]</code>：匹配大写字母 <code>A</code> 到 <code>Z</code>.</li>
+<li><code>[0-9]</code>：匹配数字 <code>0</code> 到 <code>9</code>.</li>
+<li><code>[a-zA-Z]</code>：匹配任意字母。</li>
+<li><code>[a-dm-p]</code>：匹配 <code>a</code> 到 <code>d</code> 或 <code>m</code> 到 <code>p</code> 的字符。</li>
+</ul>
+</li>
+</ul>
+<p>示例：</p>
+<ul>
+<li><code>\d{3}</code>：匹配三个数字，如 <code>123</code>.</li>
+<li><code>[a-zA-Z]+</code>：匹配一个或多个字母，如 <code>hello</code>.</li>
+</ul>
+<h2 id="4-quantifiers">4. Quantifiers<a hidden class="anchor" aria-hidden="true" href="#4-quantifiers">#</a></h2>
+<p>量词控制前面的字符或子表达式的重复次数：</p>
+<ul>
+<li><code>*</code>：0 次或多次。</li>
+<li><code>+</code>：1 次或多次。</li>
+<li><code>?</code>：0 次或 1 次。</li>
+<li><code>{n}</code>：精确 n 次。</li>
+<li><code>{n,}</code>：至少 n 次。</li>
+<li><code>{n,m}</code>：n 到 m 次。</li>
+</ul>
+<p><strong>贪婪模式与非贪婪模式</strong>：</p>
+<ul>
+<li>默认情况下，量词是<strong>贪婪模式</strong>，匹配尽可能多的字符。例如，<code>a.*b</code> 匹配 <code>a123b456b</code> 中的 <code>a123b456b</code>.</li>
+<li>添加 <code>?</code> 后变为<strong>非贪婪模式</strong>，匹配尽可能少的字符。例如，<code>a.*?b</code> 匹配 <code>a123b456b</code> 中的 <code>a123b</code>.</li>
+</ul>
+<h2 id="5-capture-groups-and-non-capture-groups">5. Capture Groups and Non-Capture Groups<a hidden class="anchor" aria-hidden="true" href="#5-capture-groups-and-non-capture-groups">#</a></h2>
+<ul>
+<li><strong>捕获组</strong>：用 <code>()</code> 包裹的子表达式，可以提取匹配的内容或进行反向引用。
+<ul>
+<li>示例：<code>(\d{2})-(\d{2})</code> 匹配 <code>12-34</code>，捕获组 1 为 <code>12</code>，捕获组 2 为 <code>34</code>.</li>
+<li>反向引用：使用 <code>\n</code> (n 为组编号) 引用捕获组。例如，<code>(a)\1</code> 匹配 <code>aa</code> (两个相同的 <code>a</code>) 。</li>
+</ul>
+</li>
+<li><strong>非捕获组</strong>：用 <code>(?:...)</code> 定义，不保存匹配内容，仅用于分组。
+<ul>
+<li>示例：<code>(?:abc)</code> 匹配 <code>abc</code>，但不捕获。</li>
+</ul>
+</li>
+</ul>
+<h2 id="6-boundaries-and-assertions">6. Boundaries and Assertions<a hidden class="anchor" aria-hidden="true" href="#6-boundaries-and-assertions">#</a></h2>
+<ul>
+<li><strong>单词边界</strong>：
+<ul>
+<li><code>\b</code>：匹配单词边界。例如，<code>\bcat\b</code> 匹配 <code>cat</code>，但不匹配 <code>category</code> 中的 <code>cat</code>.</li>
+<li><code>\B</code>：匹配非单词边界。</li>
+</ul>
+</li>
+<li><strong>前瞻与后顾断言</strong>：
+<ul>
+<li><code>(?=...)</code>：正向前瞻，匹配后面跟着某模式的情况。例如，<code>a(?=b)</code> 匹配 <code>ab</code> 中的 <code>a</code>.</li>
+<li><code>(?!...)</code>：负向前瞻，匹配后面不跟某模式的情况。例如，<code>a(?!b)</code> 匹配 <code>ac</code> 中的 <code>a</code>.</li>
+<li><code>(?&lt;=...)</code>：正向后顾，匹配前面是某模式的情况。例如，<code>(?&lt;=b)a</code> 匹配 <code>ba</code> 中的 <code>a</code>.</li>
+<li><code>(?&lt;!...)</code>：负向后顾，匹配前面不是某模式的情况。例如，<code>(?&lt;!b)a</code> 匹配 <code>ca</code> 中的 <code>a</code>.</li>
+</ul>
+</li>
+</ul>
+<h2 id="7-modifiers-flags">7. Modifiers (Flags)<a hidden class="anchor" aria-hidden="true" href="#7-modifiers-flags">#</a></h2>
+<p>修饰符控制正则表达式的行为，常见修饰符包括：</p>
+<ul>
+<li><code>i</code>：忽略大小写。例如，<code>/abc/i</code> 匹配 <code>ABC</code>.</li>
+<li><code>g</code>：全局匹配，查找所有匹配项。</li>
+<li><code>m</code>：多行模式，<code>^</code> 和 <code>$</code> 匹配每行的开头和结尾。</li>
+<li>注意：
+<ul>
+<li>修饰符的写法因语言而异。例如，在 JavaScript 中，修饰符写在正则表达式后 (如 <code>/abc/gi</code>) ，而在 Python 中通过 <code>re.compile(pattern, re.IGNORECASE)</code> 指定。</li>
+</ul>
+</li>
+</ul>
+<h2 id="8-common-application-examples">8. Common Application Examples<a hidden class="anchor" aria-hidden="true" href="#8-common-application-examples">#</a></h2>
+<p>以下是一些常见的正则表达式应用场景及其示例：</p>
+<ol>
+<li><strong>验证邮箱格式</strong>:
+<pre tabindex="0"><code class="language-regex" data-lang="regex">^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$
+</code></pre></li>
+<li><strong>提取 URL</strong>:
+<pre tabindex="0"><code class="language-regex" data-lang="regex">https?://[^\s]+
+</code></pre></li>
+<li><strong>验证密码</strong> (至少 8 位，包含字母、数字、特殊字符):
+<pre tabindex="0"><code class="language-regex" data-lang="regex">^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&amp;])[A-Za-z\d@$!%*?&amp;]{8,}$
+</code></pre></li>
+<li><strong>匹配日期格式</strong> (YYYY-MM-DD):
+<pre tabindex="0"><code class="language-regex" data-lang="regex">\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])
+</code></pre></li>
+</ol>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/regular-expression/">Regular Expression</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/internvideo2.5/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>InternVideo2.5</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/productivity/vscode_commands/">
+    <span class="title">Next »</span>
+    <br>
+    <span>🔑 Useful VSCode Shortcut keys</span>
+  </a>
+</nav>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

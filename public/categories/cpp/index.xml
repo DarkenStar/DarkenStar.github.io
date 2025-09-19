@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>CPP on WITHER</title>
+    <link>http://localhost:1313/categories/cpp/</link>
+    <description>Recent content in CPP on WITHER</description>
+    <generator>Hugo -- 0.148.1</generator>
+    <language>en</language>
+    <copyright>2024-2025 WITHER</copyright>
+    <lastBuildDate>Fri, 19 Sep 2025 09:20:48 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/categories/cpp/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Cpp Lambda Expression</title>
+      <link>http://localhost:1313/blogs/productivity/cpplambdaexpression/</link>
+      <pubDate>Fri, 15 Aug 2025 12:16:48 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/productivity/cpplambdaexpression/</guid>
+      <description>Lambda Expression in CPP.</description>
+      <content:encoded><![CDATA[<p>C++ Lambda 表达式（也称为 Lambda 函数）是一种在代码中定义匿名函数的便捷方式。它特别适用于需要一个简短、临时的函数对象的场景，例如作为标准库算法的参数。</p>
+<p>一个完整的 Lambda 表达式的通用语法如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="p">[</span><span class="n">capture</span><span class="o">-</span><span class="n">list</span><span class="p">](</span><span class="n">parameters</span><span class="p">)</span> <span class="k">mutable</span> <span class="n">exception</span> <span class="o">-&gt;</span> <span class="n">return_type</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 函数体
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">statement</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ol>
+<li>
+<p>捕获列表 <code>[capture_list]</code> 用于控制 Lambda 函数如何从其所在的父作用域“捕获”变量。</p>
+<ul>
+<li><code>[]</code>：空捕获列表。表示不捕获任何外部变量。Lambda 函数体内不能访问父作用域中的任何变量。</li>
+<li><code>[=]</code>：以值（by value）的方式捕获所有外部变量。在 Lambda 函数体内，你只能读取这些变量的值，不能修改它们（除非使用 mutable 关键字）。这相当于创建了外部变量的一份拷贝。</li>
+<li><code>[&amp;]</code>：以引用（by reference）的方式捕获所有外部变量。在 Lambda 函数体内，你可以修改这些外部变量，并且修改会影响到原始变量。</li>
+<li><code>[this]</code>：以值的方式捕获当前对象的 this 指针。这使得你可以在 Lambda 函数体内访问当前对象的成员变量和成员函数。</li>
+<li><code>[a, &amp;b]</code>：指定捕获列表。这里 a 以值的方式捕获，而 b 以引用的方式捕获。你可以混合使用值捕获和引用捕获。</li>
+<li><code>[=, &amp;b]</code>：以值的方式捕获所有变量，但变量 b 除外，它以引用的方式捕获。</li>
+<li><code>[&amp;, a]</code>：以引用的方式捕获所有变量，但变量 a 除外，它以值的方式捕获。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 不捕获任何变量
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">f1</span> <span class="o">=</span> <span class="p">[]()</span> <span class="p">{</span> <span class="k">return</span> <span class="mi">5</span><span class="p">;</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 以值的方式捕获 x 和 y
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">f2</span> <span class="o">=</span> <span class="p">[</span><span class="o">=</span><span class="p">]()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">;</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 以引用的方式捕获 x 和 y
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">f3</span> <span class="o">=</span> <span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span> <span class="p">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">15</span><span class="p">;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">25</span><span class="p">;</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 混合捕获
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">f4</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">y</span><span class="p">]()</span> <span class="p">{</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">30</span><span class="p">;</span> <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">;</span> <span class="p">};</span>
+</span></span></code></pre></div></li>
+<li>
+<p>参数列表 (parameters): 和普通函数的参数列表一样，这部分是可选的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// 没有参数
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">greet</span> <span class="o">=</span> <span class="p">[]()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;Hello, World!&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 接收两个 int 参数
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">add</span> <span class="o">=</span> <span class="p">[](</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">;</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// C++14 以后，可以使用 auto 进行泛型参数声明
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">generic_add</span> <span class="o">=</span> <span class="p">[](</span><span class="k">auto</span> <span class="n">a</span><span class="p">,</span> <span class="k">auto</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">;</span> <span class="p">};</span>
+</span></span></code></pre></div></li>
+<li>
+<p>mutable 关键字 (可选): 默认情况下，通过值捕获的变量在 Lambda 函数体内是 const 的，不能修改它们。如果希望能够修改这些按值捕获的变量的拷贝（注意，这不会影响原始变量），需要使用 mutable 关键字。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">value</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">counter</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]()</span> <span class="k">mutable</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">value</span><span class="o">++</span><span class="p">;</span> <span class="c1">// 如果没有 mutable，这里会编译错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">counter</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span> <span class="c1">// 输出 101
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">counter</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span> <span class="c1">// 输出 102
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">value</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>     <span class="c1">// 原始 value 仍然是 100
+</span></span></span></code></pre></div></li>
+<li>
+<p>异常规范 exception (可选):可以使用 noexcept 来指明该 Lambda 函数不会抛出任何异常。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">safe_divide</span> <span class="o">=</span> <span class="p">[](</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span><span class="n">b</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="n">a</span> <span class="o">/</span> <span class="n">b</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div></li>
+<li>
+<p>返回类型 <code>-&gt; return_type</code> (可选):
+在大多数情况下，编译器可以自动推断出 Lambda 表达式的返回类型。但如果函数体包含多个 return 语句，或者希望明确指定返回类型，就可以使用这个语法。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="c1">// 编译器可以自动推断返回类型为 int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">add</span> <span class="o">=</span> <span class="p">[](</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">;</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 明确指定返回类型为 double
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">divide</span> <span class="o">=</span> <span class="p">[](</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">double</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">b</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div></li>
+</ol>
+]]></content:encoded>
+    </item>
+  </channel>
+</rss>

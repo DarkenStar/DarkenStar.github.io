@@ -187,6 +187,20 @@
 
 <article class="post-entry tag-entry"> 
   <header class="entry-header">
+    <h2 class="entry-hint-parent">Hot100
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Hash 1 由于题目规定不能用重复元素，因此要先判断哈希表中是否已经有 target - nums[i] 再将 nums[i] 加入到哈希表 (否则 2*nums[i] = target 情况就会加入重复元素)
+class Solution { public: vector&lt;int&gt; twoSum(vector&lt;int&gt;&amp; nums, int target) { vector&lt;int&gt; ans; unordered_map&lt;int, int&gt; map; for (int i = 0; i &lt; nums.size(); i&#43;&#43;) { if (map.find(target - nums[i]) != map.end()) { ans = {i, map[target - nums[i]]}; break; } map[nums[i]] = i; } return ans; } }; 49 字母异位词是通过重新排列不同单词或短语的字母而形成的单词或短语，并使用所有原字母一次。
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2025-08-23 13:46:45 +0800 CST'>Aug-23-2025</span>&nbsp;·&nbsp;18 min&nbsp;·&nbsp;8661 words&nbsp;·&nbsp;WITHER</footer>
+  <a class="entry-link" aria-label="post link to Hot100" href="http://localhost:1313/blogs/leetcode/hot100/"></a>
+</article>
+
+<article class="post-entry tag-entry"> 
+  <header class="entry-header">
     <h2 class="entry-hint-parent">InternLM3 8B Instruct
     </h2>
   </header>

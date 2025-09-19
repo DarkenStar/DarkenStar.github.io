@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>🔑 Useful VSCode Shortcut keys | WITHER</title>
+<meta name="keywords" content="Shortcut">
+<meta name="description" content="Useful VSCode Shortcut keys">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/productivity/vscode_commands/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.dd3b5b907a50db3238b81d49d094cf1c04a091227797dc9cfde4e2fa3f35df49.css" integrity="sha256-3TtbkHpQ2zI4uB1J0JTPHASgkSJ3l9yc/eTi&#43;j8130k=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/productivity/vscode_commands/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+
+
+
+<script src="https://cdn.bootcdn.net/ajax/libs/mermaid/9.1.6/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: localStorage.getItem("pref-theme") === "dark" ? "dark" : "forest" 
+    });
+</script>
+
+<meta property="og:url" content="http://localhost:1313/blogs/productivity/vscode_commands/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="🔑 Useful VSCode Shortcut keys">
+  <meta property="og:description" content="Useful VSCode Shortcut keys">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2025-06-28T10:28:14+08:00">
+    <meta property="article:modified_time" content="2025-09-19T09:20:48+08:00">
+    <meta property="article:tag" content="VSCode">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="🔑 Useful VSCode Shortcut keys">
+<meta name="twitter:description" content="Useful VSCode Shortcut keys">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Engineering Development Skills🔧",
+      "item": "http://localhost:1313/blogs/productivity/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "🔑 Useful VSCode Shortcut keys",
+      "item": "http://localhost:1313/blogs/productivity/vscode_commands/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "🔑 Useful VSCode Shortcut keys",
+  "name": "🔑 Useful VSCode Shortcut keys",
+  "description": "Useful VSCode Shortcut keys",
+  "keywords": [
+    "Shortcut"
+  ],
+  "articleBody": "Visual Studio Code (VSCode) Common Shortcut Keys 以下快捷键涵盖 文件操作、代码编辑、导航、搜索、调试 等高频场景。\nFile \u0026 Editor Operations 功能 Windows/Linux macOS 新建文件 Ctrl + N Cmd + N 打开文件 Ctrl + O Cmd + O 保存文件 Ctrl + S Cmd + S 另存为 Ctrl + Shift + S Cmd + Shift + S 关闭当前标签 Ctrl + W Cmd + W 重新打开已关闭文件 Ctrl + Shift + T Cmd + Shift + T 拆分编辑器 (分屏) Ctrl + \\ Cmd + \\ 切换编辑器组 Ctrl + 1/2/3 Cmd + 1/2/3 Code Edition 功能 Windows/Linux macOS 复制当前行 Ctrl + C (不选中内容时) Cmd + C 剪切当前行 Ctrl + X (不选中内容时) Cmd + X 删除当前行 Ctrl + Shift + K Cmd + Shift + K 上下移动行 Alt + ↑/↓ Option + ↑/↓ 快速复制行 Shift + Alt + ↑/↓ Shift + Option + ↑/↓ 跳转到匹配括号 Ctrl + Shift + \\ Cmd + Shift + \\ 代码格式化 Shift + Alt + F Shift + Option + F 行注释/取消注释 Ctrl + / Cmd + / 块注释 Shift + Alt + A Shift + Option + A Cusor Operations 功能 Windows/Linux macOS 多光标编辑 Alt + 单击 Option + 单击 向下多光标 Ctrl + Alt + ↓ Cmd + Option + ↓ 向上多光标 Ctrl + Alt + ↑ Cmd + Option + ↑ 选中当前单词 Ctrl + D Cmd + D 选中所有匹配项 Ctrl + Shift + L Cmd + Shift + L 跳转到行首/行尾 Home / End Cmd + ← / Cmd + → Search \u0026 Substitution 功能 Windows/Linux macOS 全局搜索 Ctrl + Shift + F Cmd + Shift + F 文件内搜索 Ctrl + F Cmd + F 文件内替换 Ctrl + H Cmd + Option + F 跳转到符号 (函数/类) Ctrl + Shift + O Cmd + Shift + O 跳转到行号 Ctrl + G Ctrl + G Debug \u0026 Terminal 功能 Windows/Linux macOS 启动调试 F5 F5 切换断点 F9 F9 打开终端 Ctrl + `` Ctrl + `` 切换终端面板 Ctrl + J Cmd + J Other Efficient Operation 功能 Windows/Linux macOS 命令面板 (万能快捷键) Ctrl + Shift + P Cmd + Shift + P 快速打开文件 Ctrl + P Cmd + P 重命名符号 (变量/函数) F2 F2 折叠/展开代码块 Ctrl + Shift + [ / ] Cmd + Option + [ / ] 折叠所有区域 Ctrl + K, Ctrl + 0 Cmd + K, Cmd + 0 展开所有区域 Ctrl + K, Ctrl + J Cmd + K, Cmd + J Customized Shortcut Keys 打开命令面板：Ctrl + Shift + P (Win/Linux) / Cmd + Shift + P (Mac). 搜索 Preferences: Open Keyboard Shortcuts. 修改或绑定任意快捷键。 ",
+  "wordCount" : "668",
+  "inLanguage": "en",
+  "datePublished": "2025-06-28T10:28:14+08:00",
+  "dateModified": "2025-09-19T09:20:48+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/productivity/vscode_commands/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/productivity/">Engineering Development Skills🔧</a></div>
+    <h1 class="post-title entry-hint-parent">
+      🔑 Useful VSCode Shortcut keys
+    </h1>
+    <div class="post-description">
+      Useful VSCode Shortcut keys
+    </div>
+    <div class="post-meta"><span title='2025-06-28 10:28:14 +0800 CST'>Jun-28-2025</span>&nbsp;·&nbsp;2 min&nbsp;·&nbsp;668 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#visual-studio-code-vscode-common-shortcut-keys" aria-label="Visual Studio Code (VSCode) Common Shortcut Keys">Visual Studio Code (VSCode) Common Shortcut Keys</a><ul>
+                            
+                    <li>
+                        <a href="#file--editor-operations" aria-label="File &amp; Editor Operations">File &amp; Editor Operations</a></li>
+                    <li>
+                        <a href="#code-edition" aria-label="Code Edition">Code Edition</a></li>
+                    <li>
+                        <a href="#cusor-operations" aria-label="Cusor Operations">Cusor Operations</a></li>
+                    <li>
+                        <a href="#search--substitution" aria-label="Search &amp; Substitution">Search &amp; Substitution</a></li>
+                    <li>
+                        <a href="#debug--terminal" aria-label="Debug &amp; Terminal">Debug &amp; Terminal</a></li>
+                    <li>
+                        <a href="#other-efficient-operation" aria-label="Other Efficient Operation">Other Efficient Operation</a></li>
+                    <li>
+                        <a href="#customized-shortcut-keys" aria-label="Customized Shortcut Keys">Customized Shortcut Keys</a>
+                    </li>
+                </ul>
+                </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    
+    document.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+    
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+        if (elements.length > 0) {
+            
+            activeElement = elements[0];
+            const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+            document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+        }
+    
+        
+        const topLink = document.getElementById('top-link');
+        if (topLink) {
+            topLink.addEventListener('click', (event) => {
+                
+                event.preventDefault();
+    
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    }, false);
+    
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+    
+    window.addEventListener('scroll', () => {
+        
+        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
+        
+        if (scrollPosition === 0) {
+            return;
+        }
+    
+        
+        if (elements && elements.length > 0) {
+            
+            activeElement = Array.from(elements).find((element) => {
+                if ((getOffsetTop(element) - scrollPosition) > 0 && 
+                    (getOffsetTop(element) - scrollPosition) < window.innerHeight / 2) {
+                    return element;
+                }
+            }) || activeElement;
+    
+            elements.forEach(element => {
+                const id = encodeURI(element.getAttribute('id')).toLowerCase();
+                const tocLink = document.querySelector(`.inner ul li a[href="#${id}"]`);
+                if (element === activeElement){
+                    tocLink.classList.add('active');
+    
+                    
+                    const tocContainer = document.querySelector('.toc .inner');
+                    const linkOffsetTop = tocLink.offsetTop;
+                    const containerHeight = tocContainer.clientHeight;
+                    const linkHeight = tocLink.clientHeight;
+    
+                    
+                    const scrollPosition = linkOffsetTop - (containerHeight / 2) + (linkHeight / 2);
+                    tocContainer.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+                } else {
+                    tocLink.classList.remove('active');
+                }
+            });
+        }
+    }, false);
+    
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+    
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+    
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+    
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+    
+</script>
+
+  <div class="post-content"><h1 id="visual-studio-code-vscode-common-shortcut-keys">Visual Studio Code (VSCode) Common Shortcut Keys<a hidden class="anchor" aria-hidden="true" href="#visual-studio-code-vscode-common-shortcut-keys">#</a></h1>
+<p>以下快捷键涵盖 <strong>文件操作、代码编辑、导航、搜索、调试</strong> 等高频场景。</p>
+<hr>
+<h2 id="file--editor-operations">File &amp; Editor Operations<a hidden class="anchor" aria-hidden="true" href="#file--editor-operations">#</a></h2>
+<table>
+  <thead>
+      <tr>
+          <th>功能</th>
+          <th>Windows/Linux</th>
+          <th>macOS</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>新建文件</td>
+          <td><code>Ctrl + N</code></td>
+          <td><code>Cmd + N</code></td>
+      </tr>
+      <tr>
+          <td>打开文件</td>
+          <td><code>Ctrl + O</code></td>
+          <td><code>Cmd + O</code></td>
+      </tr>
+      <tr>
+          <td>保存文件</td>
+          <td><code>Ctrl + S</code></td>
+          <td><code>Cmd + S</code></td>
+      </tr>
+      <tr>
+          <td>另存为</td>
+          <td><code>Ctrl + Shift + S</code></td>
+          <td><code>Cmd + Shift + S</code></td>
+      </tr>
+      <tr>
+          <td>关闭当前标签</td>
+          <td><code>Ctrl + W</code></td>
+          <td><code>Cmd + W</code></td>
+      </tr>
+      <tr>
+          <td>重新打开已关闭文件</td>
+          <td><code>Ctrl + Shift + T</code></td>
+          <td><code>Cmd + Shift + T</code></td>
+      </tr>
+      <tr>
+          <td>拆分编辑器 (分屏)</td>
+          <td><code>Ctrl + \</code></td>
+          <td><code>Cmd + \</code></td>
+      </tr>
+      <tr>
+          <td>切换编辑器组</td>
+          <td><code>Ctrl + 1/2/3</code></td>
+          <td><code>Cmd + 1/2/3</code></td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="code-edition">Code Edition<a hidden class="anchor" aria-hidden="true" href="#code-edition">#</a></h2>
+<table>
+  <thead>
+      <tr>
+          <th>功能</th>
+          <th>Windows/Linux</th>
+          <th>macOS</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>复制当前行</strong></td>
+          <td><code>Ctrl + C</code> (不选中内容时)</td>
+          <td><code>Cmd + C</code></td>
+      </tr>
+      <tr>
+          <td><strong>剪切当前行</strong></td>
+          <td><code>Ctrl + X</code> (不选中内容时)</td>
+          <td><code>Cmd + X</code></td>
+      </tr>
+      <tr>
+          <td><strong>删除当前行</strong></td>
+          <td><code>Ctrl + Shift + K</code></td>
+          <td><code>Cmd + Shift + K</code></td>
+      </tr>
+      <tr>
+          <td><strong>上下移动行</strong></td>
+          <td><code>Alt + ↑/↓</code></td>
+          <td><code>Option + ↑/↓</code></td>
+      </tr>
+      <tr>
+          <td><strong>快速复制行</strong></td>
+          <td><code>Shift + Alt + ↑/↓</code></td>
+          <td><code>Shift + Option + ↑/↓</code></td>
+      </tr>
+      <tr>
+          <td><strong>跳转到匹配括号</strong></td>
+          <td><code>Ctrl + Shift + \</code></td>
+          <td><code>Cmd + Shift + \</code></td>
+      </tr>
+      <tr>
+          <td><strong>代码格式化</strong></td>
+          <td><code>Shift + Alt + F</code></td>
+          <td><code>Shift + Option + F</code></td>
+      </tr>
+      <tr>
+          <td><strong>行注释/取消注释</strong></td>
+          <td><code>Ctrl + /</code></td>
+          <td><code>Cmd + /</code></td>
+      </tr>
+      <tr>
+          <td><strong>块注释</strong></td>
+          <td><code>Shift + Alt + A</code></td>
+          <td><code>Shift + Option + A</code></td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="cusor-operations">Cusor Operations<a hidden class="anchor" aria-hidden="true" href="#cusor-operations">#</a></h2>
+<table>
+  <thead>
+      <tr>
+          <th>功能</th>
+          <th>Windows/Linux</th>
+          <th>macOS</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>多光标编辑</strong></td>
+          <td><code>Alt + 单击</code></td>
+          <td><code>Option + 单击</code></td>
+      </tr>
+      <tr>
+          <td><strong>向下多光标</strong></td>
+          <td><code>Ctrl + Alt + ↓</code></td>
+          <td><code>Cmd + Option + ↓</code></td>
+      </tr>
+      <tr>
+          <td><strong>向上多光标</strong></td>
+          <td><code>Ctrl + Alt + ↑</code></td>
+          <td><code>Cmd + Option + ↑</code></td>
+      </tr>
+      <tr>
+          <td><strong>选中当前单词</strong></td>
+          <td><code>Ctrl + D</code></td>
+          <td><code>Cmd + D</code></td>
+      </tr>
+      <tr>
+          <td><strong>选中所有匹配项</strong></td>
+          <td><code>Ctrl + Shift + L</code></td>
+          <td><code>Cmd + Shift + L</code></td>
+      </tr>
+      <tr>
+          <td><strong>跳转到行首/行尾</strong></td>
+          <td><code>Home</code> / <code>End</code></td>
+          <td><code>Cmd + ←</code> / <code>Cmd + →</code></td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="search--substitution">Search &amp; Substitution<a hidden class="anchor" aria-hidden="true" href="#search--substitution">#</a></h2>
+<table>
+  <thead>
+      <tr>
+          <th>功能</th>
+          <th>Windows/Linux</th>
+          <th>macOS</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>全局搜索</strong></td>
+          <td><code>Ctrl + Shift + F</code></td>
+          <td><code>Cmd + Shift + F</code></td>
+      </tr>
+      <tr>
+          <td><strong>文件内搜索</strong></td>
+          <td><code>Ctrl + F</code></td>
+          <td><code>Cmd + F</code></td>
+      </tr>
+      <tr>
+          <td><strong>文件内替换</strong></td>
+          <td><code>Ctrl + H</code></td>
+          <td><code>Cmd + Option + F</code></td>
+      </tr>
+      <tr>
+          <td><strong>跳转到符号 (函数/类)</strong></td>
+          <td><code>Ctrl + Shift + O</code></td>
+          <td><code>Cmd + Shift + O</code></td>
+      </tr>
+      <tr>
+          <td><strong>跳转到行号</strong></td>
+          <td><code>Ctrl + G</code></td>
+          <td><code>Ctrl + G</code></td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="debug--terminal">Debug &amp; Terminal<a hidden class="anchor" aria-hidden="true" href="#debug--terminal">#</a></h2>
+<table>
+  <thead>
+      <tr>
+          <th>功能</th>
+          <th>Windows/Linux</th>
+          <th>macOS</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>启动调试</strong></td>
+          <td><code>F5</code></td>
+          <td><code>F5</code></td>
+      </tr>
+      <tr>
+          <td><strong>切换断点</strong></td>
+          <td><code>F9</code></td>
+          <td><code>F9</code></td>
+      </tr>
+      <tr>
+          <td><strong>打开终端</strong></td>
+          <td><code>Ctrl + `` </code></td>
+          <td><code>Ctrl + `` </code></td>
+      </tr>
+      <tr>
+          <td><strong>切换终端面板</strong></td>
+          <td><code>Ctrl + J</code></td>
+          <td><code>Cmd + J</code></td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="other-efficient-operation">Other Efficient Operation<a hidden class="anchor" aria-hidden="true" href="#other-efficient-operation">#</a></h2>
+<table>
+  <thead>
+      <tr>
+          <th>功能</th>
+          <th>Windows/Linux</th>
+          <th>macOS</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>命令面板</strong> (万能快捷键)</td>
+          <td><code>Ctrl + Shift + P</code></td>
+          <td><code>Cmd + Shift + P</code></td>
+      </tr>
+      <tr>
+          <td><strong>快速打开文件</strong></td>
+          <td><code>Ctrl + P</code></td>
+          <td><code>Cmd + P</code></td>
+      </tr>
+      <tr>
+          <td><strong>重命名符号 (变量/函数)</strong></td>
+          <td><code>F2</code></td>
+          <td><code>F2</code></td>
+      </tr>
+      <tr>
+          <td><strong>折叠/展开代码块</strong></td>
+          <td><code>Ctrl + Shift + [ / ]</code></td>
+          <td><code>Cmd + Option + [ / ]</code></td>
+      </tr>
+      <tr>
+          <td><strong>折叠所有区域</strong></td>
+          <td><code>Ctrl + K, Ctrl + 0</code></td>
+          <td><code>Cmd + K, Cmd + 0</code></td>
+      </tr>
+      <tr>
+          <td><strong>展开所有区域</strong></td>
+          <td><code>Ctrl + K, Ctrl + J</code></td>
+          <td><code>Cmd + K, Cmd + J</code></td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="customized-shortcut-keys">Customized Shortcut Keys<a hidden class="anchor" aria-hidden="true" href="#customized-shortcut-keys">#</a></h2>
+<ol>
+<li>打开命令面板：<code>Ctrl + Shift + P</code> (Win/Linux) / <code>Cmd + Shift + P</code> (Mac).</li>
+<li>搜索 <code>Preferences: Open Keyboard Shortcuts</code>.</li>
+<li>修改或绑定任意快捷键。</li>
+</ol>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/vscode/">VSCode</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/productivity/regularexpression/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>Regular Expression Rules</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/deepseek/dualpipe/">
+    <span class="title">Next »</span>
+    <br>
+    <span>DualPipe</span>
+  </a>
+</nav>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

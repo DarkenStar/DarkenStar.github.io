@@ -4,7 +4,7 @@
     <title>PaperReading on WITHER</title>
     <link>http://localhost:1313/categories/paperreading/</link>
     <description>Recent content in PaperReading on WITHER</description>
-    <generator>Hugo -- 0.147.7</generator>
+    <generator>Hugo -- 0.148.1</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
     <lastBuildDate>Fri, 13 Jun 2025 15:12:24 +0800</lastBuildDate>
@@ -142,121 +142,7 @@
 <li>DistriFusion: 将 U-Net 扩散模型中的官方 DistriFusion 应用于DiT.</li>
 <li>Original:在单个 GPU 上的串行实现。</li>
 </ul>
-<style type="text/css">
-     
-    .notice {
-        --title-color: #fff;
-        --title-background-color: #6be;
-        --content-color: #444;
-        --content-background-color: #e7f2fa;
-    }
-
-    .notice.info {
-        --title-background-color: #fb7;
-        --content-background-color: #fec;
-    }
-
-    .notice.tip {
-        --title-background-color: #5a5;
-        --content-background-color: #efe;
-    }
-
-    .notice.warning {
-        --title-background-color: #c33;
-        --content-background-color: #fee;
-    }
-
-     
-    @media (prefers-color-scheme:dark) {
-        .notice {
-            --title-color: #fff;
-            --title-background-color: #069;
-            --content-color: #ddd;
-            --content-background-color: #023;
-        }
-
-        .notice.info {
-            --title-background-color: #a50;
-            --content-background-color: #420;
-        }
-
-        .notice.tip {
-            --title-background-color: #363;
-            --content-background-color: #121;
-        }
-
-        .notice.warning {
-            --title-background-color: #800;
-            --content-background-color: #400;
-        }
-    }
-
-    body.dark .notice {
-        --title-color: #fff;
-        --title-background-color: #069;
-        --content-color: #ddd;
-        --content-background-color: #023;
-    }
-
-    body.dark .notice.info {
-        --title-background-color: #a50;
-        --content-background-color: #420;
-    }
-
-    body.dark .notice.tip {
-        --title-background-color: #363;
-        --content-background-color: #121;
-    }
-
-    body.dark .notice.warning {
-        --title-background-color: #800;
-        --content-background-color: #400;
-    }
-
-     
-    .notice {
-        padding: 18px;
-        line-height: 24px;
-        margin-bottom: 24px;
-        border-radius: 4px;
-        color: var(--content-color);
-        background: var(--content-background-color);
-    }
-
-    .notice p:last-child {
-        margin-bottom: 0
-    }
-
-     
-    .notice-title {
-        margin: -18px -18px 12px;
-        padding: 4px 18px;
-        border-radius: 4px 4px 0 0;
-        font-weight: 700;
-        color: var(--title-color);
-        background: var(--title-background-color);
-    }
-
-     
-    .icon-notice {
-        display: inline-flex;
-        align-self: center;
-        margin-right: 8px;
-    }
-
-    .icon-notice img,
-    .icon-notice svg {
-        height: 1em;
-        width: 1em;
-        fill: currentColor;
-    }
-
-    .icon-notice img,
-    .icon-notice.baseline svg {
-        top: .125em;
-        position: relative;
-    }
-</style><div class="notice note" >
+<div class="notice note" >
     <p class="notice-title">
         <span class="icon-notice baseline">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 128 300 300">

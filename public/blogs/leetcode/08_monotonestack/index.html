@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>08 Monotone Stack | WITHER</title>
+<meta name="keywords" content="Monotone Stack">
+<meta name="description" content="Algorithm questions about monotone stack.">
+<meta name="author" content="WITHER">
+<link rel="canonical" href="http://localhost:1313/blogs/leetcode/08_monotonestack/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.dd3b5b907a50db3238b81d49d094cf1c04a091227797dc9cfde4e2fa3f35df49.css" integrity="sha256-3TtbkHpQ2zI4uB1J0JTPHASgkSJ3l9yc/eTi&#43;j8130k=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/blogs/leetcode/08_monotonestack/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+  MathJax = {
+    tex: {
+      displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+      inlineMath: [['\\(', '\\)'], ['$', '$']]  
+    }
+  };
+</script>
+
+
+
+
+<script src="https://cdn.bootcdn.net/ajax/libs/mermaid/9.1.6/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: localStorage.getItem("pref-theme") === "dark" ? "dark" : "forest" 
+    });
+</script>
+
+<meta property="og:url" content="http://localhost:1313/blogs/leetcode/08_monotonestack/">
+  <meta property="og:site_name" content="WITHER">
+  <meta property="og:title" content="08 Monotone Stack">
+  <meta property="og:description" content="Algorithm questions about monotone stack.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blogs">
+    <meta property="article:published_time" content="2025-08-19T08:33:21+08:00">
+    <meta property="article:modified_time" content="2025-09-19T09:20:48+08:00">
+    <meta property="article:tag" content="Monotone Stack">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="08 Monotone Stack">
+<meta name="twitter:description" content="Algorithm questions about monotone stack.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Blogs",
+      "item": "http://localhost:1313/blogs/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Leetcode",
+      "item": "http://localhost:1313/blogs/leetcode/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "08 Monotone Stack",
+      "item": "http://localhost:1313/blogs/leetcode/08_monotonestack/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "08 Monotone Stack",
+  "name": "08 Monotone Stack",
+  "description": "Algorithm questions about monotone stack.",
+  "keywords": [
+    "Monotone Stack"
+  ],
+  "articleBody": "739. 这道题的本质是寻找每个元素右侧第一个比它大的元素。这类 “下一个更大元素” (Next Greater Element) 的问题，正是单调栈的经典应用场景。单调栈是一种特殊的栈，它在任何时候，栈内的元素都保持着单调递增或单调递减的顺序。当一个新元素需要入栈时，我们会通过弹出栈顶元素的方式来维护这个单调性。\n对于这道题，我们需要找到的是每个温度值右边的第一个更高温度。我们可以维护一个单调递减的栈，栈中存储的是数组的下标。\n从右向左遍历:\n如果栈不为空，且栈顶元素天数对应的温度 \u003c= 当前天数温度，并且由于我们是倒序遍历，它也不可能是当前天数右边的第一个更高温。所以，这个栈顶元素对于当前来说没有用了，直接弹出。重复这个过程，直到栈为空，或者栈顶元素对应的温度大于当前温度。\n经过上一步的维护，如果此时栈不为空，那么栈顶元素就是右侧第一个比当前更高的温度的下标。我们就可以计算它们之间的天数差。如果栈为空，说明 右侧没有比它更热的天了，答案为 0.\n处理完之后，将当前下标压入栈中。因为我们已经把所有比它矮（温度低）的元素都弹出了，所以 i入栈后，栈仍然保持单调递减。\nclass Solution { public: std::vector\u003cint\u003e dailyTemperatures(std::vector\u003cint\u003e\u0026 temperatures) { int n = temperatures.size(); std::vector\u003cint\u003e answer(n, 0); std::stack\u003cint\u003e st; for (int i = n - 1; i \u003e= 0; --i) { while (!st.empty() \u0026\u0026 temperatures[i] \u003e= temperatures[st.top()]) { st.pop(); } if (!st.empty()) { answer[i] = st.top() - i; } st.push(i); } return answer; } }; 从左向右遍历:\n如果栈不为空，且当前温度大于栈顶元素对应天数的温度，这说明我们找到了栈顶下标对应的答案。相减计算天数差后将栈顶元素弹出。重复这个过程，直到栈为空，或者当前温度不再大于栈顶元素对应的温度。 经过上一步处理后，我们将当前下标压入栈中。因为只有当当前天数温 \u003c= 栈顶温度时，循环才会停止，所以入栈后，栈仍然能保持从栈底到栈顶的单调递减性。当前元素将会等待它右侧的更高温度出现。 遍历结束后，那些仍然留在栈中的下标，意味着它们右侧没有更高的温度，而结果数组初始化时就是 0，所以无需额外处理。 class Solution { public: std::vector\u003cint\u003e dailyTemperatures(std::vector\u003cint\u003e\u0026 temperatures) { int n = temperatures.size(); std::vector\u003cint\u003e answer(n, 0); std::stack\u003cint\u003e st; for (int i = 0; i \u003c n; ++i) { while (!st.empty() \u0026\u0026 temperatures[i] \u003e temperatures[st.top()]) { int prev_index = st.top(); answer[prev_index] = i - prev_index; st.pop(); } st.push(i); } return answer; } }; 时间复杂度: $O(n)$. 虽然有嵌套的 while 循环，但每个下标最多被压入栈一次，弹出栈一次。 空间复杂度: $O(n)$. 在最坏的情况下 (温度单调递减)，所有柱子的下标都会被压入栈中。 42. 这道题的本质是对于每个位置，找到其左右两边比它高的柱子，然后计算这个位置能接的雨水。维护一个单调递减的栈，栈中存储的是柱子的下标，其对应的高度是严格递减的。\n从左到右遍历每个柱子。当栈不为空，且当前柱子的高度大于栈顶下标对应的柱子的高度时，说明一个凹槽的右边界已经找到。 将栈顶元素 弹出，其下标记为 mid，height[mid] 就是凹槽的底部高度。此时，如果栈仍然不为空，新的栈顶元素就是凹槽的左边界，其下标记为 left. 凹槽的宽度 w = i - left - 1. 凹槽的高度取决于左右两个边界中较矮的那个。接水的高度是这个较矮边界的高度减去底部的高度，即 h = min(height[i], height[left]) - height[mid]. 将这部分雨水量 w * h 累加。 只要当前柱子仍然比新的栈顶元素高，就说明当前柱子可以作为更多凹槽的右边界，因此重复上述计算过程。 当 while 循环结束后 (即栈为空，或当前柱子不再高于栈顶柱子)，我们将当前柱子的下标压入栈中。 class Solution { public: int trap(std::vector\u003cint\u003e\u0026 height) { if (height.empty()) { return 0; } std::stack\u003cint\u003e st; int total_water = 0; for (int i = 0; i \u003c height.size(); ++i) { while (!st.empty() \u0026\u0026 height[i] \u003e height[st.top()]) { int mid_index = st.top(); st.pop(); if (st.empty()) { break; } int left_index = st.top(); // 凹槽的左边界 int width = i - left_index - 1; int bound_height = std::min(height[i], height[left_index]); int effective_height = bound_height - height[mid_index]; total_water += width * effective_height; } st.push(i); } return total_water; } }; 496. 从左往右遍历，只要遍历到比栈顶元素更大的数，就意味着栈顶元素找到了答案，记录答案，并弹出栈顶。我们只需把在 nums1 中的元素入栈这样空间复杂度就为 $O(m)$.\nclass Solution { public: vector\u003cint\u003e nextGreaterElement(vector\u003cint\u003e\u0026 nums1, vector\u003cint\u003e\u0026 nums2) { int m = nums1.size(); int n = nums2.size(); vector\u003cint\u003e ans(m, -1); stack\u003cint\u003e st; unordered_map\u003cint, int\u003e map; for (int i = 0; i \u003c nums1.size(); i++) { map[nums1[i]] = i; } for (int i = 0; i \u003c n; i ++) { while(!st.empty() \u0026\u0026 nums2[i] \u003e st.top()) { ans[map[st.top()]] = nums2[i]; st.pop(); } if (map.contains(nums2[i])) { st.push(nums2[i]); } } return ans; } }; 503 循环两遍数组，取模遍历，注意数组中元素只用压栈一次。\nclass Solution { public: vector\u003cint\u003e nextGreaterElements(vector\u003cint\u003e\u0026 nums) { int n = nums.size(); vector\u003cint\u003e ans(n, -1); stack\u003cint\u003e st; for (int i = 0; i \u003c 2*n; i++) { while (!st.empty() \u0026\u0026 nums[i%n] \u003e nums[st.top()]) { ans[st.top()] = nums[i%n]; st.pop(); } if (i \u003c n) st.push(i); } return ans; } }; 901. 维护一个价格单调递减的栈。栈中不仅要存价格，还要存该价格对应的跨度。查看栈顶的元素 {top_price, top_span}。\n当前价格创建一个初始跨度 curSpan = 1. 如果栈顶价格 \u003c= 当前价格，它的跨度可以被吸收合并到当前价格的跨度中。初始跨度加上加栈顶元素跨度后弹出栈顶元素。持续这个过程，直到栈为空，或者栈顶的价格比当前价格更高。\n经过上一步的合并，curSpan 已经计算出了最终的结果。我们将当前的价格和它计算出的总跨度 {price, curSpan} 作为一个新的元素压入栈中，以供后续的价格使用。然后返回 curSpan.\nclass StockSpanner { public: stack\u003cpair\u003cint, int\u003e\u003e st; StockSpanner() { } int next(int price) { int curSpan = 1; while (!st.empty() \u0026\u0026 price \u003e= st.top().first) { curSpan += st.top().second; st.pop(); } st.push({price, curSpan}); return curSpan; } }; ",
+  "wordCount" : "1829",
+  "inLanguage": "en",
+  "datePublished": "2025-08-19T08:33:21+08:00",
+  "dateModified": "2025-09-19T09:20:48+08:00",
+  "author":[{
+    "@type": "Person",
+    "name": "WITHER"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/blogs/leetcode/08_monotonestack/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "WITHER",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="WITHER (Alt + H)">WITHER</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <ul class="lang-switch"><li>|</li>
+                    <li>
+                        <a href="http://localhost:1313/zh/" title="简体中文"
+                            aria-label="简体中文">简体中文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="🏠 Home">
+                    <span>🏠 Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about_me/" title="🙋🏻‍♂️ Me">
+                    <span>🙋🏻‍♂️ Me</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/blogs/" title="📚 Blogs">
+                    <span>📚 Blogs</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="🧩 Categories">
+                    <span>🧩 Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="🔖 Tags">
+                    <span>🔖 Tags</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="⏱ Archive">
+                    <span>⏱ Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="🔍 Search (Alt &#43; /)" accesskey=/>
+                    <span>🔍 Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/friends/" title="🤝 Friends">
+                    <span>🤝 Friends</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/">Blogs</a>&nbsp;»&nbsp;<a href="http://localhost:1313/blogs/leetcode/">Leetcode</a></div>
+    <h1 class="post-title entry-hint-parent">
+      08 Monotone Stack
+    </h1>
+    <div class="post-description">
+      Algorithm questions about monotone stack.
+    </div>
+    <div class="post-meta"><span title='2025-08-19 08:33:21 +0800 CST'>Aug-19-2025</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;1829 words&nbsp;·&nbsp;WITHER
+
+</div>
+  </header> <aside id="toc-container" class="toc-container wide">
+    <div class="toc">
+        <details  open>
+            <summary accesskey="c" title="(Alt + C)">
+                <span class="details">Table of Contents</span>
+            </summary>
+
+            <div class="inner"><ul>
+                    <li>
+                        <a href="#739" aria-label="739.">739.</a></li>
+                    <li>
+                        <a href="#42" aria-label="42.">42.</a></li>
+                    <li>
+                        <a href="#496" aria-label="496.">496.</a></li>
+                    <li>
+                        <a href="#503" aria-label="503">503</a></li>
+                    <li>
+                        <a href="#901" aria-label="901.">901.</a>
+                    </li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</aside>
+<script>
+    let activeElement;
+    let elements;
+    
+    document.addEventListener('DOMContentLoaded', function (event) {
+        checkTocPosition();
+    
+        elements = document.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+        if (elements.length > 0) {
+            
+            activeElement = elements[0];
+            const id = encodeURI(activeElement.getAttribute('id')).toLowerCase();
+            document.querySelector(`.inner ul li a[href="#${id}"]`).classList.add('active');
+        }
+    
+        
+        const topLink = document.getElementById('top-link');
+        if (topLink) {
+            topLink.addEventListener('click', (event) => {
+                
+                event.preventDefault();
+    
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    }, false);
+    
+    window.addEventListener('resize', function(event) {
+        checkTocPosition();
+    }, false);
+    
+    window.addEventListener('scroll', () => {
+        
+        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
+        
+        if (scrollPosition === 0) {
+            return;
+        }
+    
+        
+        if (elements && elements.length > 0) {
+            
+            activeElement = Array.from(elements).find((element) => {
+                if ((getOffsetTop(element) - scrollPosition) > 0 && 
+                    (getOffsetTop(element) - scrollPosition) < window.innerHeight / 2) {
+                    return element;
+                }
+            }) || activeElement;
+    
+            elements.forEach(element => {
+                const id = encodeURI(element.getAttribute('id')).toLowerCase();
+                const tocLink = document.querySelector(`.inner ul li a[href="#${id}"]`);
+                if (element === activeElement){
+                    tocLink.classList.add('active');
+    
+                    
+                    const tocContainer = document.querySelector('.toc .inner');
+                    const linkOffsetTop = tocLink.offsetTop;
+                    const containerHeight = tocContainer.clientHeight;
+                    const linkHeight = tocLink.clientHeight;
+    
+                    
+                    const scrollPosition = linkOffsetTop - (containerHeight / 2) + (linkHeight / 2);
+                    tocContainer.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+                } else {
+                    tocLink.classList.remove('active');
+                }
+            });
+        }
+    }, false);
+    
+    const main = parseInt(getComputedStyle(document.body).getPropertyValue('--article-width'), 10);
+    const toc = parseInt(getComputedStyle(document.body).getPropertyValue('--toc-width'), 10);
+    const gap = parseInt(getComputedStyle(document.body).getPropertyValue('--gap'), 10);
+    
+    function checkTocPosition() {
+        const width = document.body.scrollWidth;
+    
+        if (width - main - (toc * 2) - (gap * 4) > 0) {
+            document.getElementById("toc-container").classList.add("wide");
+        } else {
+            document.getElementById("toc-container").classList.remove("wide");
+        }
+    }
+    
+    function getOffsetTop(element) {
+        if (!element.getClientRects().length) {
+            return 0;
+        }
+        let rect = element.getBoundingClientRect();
+        let win = element.ownerDocument.defaultView;
+        return rect.top + win.pageYOffset;   
+    }
+    
+</script>
+
+  <div class="post-content"><h2 id="739">739.<a hidden class="anchor" aria-hidden="true" href="#739">#</a></h2>
+<p>这道题的本质是寻找每个元素右侧第一个比它大的元素。这类 &ldquo;下一个更大元素&rdquo; (Next Greater Element) 的问题，正是单调栈的经典应用场景。单调栈是一种特殊的栈，它在任何时候，栈内的元素都保持着单调递增或单调递减的顺序。当一个新元素需要入栈时，我们会通过弹出栈顶元素的方式来维护这个单调性。</p>
+<p>对于这道题，我们需要找到的是每个温度值右边的第一个更高温度。我们可以维护一个单调递减的栈，栈中存储的是数组的下标。</p>
+<p>从右向左遍历:</p>
+<ul>
+<li>
+<p>如果栈不为空，且栈顶元素天数对应的温度 &lt;= 当前天数温度，并且由于我们是倒序遍历，它也不可能是当前天数右边的第一个更高温。所以，这个栈顶元素对于当前来说没有用了，直接弹出。重复这个过程，直到栈为空，或者栈顶元素对应的温度大于当前温度。</p>
+</li>
+<li>
+<p>经过上一步的维护，如果此时栈不为空，那么栈顶元素就是右侧第一个比当前更高的温度的下标。我们就可以计算它们之间的天数差。如果栈为空，说明 右侧没有比它更热的天了，答案为 0.</p>
+</li>
+<li>
+<p>处理完之后，将当前下标压入栈中。因为我们已经把所有比它矮（温度低）的元素都弹出了，所以 i入栈后，栈仍然保持单调递减。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Solution</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">dailyTemperatures</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">temperatures</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">temperatures</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">answer</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">stack</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">st</span><span class="p">;</span> 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="o">--</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">st</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">temperatures</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">temperatures</span><span class="p">[</span><span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">()])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">st</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">st</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">answer</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">()</span> <span class="o">-</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">st</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">answer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>从左向右遍历:</p>
+<ul>
+<li>如果栈不为空，且当前温度大于栈顶元素对应天数的温度，这说明我们找到了栈顶下标对应的答案。相减计算天数差后将栈顶元素弹出。重复这个过程，直到栈为空，或者当前温度不再大于栈顶元素对应的温度。</li>
+<li>经过上一步处理后，我们将当前下标压入栈中。因为只有当当前天数温 &lt;= 栈顶温度时，循环才会停止，所以入栈后，栈仍然能保持从栈底到栈顶的单调递减性。当前元素将会等待它右侧的更高温度出现。</li>
+<li>遍历结束后，那些仍然留在栈中的下标，意味着它们右侧没有更高的温度，而结果数组初始化时就是 0，所以无需额外处理。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Solution</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">dailyTemperatures</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">temperatures</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">temperatures</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">answer</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span> 
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">stack</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">st</span><span class="p">;</span> 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">st</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">temperatures</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">temperatures</span><span class="p">[</span><span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">()])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="kt">int</span> <span class="n">prev_index</span> <span class="o">=</span> <span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">();</span> 
+</span></span><span class="line"><span class="cl">                <span class="n">answer</span><span class="p">[</span><span class="n">prev_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">prev_index</span><span class="p">;</span> 
+</span></span><span class="line"><span class="cl">                <span class="n">st</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            
+</span></span><span class="line"><span class="cl">            <span class="n">st</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">answer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><ul>
+<li>时间复杂度: $O(n)$. 虽然有嵌套的 while 循环，但每个下标最多被压入栈一次，弹出栈一次。</li>
+<li>空间复杂度: $O(n)$. 在最坏的情况下 (温度单调递减)，所有柱子的下标都会被压入栈中。</li>
+</ul>
+<h2 id="42">42.<a hidden class="anchor" aria-hidden="true" href="#42">#</a></h2>
+<p>这道题的本质是对于每个位置，找到其左右两边比它高的柱子，然后计算这个位置能接的雨水。维护一个单调递减的栈，栈中存储的是柱子的下标，其对应的高度是严格递减的。</p>
+<ul>
+<li>从左到右遍历每个柱子。当栈不为空，且当前柱子的高度大于栈顶下标对应的柱子的高度时，说明一个凹槽的右边界已经找到。</li>
+<li>将栈顶元素 弹出，其下标记为 mid，height[mid] 就是凹槽的底部高度。此时，如果栈仍然不为空，新的栈顶元素就是凹槽的左边界，其下标记为 left. 凹槽的宽度 <code>w = i - left - 1</code>.
+凹槽的高度取决于左右两个边界中较矮的那个。接水的高度是这个较矮边界的高度减去底部的高度，即 <code>h = min(height[i], height[left]) - height[mid]</code>. 将这部分雨水量 <code>w * h</code> 累加。</li>
+<li>只要当前柱子仍然比新的栈顶元素高，就说明当前柱子可以作为更多凹槽的右边界，因此重复上述计算过程。</li>
+<li>当 while 循环结束后 (即栈为空，或当前柱子不再高于栈顶柱子)，我们将当前柱子的下标压入栈中。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Solution</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">trap</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">height</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">height</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">std</span><span class="o">::</span><span class="n">stack</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">st</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">int</span> <span class="n">total_water</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">height</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">st</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">height</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">height</span><span class="p">[</span><span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">()])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="kt">int</span> <span class="n">mid_index</span> <span class="o">=</span> <span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">                <span class="n">st</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="p">(</span><span class="n">st</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="kt">int</span> <span class="n">left_index</span> <span class="o">=</span> <span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">();</span> <span class="c1">// 凹槽的左边界
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">                <span class="kt">int</span> <span class="n">width</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">left_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="kt">int</span> <span class="n">bound_height</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">min</span><span class="p">(</span><span class="n">height</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">height</span><span class="p">[</span><span class="n">left_index</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">                <span class="kt">int</span> <span class="n">effective_height</span> <span class="o">=</span> <span class="n">bound_height</span> <span class="o">-</span> <span class="n">height</span><span class="p">[</span><span class="n">mid_index</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="n">total_water</span> <span class="o">+=</span> <span class="n">width</span> <span class="o">*</span> <span class="n">effective_height</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">st</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">total_water</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="496">496.<a hidden class="anchor" aria-hidden="true" href="#496">#</a></h2>
+<p>从左往右遍历，只要遍历到比栈顶元素更大的数，就意味着栈顶元素找到了答案，记录答案，并弹出栈顶。我们只需把在 nums1 中的元素入栈这样空间复杂度就为 $O(m)$.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Solution</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">nextGreaterElement</span><span class="p">(</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">nums1</span><span class="p">,</span> <span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">nums2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">int</span> <span class="n">m</span> <span class="o">=</span> <span class="n">nums1</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">nums2</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">ans</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stack</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">st</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">unordered_map</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span> <span class="n">map</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nums1</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">map</span><span class="p">[</span><span class="n">nums1</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">;</span> <span class="n">i</span> <span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">while</span><span class="p">(</span><span class="o">!</span><span class="n">st</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">nums2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">ans</span><span class="p">[</span><span class="n">map</span><span class="p">[</span><span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">()]]</span> <span class="o">=</span> <span class="n">nums2</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">                <span class="n">st</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">map</span><span class="p">.</span><span class="n">contains</span><span class="p">(</span><span class="n">nums2</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">st</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">nums2</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">ans</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="503">503<a hidden class="anchor" aria-hidden="true" href="#503">#</a></h2>
+<p>循环两遍数组，取模遍历，注意数组中元素只用压栈一次。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Solution</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">nextGreaterElements</span><span class="p">(</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span> <span class="n">nums</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">nums</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">ans</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stack</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">st</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">*</span><span class="n">n</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">st</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">nums</span><span class="p">[</span><span class="n">i</span><span class="o">%</span><span class="n">n</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">nums</span><span class="p">[</span><span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">()])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">ans</span><span class="p">[</span><span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">()]</span> <span class="o">=</span> <span class="n">nums</span><span class="p">[</span><span class="n">i</span><span class="o">%</span><span class="n">n</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">                <span class="n">st</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">st</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">ans</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="901">901.<a hidden class="anchor" aria-hidden="true" href="#901">#</a></h2>
+<p>维护一个价格单调递减的栈。栈中不仅要存价格，还要存该价格对应的跨度。查看栈顶的元素 {top_price, top_span}。</p>
+<p>当前价格创建一个初始跨度 curSpan = 1. 如果栈顶价格 &lt;= 当前价格，它的跨度可以被吸收合并到当前价格的跨度中。初始跨度加上加栈顶元素跨度后弹出栈顶元素。持续这个过程，直到栈为空，或者栈顶的价格比当前价格更高。</p>
+<p>经过上一步的合并，curSpan 已经计算出了最终的结果。我们将当前的价格和它计算出的总跨度 {price, curSpan} 作为一个新的元素压入栈中，以供后续的价格使用。然后返回 curSpan.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">StockSpanner</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stack</span><span class="o">&lt;</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;&gt;</span> <span class="n">st</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">StockSpanner</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="nf">next</span><span class="p">(</span><span class="kt">int</span> <span class="n">price</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">int</span> <span class="n">curSpan</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">st</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">price</span> <span class="o">&gt;=</span> <span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">().</span><span class="n">first</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">curSpan</span> <span class="o">+=</span> <span class="n">st</span><span class="p">.</span><span class="n">top</span><span class="p">().</span><span class="n">second</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="n">st</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">st</span><span class="p">.</span><span class="n">push</span><span class="p">({</span><span class="n">price</span><span class="p">,</span> <span class="n">curSpan</span><span class="p">});</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">curSpan</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/monotone-stack/">Monotone Stack</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/blogs/leetcode/09_monotonedeque/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>09 Monotone Deque</span>
+  </a>
+  <a class="next" href="http://localhost:1313/blogs/productivity/cpplambdaexpression/">
+    <span class="title">Next »</span>
+    <br>
+    <span>Cpp Lambda Expression</span>
+  </a>
+</nav>
+
+  </footer><script src="https://giscus.app/client.js"
+        data-repo="jamesnulliu/jamesnulliu.github.io"
+        data-repo-id="R_kgDOMPCQIw"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOMPCQI84Cgb2t"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>© 2024-2025 WITHER</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

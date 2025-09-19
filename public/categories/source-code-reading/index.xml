@@ -4,11 +4,32 @@
     <title>Source Code Reading on WITHER</title>
     <link>http://localhost:1313/categories/source-code-reading/</link>
     <description>Recent content in Source Code Reading on WITHER</description>
-    <generator>Hugo -- 0.147.7</generator>
+    <generator>Hugo -- 0.148.1</generator>
     <language>en</language>
     <copyright>2024-2025 WITHER</copyright>
-    <lastBuildDate>Sat, 21 Jun 2025 22:00:13 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 19 Sep 2025 09:20:48 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/categories/source-code-reading/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>InternVideo2.5</title>
+      <link>http://localhost:1313/blogs/internvideo2.5/</link>
+      <pubDate>Thu, 10 Jul 2025 08:40:52 +0800</pubDate>
+      <guid>http://localhost:1313/blogs/internvideo2.5/</guid>
+      <description>Technical report reading of InternVideo2.5</description>
+      <content:encoded><![CDATA[<h1 id="introduction">Introduction</h1>
+<p>这篇文章的核心目标是提升多模态大语言模型（MLLM）处理视频的能力，特别是处理长且信息丰富的视频上下文（Long and Rich Context, LRC）的能力 。目前，主流的 MLLM 在处理长视频时往往会遇到困难，要么因为计算资源不堪重负而内存溢出，要么在长时序中丢失关键的细节信息，导致理解和推理能力下降。这篇论文的工作旨在增强模型的处理长视频 (length) 的能力和捕捉精细细节 (fineness) 的能力。</p>
+<p>文章提出了两大核心技术：Hierarchical Token Compression (HiCo) &amp; Task Preference Optimization (TPO).</p>
+<p>HiCo 主要解决处理长视频的问题。视频中存在大量的冗余信息，比如相邻帧之间背景变化很小，或者在一个长镜头中语义信息是相似的。HiCo 剔除这些冗余，保留核心信息。它通过一个三步走的非学习性过程来实现：</p>
+<ol>
+<li>自适应时间采样：根据视频的长短和内容特性，动态调整采样频率。短视频（如动作片段）需要密集采样来捕捉细节，而长视频（如电影）则稀疏采样以把握事件脉络。</li>
+<li>Spatiotemporal Token Merging: 它使用了一种名为ToMe (Token Merging) 的技术，该技术通过计算 token 之间的语义相似度，将相似的进行合并。把视频中意思相近的画面信息捏在一起，而不是像传统方法那样粗暴地丢弃或平均。论文特别指出，与需要大量额外参数和复杂训练的Q-Former 等压缩方法相比，ToMe 是即插即用的，效率极高。</li>
+<li>Multimodal Token Dropout：在模型的深层，根据注意力权重动态丢弃那些与当前任务不太相关的视觉通证，进一步精简信息流，让模型能更专注于核心内容 。</li>
+</ol>
+<p>通过 HiCo，模型可以在不牺牲过多性能的前提下，处理更长的视频序列。实验结果极具说服力：在大海捞针（Needle-in-a-Haystack）测试中，基础模型 InternVL2.5 在处理 500 帧视频时就已经很吃力，超过1000 帧便会内存溢出 。而应用了 HiCo 的 InternVideo2.5，不仅能轻松处理超过 5000 帧的视频，还能在 3000 帧的长度内保持极高的信息检索准确率。可以说记住比原来长 6 倍以上的视频并非虚言。</p>
+<p>TPO 主要解决信息丰富的问题，也就是提升模型对精细视觉细节的感知能力。其核心思想是让专家来教通才。通用的 MLLM 虽然能力全面，但在特定视觉任务上（如物体分割、时间定位）往往不如那些专门训练的专家模型。TPO通过 Direct Preference Optimization (DPO )技术，将这些专家模型对特定任务的偏好（即更准确的输出）注入到 MLLM 中。</p>
+<p>具体来说，它为 MLLM 增加了专门的“任务头”（Task Head），比如用于时间定位的</p>
+<p>Temporal Head和用于实例分割的Mask Head 。在训练时，不仅优化MLLM的基础对话能力，还利用特定任务的数据集（如分割、定位数据集）来优化这些任务头的表现。这样一来，MLLM就好像学会了在需要的时候“调用”这些专家能力。</p>
+]]></content:encoded>
+    </item>
     <item>
       <title>DualPipe</title>
       <link>http://localhost:1313/blogs/deepseek/dualpipe/</link>
