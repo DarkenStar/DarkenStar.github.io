@@ -50,7 +50,7 @@ MixQ 是一个高效的混合精度量化系统。通过对离群分布的深入
 
 MixQ的创新基于对离群值分布的深入分析，其关键思想和技术包括：
 - 基于局部性的离群值预测: 作者发现离群值的分布存在局部性规律，并基于此提出了一种预测算法，该算法能够成功预测95.8%的token中的所有离群值。
-- 量化先行检测 (QAD) : 基于精准的预测，作者设计了一种名为 Quantization Ahead of Detection 的新技术，它可以在量化过程中顺带验证预测的正确性，避免了传统方法中昂贵的检测开销。
+- 量化先行检测 (QAD): 基于精准的预测，作者设计了一种名为 Quantization Ahead of Detection 的新技术，它可以在量化过程中顺带验证预测的正确性，避免了传统方法中昂贵的检测开销。
 - 高效的数据结构: 为了高效处理离群值，论文还提出了一种新的数据结构。
 
 # 2. Background and Challenge
@@ -61,7 +61,7 @@ MixQ的创新基于对离群值分布的深入分析，其关键思想和技术�
 
 为了同时实现高吞吐量和高精度，BitsandBytes 提出了混合精度量化 (*mixed-precision quantization*). 它将激活区分为正常值和异常值，对正常值进行高效的低精度矩阵乘法，对异常值进行高精度矩阵乘法。与不进行量化的W16A16计算相比，该方法可以保持99%以上的精度。
 
-**Notation.** 每层的输入 $A_{FP16}$ 是一个 m × h 张量，其中 m 为输入 tokrn 的个数，h 为隐藏层大小。我们识别激活 $A_{FP16}$ 的异常通道 (带有异常列) O，并将其余部分量化为低精度格式，如INT8或INT4。
+**Notation.** 每层的输入 $A_{FP16}$ 是一个 m × h 张量，其中 m 为输入 token 的个数，h 为隐藏层大小。我们识别激活 $A_{FP16}$ 的异常通道 (带有异常列) O，并将其余部分量化为低精度格式，如INT8或INT4.
 
 离群通道 O 的计算公式为：
 
@@ -81,12 +81,12 @@ $$
 这个缩放因子 S 是根据每行非离群值中的最大绝对值动态计算的，如 公式(3) 所示。
 
 $$
-\max_{j\notin\mathcal{O}}\left|(A_{FP16})_{ij}\right|\\S_i=\frac{j\notin\mathcal{O}}{2^{bit-1}-1} \tag{3}
+S_i=\frac{\max_{j\notin\mathcal{O}}\left|(A_{FP16})_{ij}\right|}{2^{bit-1}-1} \tag{3}
 $$
 
 
-计算 (Computation): 最终的矩阵乘法被分解为两个部分的总和，如 公式(4) 所示 ：
-- 低精度计算: 对非离群值通道中的量化激活值 AINT8和量化权重 WINT8进行整数矩阵乘法，然后乘以缩放因子 。
+计算 (Computation): 最终的矩阵乘法被分解为两个部分的总和，如 公式(4) 所示：
+- 低精度计算: 对非离群值通道中的量化激活值 AINT8和量化权重 WINT8进行整数矩阵乘法，然后乘以缩放因子。
 - 高精度计算: 对离群值通道中的原始激活值 AFP16 和权重 WFP16 进行浮点矩阵乘法。
 
 $$
@@ -103,7 +103,7 @@ $$
 2. 离群值的稀疏性导致计算效率低下 (Outlier sparsity makes computation inefficient): 
     - 内存访问低效: 由于离群值在整个激活张量中是稀疏分布的，它们在内存中的存储位置是不连续的 。GPU架构为了效率，总是以一个固定大小的块 (如32字节) 来读取内存。如 图4 所示，当GPU为了读取一个2字节的FP16离群值而执行一次32字节的内存事务时，其中有30字节的数据被浪费掉了。
 
-    - 计算核心低效: 当前最先进的方法 (如BitsandBytes) 在处理离群值的高精度计算时，因为数据是稀疏的，只能采用 SpMM 的通用计算方式。这种计算只能利用GPU上相对较慢的通用CUDA核心，而无法利用为 Tensor Cores.
+    - 计算核心低效: 当前最先进的方法 (如BitsandBytes) 在处理离群值的高精度计算时，因为数据是稀疏的，只能采用 SpMM 的通用计算方式。这种计算只能利用GPU上相对较慢的通用 CUDA Cores，而无法利用 Tensor Cores.
 
 ![Fig. 4: Outlier sparsity makes the memory access inefficient.](https://share.note.youdao.com/yws/api/personal/file/WEBf974f9d09572f7337a761238713ecc35?method=download&shareKey=bd3dc77a3f118f691cfe688fe652c3ef "Fig. 4: Outlier sparsity makes the memory access inefficient.")
 

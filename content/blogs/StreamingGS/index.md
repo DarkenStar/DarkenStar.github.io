@@ -110,7 +110,7 @@ $$
 \begin{aligned}\mathcal{L}_{CBP}&=\frac{1}{N}\sum_{i=0}^{N-1}S_iT_i,\\\mathrm{where~}T_i&=\begin{cases}1,&\text{if depth}_i<\max_{j\in[0,i)}\{\text{depth}_j\},&\text{(2)}\\0,&\text{otherwise,}&\end{cases}\end{aligned} \tag{2}
 $$
 
-如果当前高斯i的深度小于之前最远深度 (即i比某个前面的更近，但按顺序后渲染) ，则$T_i=1$，触发惩罚。这捕捉“跨序”情况，尤其跨体素的。
+如果当前高斯 i 的深度小于之前最远深度 (即i比某个前面的更近，但按顺序后渲染) ，则$T_i=1$，触发惩罚。这捕捉“跨序”情况，尤其跨体素的。
 
 ## Redundant Gaussians in Voxels
 

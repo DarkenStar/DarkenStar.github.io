@@ -49,7 +49,7 @@ APTMoE 是一个在带宽受限的GPU节点上用于MoE模型的亲和感知流�
 分层加载策略旨在确定计算在 GPU 和 CPU 之间的分配，并管理不同的加载决策。由于真正的专家人气要等到门操作完成后才能确定，往往会错过重叠的机会。为了克服这一问题，分层加载策略设计了三个加载阶段，
 - Inter-stage Loading: 为了在不同流水线阶段之间重叠计算和加载，利用历史专家流行度贪婪地分配计算到最高亲和力的 GPU 上。其他一些加载决策被推迟，直到获得更准确的专家知名度。
 - Inter-layer Loading: 为了提前利用专家的流行度，我们使用了一个预测器来预测后续层的流行度分布。利用预测的专家人气，使同一管道阶段的层间加载和计算重叠。根据预测，我们可以为具有高激活密度的专家做出加载决策，并在 GPU 上处理它们，而那些具有低激活密度的专家则留在 CPU 上执行。
-- Inter-expert Loading: 重叠同一层不同专家的加载和计算，依靠实时专家人气。通过这三个加载阶段，亲和性感知卸载技术可以更好地在gpu和cpu之间分配计算。
+- Inter-expert Loading: 重叠同一层不同专家的加载和计算，依靠实时专家人气。通过这三个加载阶段，亲和性感知卸载技术可以更好地在 GPU 和 CPU 之间分配计算。
 
 虽然三个加载阶段中的每一个都识别不同的重叠空间，但它们都依赖于相同的PCIe带宽，从而导致相互干扰。此外，在同一方向上传输数据的内存复制内核不能并发执行，因此这些加载阶段是顺序运行的，可能会相互阻塞。因此，需求优先调度策略通过动态协调这些加载阶段的顺序来解决上述问题。程序定期向GPU查询加载进程状态，并在运行时动态确定加载顺序。
 
@@ -73,15 +73,15 @@ Mobius不把模型简单分成一个stage一个GPU，而是将整个模型切分
 
 - Expert popularity: 与密集模型相比，MoE模型的一个显著特征是专家受欢迎程度，输入 token将被路由到不同的专家，并且分布通常是倾斜的。在MoE微调期间，大多数输入 token 将选择一小部分专家，特别是对特定领域数据集的微调。此外，之前的研究也发现了少数专家在一段时间内总是被高强度激活，我们称之为历史专家的受欢迎程度。
 
-![The time for loading, CPU computing, and GPU computing of a single expert, conducted on Intel Xeon Gold 6348 CPU with 28 Cores and Nvidia A800 GPU. d and h represent dimensions of linear layers in the expert.](https://share.note.youdao.com/yws/api/personal/file/WEB70d3e2cd4e6c87a5abf1c5c48bf123d3?method=download&shareKey=bae6ccf851d1e26438ec90f0c70d20ffhttps://share.note.youdao.com/yws/api/personal/file/WEB70d3e2cd4e6c87a5abf1c5c48bf123d3?method=download&shareKey=bae6ccf851d1e26438ec90f0c70d20ff "The time for loading, CPU computing, and GPU computing of a single expert, conducted on Intel Xeon Gold 6348 CPU with 28 Cores and Nvidia A800 GPU. d and h represent dimensions of linear layers in the expert.")
+![The time for loading, CPU computing, and GPU computing of a single expert, conducted on Intel Xeon Gold 6348 CPU with 28 Cores and Nvidia A800 GPU. d and h represent dimensions of linear layers in the expert.](https://share.note.youdao.com/yws/api/personal/file/WEB70d3e2cd4e6c87a5abf1c5c48bf123d3?method=download&shareKey=bae6ccf851d1e26438ec90f0c70d20ff "The time for loading, CPU computing, and GPU computing of a single expert, conducted on Intel Xeon Gold 6348 CPU with 28 Cores and Nvidia A800 GPU. d and h represent dimensions of linear layers in the expert.")
 
-- Computation Affinity: 利用专家之间不平衡的受欢迎程度，不同专家的激活发生不均匀，导致计算强度的显着变化。如图6所示，当输入 token 数量较大时，GPU的性能明显优于CPU。然而，当输入 token 的数量较少时，计算变得不那么受计算限制，并且CPU更适合处理这种工作负载。因此，我们可以将高需求的专家分配给GPU 并利用它们的并行处理能力，同时将低强度的专家分配给 CPU 并且这样不需要将其加载到GPU内存中，从而减少了数据移动量。
+- Computation Affinity: 利用专家之间不平衡的受欢迎程度，不同专家的激活发生不均匀，导致计算强度的显着变化。如图6所示，当输入 token 数量较大时，GPU的性能明显优于CPU. 然而，当输入 token 的数量较少时，计算变得不那么受计算限制，并且CPU 更适合处理这种工作负载。因此，我们可以将高需求的专家分配给 GPU 并利用它们的并行处理能力，同时将低强度的专家分配给 CPU 并且这样不需要将其加载到GPU内存中，从而减少了数据移动量。
 
 # The Design of APTMoE
 
 ![Fig. 7. The workflow of APTMoE system. The static part runs the profiler and generate the corresponding memory and time results, and the runtime part takes the affinity-aware offloading.](https://share.note.youdao.com/yws/api/personal/file/WEBd1602e6ef7eab8045172d8c055d722f9?method=download&shareKey=40fb816e4eaf517c134fcc0d183adc63 "Fig. 7. The workflow of APTMoE system. The static part runs the profiler and generate the corresponding memory and time results, and the runtime part takes the affinity-aware offloading.")
 
-如图7所示，APTMoE系统可以分为两个部分。**静态部分**: 在给定MoE模型、参数设置和目标GPU节点的情况下，分析器在CPU和GPU上执行单个MoE层的微调。由于输入序列长度和批大小通常是固定的，因此 MHA 块的工作负载在整个微调阶段保持不变。相反，由于gate操作动态地决定了 token 到专家的路由，因此分析器需要遍历单个专家，并将所有可能数量的 token 作为输入。只运行一个层来执行微调步骤，分析时间不会很长。此外，静态部分脱机运行，因此不会产生运行时开销。将计算分配给CPU或GPU也受到数据移动时间的影响，我们分析了单个MHA、单个 gate 操作和单个专家的数据移动时间。存储这些分析结果以确定计算关联。**运行时部分**: APTMoE采用亲和力感知的卸载策略，包括分层加载策略和需求优先级调度策略，详细说明如下。
+如图7所示，APTMoE系统可以分为两个部分。**静态部分**: 在给定MoE模型、参数设置和目标GPU节点的情况下，分析器在CPU和GPU上执行单个MoE层的微调。由于输入序列长度和批大小通常是固定的，因此 MHA 的工作负载在整个微调阶段保持不变。相反，由于gate操作动态地决定了 token 到专家的路由，因此分析器需要遍历单个专家，并将所有可能数量的 token 作为输入。只运行一个层来执行微调步骤，分析时间不会很长。此外，静态部分脱机运行，因此不会产生运行时开销。将计算分配给CPU或GPU也受到数据移动时间的影响，我们分析了单个MHA、单个 gate 操作和单个专家的数据移动时间。存储这些分析结果以确定计算关联。**运行时部分**: APTMoE采用亲和力感知的卸载策略，包括分层加载策略和需求优先级调度策略，详细说明如下。
 
 ## Affinity-aware Offloading on Pipeline Parallelism
 
@@ -97,11 +97,11 @@ Mobius不把模型简单分成一个stage一个GPU，而是将整个模型切分
 
 加载策略分为前向和反向进程。对于前向过程，真正的专家人气在门控操作执行之前是未知的。相反，反向过程中所有真正的专家人气都是已知，从而允许预分配。
 
-Loading Decision Management: 分层加载策略在模型块 (MHA、gate 操作和专家) 的粒度上管理加载决策。每一个阶段都使用了三个队列来管理加载决策，并为它们分配了从低到高的不同优先级。此外，这些队列将用于需求优先级调度策略，以协调加载执行。
+**Loading Decision Management:** 分层加载策略在模型块 (MHA、gate 操作和专家) 的粒度上管理加载决策。每一个阶段都使用了三个队列来管理加载决策，并为它们分配了从低到高的不同优先级。此外，这些队列将用于需求优先级调度策略，以协调加载执行。
 
-Inter-stage Loading: 确定当前阶段的计算与后续阶段的加载之间的重叠空间。根据计算需求贪婪地加载部分数据。倾向于优先考虑极有可能表现出高计算强度的模型块。因此，MHA 和 gate 操作需要处理所有输入数据，在阶段间阶段具有固有的优先级。历史专家受欢迎程度表明，一些专家总是在时间段内被高强度激活。阶段间阶段以受欢迎程度从高到低加载在前一个迭代中高度活跃的专家。对于在此阶段未加载的MHA 和 gate 操作和专家，将其加载决策推迟到后续阶段。
+**Inter-stage Loading:** 确定当前阶段的计算与后续阶段的加载之间的重叠空间。根据计算需求贪婪地加载部分数据。倾向于优先考虑极有可能表现出高计算强度的模型块。因此，MHA 和 gate 操作需要处理所有输入数据，在阶段间阶段具有固有的优先级。历史专家受欢迎程度表明，一些专家总是在时间段内被高强度激活。阶段间阶段以受欢迎程度从高到低加载在前一个迭代中高度活跃的专家。对于在此阶段未加载的 MHA 和 gate 操作和专家，将其加载决策推迟到后续阶段。
 
-Inter-Layer Loading: 同一stage内不同layers间加载的重叠空间。由于 gate 操作位于专家之前，真正的专家受欢迎程度在 gate操作完成之前仍然是未知的。为了解决前向过程中的这一限制，我们引入了一个额外的专家人气预测器，预测器独立运行，不改变原始的MoE模型。
+**Inter-layer Loading:** 同一stage内不同layers间加载的重叠空间。由于 gate 操作位于专家之前，真正的专家受欢迎程度在 gate 操作完成之前仍然是未知的。为了解决前向过程中的这一限制，我们引入了一个额外的专家人气预测器，预测器独立运行，不改变原始的 MoE 模型。
 
 ![Fig. 9. Design of the popularity predictor.](https://share.note.youdao.com/yws/api/personal/file/WEB31a8b85a83f2509c088ad2fb6a8e72c9?method=download&shareKey=299f074b6db499ffa298411ab9ac8573 "Fig. 9. Design of the popularity predictor.")
 
@@ -111,11 +111,11 @@ $$
 R=\frac{\sum_{low}^{high}Comp_{cpu}}{Load_{MHA}+Load_{Gate}+\sum_{high}^{low}Load_{expert}}\tag{1}
 $$
 
-R的分子为计算强度由低到高排列的所有执行微批次中CPU执行专家的预测时间之和。R的分母为MHA块加载时间、门操作和专家累计加载时间，计算强度由高到低排列。停止加载的阈值 R = 1. 一旦产生新的微批次的专家流行度，将重新调度。一旦当前微批中出现新的高需求专家，我们通过添加或删除层间队列的名称来修改层间加载决策以满足新的计算需求。
+R 的分子为计算强度由低到高排列的所有执行微批次中CPU执行专家的预测时间之和。R 的分母为 MHA 加载时间、gate 操作和专家累计加载时间，计算强度由高到低排列。停止加载的阈值 R = 1. 一旦产生新的微批次的专家流行度，将重新调度。一旦当前微批中出现新的高需求专家，我们通过添加或删除层间队列的名称来修改层间加载决策以满足新的计算需求。
 
-Inter-expert Loading: 同一layer内不同experts间的重叠空间。仍用公式 1 来判断是否加载专家，只不过这里使用的是 gate 操作后得到的实时 CPU 执行时间。
+**Inter-expert Loading:** 同一layer内不同experts间的重叠空间。仍用公式 1 来判断是否加载专家，只不过这里使用的是 gate 操作后得到的实时 CPU 执行时间。
 
-Backward Loading Strategy: 反向传播过程中所有准确的专家流行度都已经已知，可以在反向传播之前预先确定阶段间阶段所有专家的分配，而不需要层间和专家间加载阶段。
+**Backward Loading Strategy:** 反向传播过程中所有准确的专家流行度都已经已知，可以在反向传播之前预先确定阶段间阶段所有专家的分配，而不需要层间和专家间加载阶段。
 
 ## Demand-priority Scheduling Strategy
 

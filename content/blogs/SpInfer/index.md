@@ -83,7 +83,7 @@ $$
 Tiled-CSL 使用两个矩阵以 tile 来存储非零元素: NonZeros (16-bit x 2 代表权重和位置) 和 TileOffsets (每个 tile 的起始索引)。
 
 $$
-Stor_{Tiled-CSL}=4B\times NT+4B\times NNZ,\tag (2)
+Stor_{Tiled-CSL}=4B\times NT+4B\times NNZ, \tag{2}
 $$
 
 其中 NT 代表 Tile 个数，NNZ 代表非零元素个数。可以看到用于存储索引的开销和非零元素相当。
@@ -94,7 +94,7 @@ CSR 使用三个一维数组来表示一个 m × n 的稀疏矩阵:
 - row_ptr (row): 行指针数组，长度为 m+1. row[i] 表示第 i 行的非零元素在 values 中的起始索引.
 
 $$
-Stor_{CSR}=(2B+4B)\times NNZ+4B\times(M+1).\tag(3)
+Stor_{CSR}=(2B+4B)\times NNZ+4B\times(M+1).\tag{3}
 $$
 
 CSR 用 32-bit 存储行指针导致开销很大。
@@ -108,8 +108,8 @@ $$
 其中 s 为稀疏度 (零元素的比例). 假设元素独立，块内 nnz 服从二项分布 Binomial(4, 1-s).
 
 总块数为 $ \frac{M \times K}{4} $. SparTA 的 CSR 只处理 nnz >2 的情况: 
-- nnz = 3 的概率: $ \binom{4}{3} (1-s)^3 s = 4 (1-s)^3 s $. 对于 nnz=3，多余 nnz = 1 (只存第 3 个) 。
-- nnz = 4 的概率: $ \binom{4}{4} (1-s)^4 s^0 = (1-s)^4 $. 对于 nnz=4，多余 nnz = 2 (存第 3 和第 4 个) 。
+- nnz = 3 的概率: $ \binom{4}{3} (1-s)^3 s = 4 (1-s)^3 s $. 对于 nnz=3，多余 nnz = 1 (只存第 3 个).
+- nnz = 4 的概率: $ \binom{4}{4} (1-s)^4 s^0 = (1-s)^4 $. 对于 nnz=4，多余 nnz = 2 (存第 3 和第 4 个).
 
 SparTA 整个张量的总存储开销
 
@@ -147,8 +147,8 @@ $$
 
 TCA-BME 采用多级 tile 设计，将权重矩阵划分为不同粒度的 tile，以适应不同层次的硬件。如图6所示，该设计包含三个关键抽象级别: 
 - BitmapTile (BT): $BT_H × BT_W$ 设置成 8 × 8. 对应于 Tensor Core 中最小的计算单元，即一个 8 x 8 的矩阵块。维度设置成这个大小的另外一个原因是可以利用 CUDA 原生的 uint_64 格式作为 64-bit 位图。
-- TCTile (TT): $BT_H × BT_W$ 设置成 2 × 2. 对应于 Tensor core PTX 级别 mma 指令的一个 16 x 16 的矩阵块。FP16 精度有 2 个相关的 PTX 指令 mma.m16n8k8 and mma.m16n8k16. 由于实验表明大矩阵有着更高的吞吐，因此优化针对于 mma.m16n8k16 指令。在TCTiles 中，2×2 Bitmap Tile 以列主序排列，与 mma 指令中四个Ra寄存器的顺序一致。具体来说，左上，左下，右上和右下方的 BitmapTile 分别对应 Ra0-Ra3.
-- GroupTile (GT): 维度为 $GTH × GTW$，包含多个 TCTile，对应于线程块级别。以行主序存储。
+- TCTile (TT): $TT_H × TT_W$ 设置成 2 × 2. 对应于 Tensor core PTX 级别 mma 指令的一个 16 x 16 的矩阵块。FP16 精度有 2 个相关的 PTX 指令 mma.m16n8k8 and mma.m16n8k16. 由于实验表明大矩阵有着更高的吞吐，因此优化针对于 mma.m16n8k16 指令。在TCTiles 中，2×2 Bitmap Tile 以列主序排列，与 mma 指令中四个Ra寄存器的顺序一致。具体来说，左上，左下，右上和右下方的 BitmapTile 分别对应 Ra0-Ra3.
+- GroupTile (GT): 维度为 $GT_H × GT_W$，包含多个 TCTile，对应于线程块级别。以行主序存储。
 
 ![Figure 6. Tensor-Core-Aware Bitmap Encoding. BitmapTile is actually 8×8, shown as 4×4 for illustration.](https://share.note.youdao.com/yws/api/personal/file/WEBc4e659adf88d9471549b35a8062b7064?method=download&shareKey=8d42e47d2b4be3ef4656acbcb031ec40 "Figure 6. Tensor-Core-Aware Bitmap Encoding. BitmapTile is actually 8×8, shown as 4×4 for illustration.")
 
@@ -179,7 +179,7 @@ Shared Memory Bitmap Decoding (SMBD) 使用的是一个二阶段解码算法。�
 
 通过累加 PopCount 得到 TCTile 级别起始偏移，通过 Masked PopCount 得到线程级 (lane内) 偏移。
 
-第一阶段，每个线程在其32位寄存器中解码第一个半精度值 (a0). ID为i的线程检查位图的第 2i 位。如果此位设置为1，线程使用MaskedPopCount来计算在其位置之前存在多少非零值，并从压缩值数组中加载相应的值。如果该位为0，则线程将一个零值加载到寄存器中。
+第一阶段，每个线程在其32位寄存器中解码第一个半精度值 (a0). ID为 i 的线程检查位图的第 2i 位。如果此位设置为1，线程使用MaskedPopCount来计算在其位置之前存在多少非零值，并从压缩值数组中加载相应的值。如果该位为0，则线程将一个零值加载到寄存器中。
 
 第二阶段，每个线程从同一个32位寄存器解码第二个半精度值 (a1). ID为i的线程检查位图的第 2i+1 位，以确定该位置是否存在非零值。然而，在第二阶段不需要额外的MaskedPopCount。阶段1的结果被重用。具体来说，如果第一个值 (a0) 非零，则偏移量增加1以加载第二个值 (a1).
 
