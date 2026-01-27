@@ -1,4 +1,5 @@
 content/blogs/InternLM3-8B-Instruct/
 content/blogs/ServingLLMsOnHuaweiCloudMatrix384/
+content/blogs/SpeculativeDecoding/
 public/
 .hugo_build.lock
